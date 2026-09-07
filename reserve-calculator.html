@@ -64,33 +64,45 @@
     }
 
     .calendar-wrap {
-      position: relative;
       width: 58px;
       min-width: 58px;
     }
 
-    .calendar-button {
+    .calendar-input {
       width: 58px;
       height: 58px;
       border-radius: 16px;
       border: 1px solid #313131;
       background: #151515;
       color: #fff;
-      font-size: 1.45rem;
+      padding: 0;
       cursor: pointer;
+      outline: none;
+      font-size: 0;
     }
 
-    .calendar-button:hover {
+    .calendar-input:focus {
       border-color: #ff1a13;
+      box-shadow: 0 0 0 3px rgba(255,26,19,.12);
     }
 
-    .native-date {
-      position: absolute;
-      inset: 0;
+    .calendar-input::-webkit-calendar-picker-indicator {
       width: 100%;
       height: 100%;
-      opacity: 0;
+      margin: 0;
+      padding: 16px;
       cursor: pointer;
+      filter: invert(1);
+      opacity: 1;
+    }
+
+    .calendar-input::-webkit-datetime-edit,
+    .calendar-input::-webkit-datetime-edit-fields-wrapper,
+    .calendar-input::-webkit-datetime-edit-text,
+    .calendar-input::-webkit-datetime-edit-month-field,
+    .calendar-input::-webkit-datetime-edit-day-field,
+    .calendar-input::-webkit-datetime-edit-year-field {
+      display: none;
     }
 
     .hint {
@@ -146,20 +158,42 @@
       color: #ff5d5d;
     }
 
-    .expired-badge {
+    .result-card.soon {
+      border-color: #b56a16;
+      background: rgba(181, 106, 22, .14);
+    }
+
+    .result-card.soon .result-date,
+    .result-card.soon .result-sub {
+      color: #ffad42;
+    }
+
+    .expired-badge,
+    .soon-badge {
       display: none;
       margin: 14px auto 0;
       width: fit-content;
       padding: 7px 13px;
       border-radius: 999px;
-      background: #a52323;
       color: #fff;
       font-weight: 900;
       letter-spacing: .08em;
       font-size: .82rem;
     }
 
+    .expired-badge {
+      background: #a52323;
+    }
+
+    .soon-badge {
+      background: #b56a16;
+    }
+
     .result-card.expired .expired-badge {
+      display: block;
+    }
+
+    .result-card.soon .soon-badge {
       display: block;
     }
 
@@ -201,8 +235,7 @@
             aria-describedby="dateHint dateError">
 
           <div class="calendar-wrap">
-            <button class="calendar-button" type="button" aria-label="Choose date from calendar">📅</button>
-            <input id="packingDateCalendar" class="native-date" type="date" aria-label="Choose packing date from calendar">
+            <input id="packingDateCalendar" class="calendar-input" type="date" aria-label="Choose packing date from calendar">
           </div>
         </div>
 
@@ -214,6 +247,7 @@
           <div class="result-date" id="resultDate">—</div>
           <div class="result-sub" id="resultSub">Select a valid date.</div>
           <div class="expired-badge">EXPIRED</div>
+          <div class="soon-badge">EXPIRES SOON</div>
         </div>
       </section>
     </div>
@@ -278,22 +312,28 @@
         if (!date) {
           resultDate.textContent = '—';
           resultSub.textContent = 'Select a valid date.';
-          resultCard.classList.remove('expired');
+          resultCard.classList.remove('expired', 'soon');
           return;
         }
 
         const expiry = add180Days(date);
         const today = localToday();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const daysRemaining = Math.ceil((expiry - today) / oneDay);
         const expired = expiry < today;
+        const expiresSoon = !expired && daysRemaining <= 30;
 
         resultDate.textContent = formatDMY(expiry);
+        resultCard.classList.remove('expired', 'soon');
 
         if (expired) {
           resultSub.textContent = `Expired before today (${formatDMY(today)})`;
           resultCard.classList.add('expired');
+        } else if (expiresSoon) {
+          resultSub.textContent = `Expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}`;
+          resultCard.classList.add('soon');
         } else {
           resultSub.textContent = `Valid through ${formatDMY(expiry)}`;
-          resultCard.classList.remove('expired');
         }
       }
 
@@ -318,7 +358,7 @@
           dateError.textContent = 'Please enter a valid date in DD / MM / YYYY format.';
           resultDate.textContent = '—';
           resultSub.textContent = 'Invalid date.';
-          resultCard.classList.remove('expired');
+          resultCard.classList.remove('expired', 'soon');
           return;
         }
 
