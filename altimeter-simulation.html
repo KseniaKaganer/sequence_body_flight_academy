@@ -158,7 +158,8 @@
 
     .altimeter-card {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
     }
 
     .altimeter-stage {
@@ -181,8 +182,8 @@
 
     .needle {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 50.05%;
+      top: 50.55%;
       width: 5.4%;
       height: 34%;
       transform-origin: 50% 100%;
@@ -219,8 +220,8 @@
 
     .needle-center {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 50.05%;
+      top: 50.55%;
       width: 4.5%;
       aspect-ratio: 1;
       transform: translate(-50%, -50%);
@@ -236,32 +237,33 @@
 
     .telemetry-row {
       width: min(760px, 100%);
-      margin: 16px auto 0;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      margin: 10px auto 0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .telemetry-box {
       background: #111;
       border: 1px solid #2c2c2c;
-      border-radius: 16px;
-      padding: 12px 16px;
-      display: flex;
+      border-radius: 999px;
+      padding: 7px 12px;
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
+      gap: 8px;
+      min-width: 0;
     }
 
     .telemetry-label {
       color: #8f8f8f;
-      font-size: .84rem;
+      font-size: .68rem;
       text-transform: uppercase;
-      letter-spacing: .08em;
+      letter-spacing: .07em;
     }
 
     .telemetry-box strong {
-      font-size: clamp(1rem, 3vw, 1.35rem);
+      font-size: .9rem;
       white-space: nowrap;
     }
 
@@ -345,9 +347,6 @@
         justify-content: space-between;
       }
 
-      .telemetry-row {
-        grid-template-columns: 1fr 1fr;
-      }
 
       .altimeter-stage {
         border-radius: 18px;
@@ -388,7 +387,7 @@
           <div class="field">
             <label for="setAltitude">Set altitude</label>
             <div class="input-shell">
-              <input id="setAltitude" type="number" min="1" max="12" step="0.5" value="12" inputmode="decimal">
+              <input id="setAltitude" type="number" min="1" max="30" step="0.5" value="12" inputmode="decimal">
               <span class="input-unit">k ft</span>
             </div>
           </div>
@@ -396,7 +395,7 @@
           <div class="field">
             <label for="openingAltitude">Opening altitude</label>
             <div class="input-shell">
-              <input id="openingAltitude" type="number" min="0.5" max="11.5" step="0.5" value="4.5" inputmode="decimal">
+              <input id="openingAltitude" type="number" min="0.5" max="29.5" step="0.5" value="4.5" inputmode="decimal">
               <span class="input-unit">k ft</span>
             </div>
           </div>
@@ -433,6 +432,7 @@
         <p class="timing-note">
           Timing: normally, the first 1,000 ft takes 10 seconds and every following 1,000 ft takes 5 seconds.
           With “Not from exit” selected, the simulation uses 5 seconds per 1,000 ft from the start.
+          Altitudes above 12,000 ft continue around the dial: 13k points to 1, 14k to 2, and so on.
           The pointer stops at the selected opening altitude.
         </p>
       </section>
@@ -503,8 +503,10 @@
       }
 
       function altitudeToAngle(kft) {
-        // 12/0 is straight up. As altitude descends the pointer moves counter-clockwise.
-        return (kft - 12) * 30;
+        // 12k = 0 at the top. 13k points to 1, 14k to 2, etc.
+        // Descending from 12k moves counter-clockwise.
+        const calibrationOffset = -1.2;
+        return ((kft - 12) * 30) + calibrationOffset;
       }
 
       function setPointer(kft) {
@@ -520,8 +522,8 @@
         if (!Number.isFinite(start)) start = 12;
         if (!Number.isFinite(opening)) opening = 4.5;
 
-        start = clamp(start, 1, 12);
-        opening = clamp(opening, 0.5, 11.5);
+        start = clamp(start, 1, 30);
+        opening = clamp(opening, 0.5, 29.5);
 
         if (opening >= start) {
           opening = Math.max(0.5, start - 0.5);
