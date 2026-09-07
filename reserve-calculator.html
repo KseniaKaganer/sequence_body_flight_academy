@@ -64,21 +64,37 @@
     }
 
     .calendar-wrap {
+      position: relative;
       width: 58px;
       min-width: 58px;
+      height: 58px;
+    }
+
+    .calendar-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      pointer-events: none;
+      z-index: 1;
     }
 
     .calendar-input {
+      position: absolute;
+      inset: 0;
       width: 58px;
       height: 58px;
       border-radius: 16px;
       border: 1px solid #313131;
-      background: #151515;
-      color: #fff;
+      background: transparent;
+      color: transparent;
       padding: 0;
       cursor: pointer;
       outline: none;
       font-size: 0;
+      z-index: 2;
     }
 
     .calendar-input:focus {
@@ -90,10 +106,9 @@
       width: 100%;
       height: 100%;
       margin: 0;
-      padding: 16px;
+      padding: 0;
       cursor: pointer;
-      filter: invert(1);
-      opacity: 1;
+      opacity: 0;
     }
 
     .calendar-input::-webkit-datetime-edit,
@@ -235,6 +250,7 @@
             aria-describedby="dateHint dateError">
 
           <div class="calendar-wrap">
+            <span class="calendar-icon" aria-hidden="true">📅</span>
             <input id="packingDateCalendar" class="calendar-input" type="date" aria-label="Choose packing date from calendar">
           </div>
         </div>
@@ -327,7 +343,8 @@
         resultCard.classList.remove('expired', 'soon');
 
         if (expired) {
-          resultSub.textContent = `Expired before today (${formatDMY(today)})`;
+          const daysAgo = Math.abs(daysRemaining);
+          resultSub.textContent = `Expired ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`;
           resultCard.classList.add('expired');
         } else if (expiresSoon) {
           resultSub.textContent = `Expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}`;
