@@ -6,6 +6,392 @@
   <meta name="theme-color" content="#000000">
   <title>Wingload Calculator | Sequence</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .calculator-wrap {
+      max-width: 980px;
+      margin: 24px auto 0;
+    }
+
+    .formula-card,
+    .calc-card,
+    .chart-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(18px, 4vw, 32px);
+      margin-bottom: 22px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.22);
+    }
+
+    .formula-card {
+      text-align: center;
+    }
+
+    .formula-title {
+      color: #aaa;
+      font-size: .86rem;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      margin-bottom: 14px;
+    }
+
+    .formula {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.2rem, 4vw, 2rem);
+      line-height: 1.45;
+      color: #fff;
+    }
+
+    .formula .fraction {
+      display: inline-flex;
+      flex-direction: column;
+      vertical-align: middle;
+      text-align: center;
+      margin-left: .25em;
+    }
+
+    .formula .top {
+      border-bottom: 1.5px solid #fff;
+      padding: 0 .35em .08em;
+    }
+
+    .formula .bottom {
+      padding-top: .08em;
+    }
+
+    .unit-toggle {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      background: #171717;
+      border: 1px solid #2b2b2b;
+      border-radius: 999px;
+      padding: 4px;
+      margin: 0 auto 28px;
+    }
+
+    .unit-toggle button {
+      min-width: 94px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: #aaa;
+      padding: 10px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .unit-toggle button.active {
+      background: #fff;
+      color: #000;
+    }
+
+    .calc-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .calc-head h1,
+    .chart-card h2 {
+      margin: 0;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .field label {
+      display: block;
+      color: #c5c5c5;
+      font-size: .9rem;
+      margin: 0 0 8px 4px;
+    }
+
+    .input-shell {
+      position: relative;
+    }
+
+    .input-shell input {
+      width: 100%;
+      min-height: 58px;
+      border: 1px solid #313131;
+      border-radius: 16px;
+      background: #151515;
+      color: white;
+      font-size: 1.25rem;
+      padding: 12px 58px 12px 16px;
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .input-shell input:focus {
+      border-color: #ff1a13;
+      box-shadow: 0 0 0 3px rgba(255,26,19,.12);
+    }
+
+    .input-unit {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-size: .9rem;
+      pointer-events: none;
+    }
+
+    .result-box {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid #2a2a2a;
+      background: #121212;
+    }
+
+    .result-number {
+      font-size: clamp(2.6rem, 10vw, 5.5rem);
+      font-weight: 900;
+      line-height: .95;
+      letter-spacing: -.06em;
+    }
+
+    .result-copy strong {
+      display: block;
+      font-size: 1.15rem;
+      margin-bottom: 4px;
+    }
+
+    .result-copy span {
+      color: #999;
+      line-height: 1.45;
+    }
+
+    .wingload-scale {
+      margin-top: 28px;
+      padding-top: 20px;
+    }
+
+    .scale-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: #999;
+      font-size: .85rem;
+    }
+
+    .scale-track {
+      position: relative;
+      display: grid;
+      grid-template-columns: 10fr 4fr 3fr 6fr;
+      height: 64px;
+      border-radius: 15px;
+      overflow: visible;
+      margin: 34px 0 14px;
+    }
+
+    .zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: rgba(0,0,0,.78);
+      font-weight: 800;
+      font-size: clamp(.67rem, 2vw, .86rem);
+      padding: 5px;
+    }
+
+    .zone:first-child { border-radius: 15px 0 0 15px; }
+    .zone:last-child { border-radius: 0 15px 15px 0; }
+
+    .student { background: #69e4a8; }
+    .intermediate { background: #75c8ff; }
+    .advanced { background: #ffd36e; }
+    .expert { background: #ff8585; }
+
+    .zone small {
+      display: block;
+      font-size: .73em;
+      font-weight: 700;
+      opacity: .76;
+      margin-top: 2px;
+    }
+
+    .scale-marker {
+      position: absolute;
+      top: -31px;
+      left: 0;
+      transform: translateX(-50%);
+      transition: left .25s ease;
+      z-index: 5;
+    }
+
+    .marker-value {
+      display: block;
+      min-width: 50px;
+      text-align: center;
+      background: #fff;
+      color: #000;
+      font-weight: 900;
+      padding: 6px 8px;
+      border-radius: 9px;
+      font-size: .9rem;
+    }
+
+    .marker-arrow {
+      width: 0;
+      height: 0;
+      margin: 0 auto;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid #fff;
+    }
+
+    .scale-numbers {
+      display: grid;
+      grid-template-columns: 10fr 4fr 3fr 6fr;
+      color: #777;
+      font-size: .78rem;
+    }
+
+    .scale-numbers div {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .scale-numbers div:not(:first-child) {
+      justify-content: flex-end;
+    }
+
+    .experience-note {
+      margin-top: 18px;
+      color: #aaa;
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+
+    .chart-card {
+      overflow: hidden;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .chart-head p {
+      color: #999;
+      margin: 6px 0 0;
+      font-size: .9rem;
+    }
+
+    .sim-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #151515;
+      border: 1px solid #333;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #fff;
+      font-weight: 700;
+      font-size: .9rem;
+    }
+
+    .sim-link:hover {
+      border-color: #ff1a13;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #2c2c2c;
+      border-radius: 16px;
+    }
+
+    .sim-table {
+      width: 100%;
+      min-width: 810px;
+      border-collapse: collapse;
+      background: #111;
+      font-size: .84rem;
+    }
+
+    .sim-table th,
+    .sim-table td {
+      border-right: 1px solid #2d2d2d;
+      border-bottom: 1px solid #2d2d2d;
+      padding: 8px 7px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .sim-table th {
+      background: #0879b8;
+      color: white;
+      font-weight: 800;
+    }
+
+    .sim-table thead tr:first-child th {
+      background: #101010;
+      color: #fff;
+      font-size: .95rem;
+    }
+
+    .sim-table .jumps {
+      background: #0879b8;
+      color: #fff;
+      font-weight: 800;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+
+    .table-foot {
+      margin-top: 14px;
+      color: #888;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .result-box {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .scale-track {
+        height: 72px;
+      }
+
+      .formula-card,
+      .calc-card,
+      .chart-card {
+        border-radius: 18px;
+        padding: 18px;
+      }
+
+      .zone {
+        font-size: .62rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="inner-header">
@@ -13,12 +399,283 @@
     <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
     <a class="back-link" href="index.html">← Menu</a>
   </header>
+
   <main class="page-shell">
-    <section class="placeholder">
-      <h1>Wingload Calculator</h1>
-      <p>This page is ready for your content.<br>You can replace this section with your app, calculator, simulation, game or travel information.</p>
-    </section>
+    <div class="calculator-wrap">
+
+      <section class="formula-card">
+        <div class="formula-title">Wingload formula</div>
+        <div class="formula" id="formulaDisplay">
+          WingLoad =
+          <span class="fraction">
+            <span class="top">(My Weight + Gear Weight) × 2.2</span>
+            <span class="bottom">Canopy Size</span>
+          </span>
+        </div>
+      </section>
+
+      <section class="calc-card">
+        <div class="calc-head">
+          <div>
+            <h1>Wingload Calculator</h1>
+          </div>
+          <div class="unit-toggle" aria-label="Weight unit">
+            <button type="button" id="kgBtn" class="active">KG</button>
+            <button type="button" id="lbBtn">LB</button>
+          </div>
+        </div>
+
+        <div class="fields">
+          <div class="field">
+            <label for="bodyWeight">Your weight</label>
+            <div class="input-shell">
+              <input id="bodyWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="70">
+              <span class="input-unit weight-unit">kg</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="gearWeight">Gear weight</label>
+            <div class="input-shell">
+              <input id="gearWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="12">
+              <span class="input-unit weight-unit">kg</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="canopySize">Canopy size</label>
+            <div class="input-shell">
+              <input id="canopySize" type="number" min="1" step="1" inputmode="numeric" placeholder="150">
+              <span class="input-unit">ft²</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-box" aria-live="polite">
+          <div class="result-number" id="wingloadResult">—</div>
+          <div class="result-copy">
+            <strong id="experienceTitle">Enter your values</strong>
+            <span id="experienceText">Your calculated wingload and category will appear here.</span>
+          </div>
+        </div>
+
+        <div class="wingload-scale">
+          <div class="scale-title">
+            <span>Wingload scale</span>
+            <span>Result marker moves automatically</span>
+          </div>
+
+          <div class="scale-track" id="scaleTrack">
+            <div class="scale-marker" id="scaleMarker" style="display:none;">
+              <span class="marker-value" id="markerValue">0.00</span>
+              <div class="marker-arrow"></div>
+            </div>
+
+            <div class="zone student">STUDENT<small>≤ 1.0</small></div>
+            <div class="zone intermediate">INTERMEDIATE<small>1.0–1.4</small></div>
+            <div class="zone advanced">ADVANCED<small>1.4–1.7</small></div>
+            <div class="zone expert">EXPERT<small>1.7+</small></div>
+          </div>
+
+          <div class="scale-numbers">
+            <div><span>0</span><span>1.0</span></div>
+            <div><span>1.4</span></div>
+            <div><span>1.7</span></div>
+            <div><span>2.3+</span></div>
+          </div>
+
+          <div class="experience-note">
+            The colored categories are a visual training aid based on the ranges defined for this Sequence calculator.
+            Wing loading alone does not determine whether a canopy is appropriate for a jumper.
+          </div>
+        </div>
+      </section>
+
+      <section class="chart-card">
+        <div class="chart-head">
+          <div>
+            <h2>USPA Minimum Canopy Size Recommendations</h2>
+            <p id="exitWeightLabel">Exit weight shown in kilograms.</p>
+          </div>
+          <a class="sim-link" href="https://www.uspa.org/SIM/4#3B" target="_blank" rel="noopener">
+            USPA SIM Chapter 4-3 B ↗
+          </a>
+        </div>
+
+        <div class="table-scroll">
+          <table class="sim-table">
+            <thead>
+              <tr>
+                <th>NUMBER OF JUMPS</th>
+                <th colspan="16" id="tableUnitHeading">EXIT WEIGHT · KG</th>
+              </tr>
+              <tr id="weightHeaders"></tr>
+            </thead>
+            <tbody id="canopyTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="table-foot">
+          Table values reproduce the minimum-canopy-size recommendation chart shown in USPA SIM Chapter 4-3 B.
+          Canopy sizes are in square feet. Always follow current USPA guidance, local drop-zone rules,
+          manufacturer guidance, and qualified instructor recommendations.
+        </div>
+      </section>
+
+    </div>
   </main>
+
   <footer>Sequence – Body Flight Academy</footer>
+
+  <script>
+    const KG_TO_LB = 2.2046226218;
+    let unit = 'kg';
+
+    const bodyWeight = document.getElementById('bodyWeight');
+    const gearWeight = document.getElementById('gearWeight');
+    const canopySize = document.getElementById('canopySize');
+    const wingloadResult = document.getElementById('wingloadResult');
+    const experienceTitle = document.getElementById('experienceTitle');
+    const experienceText = document.getElementById('experienceText');
+    const formulaDisplay = document.getElementById('formulaDisplay');
+    const scaleMarker = document.getElementById('scaleMarker');
+    const markerValue = document.getElementById('markerValue');
+    const kgBtn = document.getElementById('kgBtn');
+    const lbBtn = document.getElementById('lbBtn');
+
+    const exitWeightsLb = [100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250];
+
+    const canopyRows = [
+      ['0-25',   190,190,190,190,190,190,200,200,200,220,220,220,220,240,260,280],
+      ['26-50',  170,170,170,170,170,190,190,190,190,190,190,200,200,220,240,260],
+      ['51-100', 170,170,170,170,170,170,170,170,170,190,190,190,200,200,220,240],
+      ['101-200',150,150,150,170,170,170,170,170,170,170,170,170,190,200,200,220],
+      ['201-300',150,150,150,150,150,150,150,150,150,150,150,170,170,170,190,200],
+      ['301-400',135,135,135,150,150,150,150,150,150,150,150,170,170,170,190,190],
+      ['401-500',135,135,135,135,135,135,135,150,150,150,150,170,170,170,190,190],
+      ['501-750',120,120,120,135,135,135,135,135,135,150,150,150,170,170,170,170],
+      ['750-1000',107,120,120,120,135,135,135,135,135,135,135,150,150,170,170,170]
+    ];
+
+    function resultCategory(wl) {
+      if (wl <= 1.0) {
+        return ['Student', 'Student range · wingload up to 1.0'];
+      }
+      if (wl < 1.4) {
+        return ['Intermediate', 'Intermediate range · wingload 1.0–1.4'];
+      }
+      if (wl < 1.7) {
+        return ['Advanced', 'Advanced range · wingload 1.4–1.7'];
+      }
+      return ['Expert', 'Expert range · wingload 1.7 and higher'];
+    }
+
+    function updateFormula() {
+      if (unit === 'kg') {
+        formulaDisplay.innerHTML =
+          'WingLoad = <span class="fraction"><span class="top">(My Weight + Gear Weight) × 2.2</span><span class="bottom">Canopy Size</span></span>';
+      } else {
+        formulaDisplay.innerHTML =
+          'WingLoad = <span class="fraction"><span class="top">(My Weight + Gear Weight)</span><span class="bottom">Canopy Size</span></span>';
+      }
+    }
+
+    function calculate() {
+      const person = parseFloat(bodyWeight.value);
+      const gear = parseFloat(gearWeight.value);
+      const canopy = parseFloat(canopySize.value);
+
+      if (!Number.isFinite(person) || !Number.isFinite(gear) || !Number.isFinite(canopy) || canopy <= 0) {
+        wingloadResult.textContent = '—';
+        experienceTitle.textContent = 'Enter your values';
+        experienceText.textContent = 'Your calculated wingload and category will appear here.';
+        scaleMarker.style.display = 'none';
+        return;
+      }
+
+      const exitWeightLb = unit === 'kg' ? (person + gear) * 2.2 : (person + gear);
+      const wl = exitWeightLb / canopy;
+
+      wingloadResult.textContent = wl.toFixed(2);
+      markerValue.textContent = wl.toFixed(2);
+
+      const [title, copy] = resultCategory(wl);
+      experienceTitle.textContent = title;
+      experienceText.textContent = copy;
+
+      // Scale visually runs from 0 to 2.3; values above 2.3 sit at the end.
+      const maxScale = 2.3;
+      const pct = Math.max(0, Math.min(100, (wl / maxScale) * 100));
+      scaleMarker.style.left = pct + '%';
+      scaleMarker.style.display = 'block';
+    }
+
+    function convertExistingValues(from, to) {
+      if (from === to) return;
+      const factor = to === 'lb' ? KG_TO_LB : 1 / KG_TO_LB;
+
+      [bodyWeight, gearWeight].forEach(input => {
+        if (input.value !== '' && Number.isFinite(parseFloat(input.value))) {
+          input.value = (parseFloat(input.value) * factor).toFixed(1).replace(/\.0$/, '');
+        }
+      });
+    }
+
+    function setUnit(nextUnit) {
+      if (nextUnit === unit) return;
+
+      convertExistingValues(unit, nextUnit);
+      unit = nextUnit;
+
+      kgBtn.classList.toggle('active', unit === 'kg');
+      lbBtn.classList.toggle('active', unit === 'lb');
+
+      document.querySelectorAll('.weight-unit').forEach(el => {
+        el.textContent = unit;
+      });
+
+      updateFormula();
+      renderUSPATable();
+      calculate();
+    }
+
+    function renderUSPATable() {
+      const headers = document.getElementById('weightHeaders');
+      const body = document.getElementById('canopyTableBody');
+      const heading = document.getElementById('tableUnitHeading');
+      const label = document.getElementById('exitWeightLabel');
+
+      const displayWeights = unit === 'kg'
+        ? exitWeightsLb.map(lb => (lb / KG_TO_LB).toFixed(1))
+        : exitWeightsLb.map(lb => String(lb));
+
+      heading.textContent = unit === 'kg' ? 'EXIT WEIGHT · KG' : 'EXIT WEIGHT · LB';
+      label.textContent = unit === 'kg'
+        ? 'Exit weight shown in kilograms.'
+        : 'Exit weight shown in pounds.';
+
+      headers.innerHTML =
+        '<th class="jumps">JUMPS</th>' +
+        displayWeights.map(v => `<th>${v}</th>`).join('');
+
+      body.innerHTML = canopyRows.map(row => {
+        return '<tr>' +
+          `<td class="jumps">${row[0]}</td>` +
+          row.slice(1).map(v => `<td>${v}</td>`).join('') +
+          '</tr>';
+      }).join('');
+    }
+
+    [bodyWeight, gearWeight, canopySize].forEach(input => {
+      input.addEventListener('input', calculate);
+    });
+
+    kgBtn.addEventListener('click', () => setUnit('kg'));
+    lbBtn.addEventListener('click', () => setUnit('lb'));
+
+    updateFormula();
+    renderUSPATable();
+    calculate();
+  </script>
 </body>
 </html>
