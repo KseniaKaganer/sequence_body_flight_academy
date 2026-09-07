@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Landing Pattern | Sequence</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .pattern-wrap {
+      width: min(1200px, 100%);
+      margin: 24px auto 0;
+    }
+
+    .pattern-card,
+    .map-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(16px, 3vw, 24px);
+      margin-bottom: 22px;
+    }
+
+    .pattern-card h1 {
+      margin: 0 0 6px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+    }
+
+    .pattern-card p {
+      margin: 0;
+      color: #8f8f8f;
+      line-height: 1.55;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .search-row input {
+      width: 100%;
+      min-height: 52px;
+      border: 1px solid #313131;
+      border-radius: 16px;
+      background: #151515;
+      color: #fff;
+      padding: 12px 16px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .search-row input:focus {
+      border-color: #ff1a13;
+      box-shadow: 0 0 0 3px rgba(255,26,19,.12);
+    }
+
+    .tool-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .tool-btn,
+    .map-type-btn,
+    .action-btn {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid #343434;
+      background: #171717;
+      color: #fff;
+      padding: 0 16px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .tool-btn.active,
+    .map-type-btn.active {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+    }
+
+    .action-btn:hover,
+    .tool-btn:hover,
+    .map-type-btn:hover {
+      border-color: #ff1a13;
+    }
+
+    .color-group {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .color-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .color-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .map-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 680px;
+      min-height: 480px;
+      background: #111;
+    }
+
+    .map-message {
+      padding: 12px 16px;
+      color: #aaa;
+      font-size: .9rem;
+      border-top: 1px solid #292929;
+      background: #0d0d0d;
+    }
+
+    .api-warning {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #5c4314;
+      background: rgba(138, 92, 9, .12);
+      color: #e5ba67;
+      font-size: .9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      #map {
+        height: 520px;
+        min-height: 420px;
+      }
+
+      .tool-row {
+        gap: 8px;
+      }
+
+      .tool-btn,
+      .map-type-btn,
+      .action-btn {
+        padding: 0 13px;
+        font-size: .88rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="inner-header">
+    <img src="assets/sequence-icon.png" alt="Sequence">
+    <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
+    <a class="back-link" href="index.html">← Menu</a>
+  </header>
+
+  <main class="page-shell">
+    <div class="pattern-wrap">
+
+      <section class="pattern-card">
+        <h1>Landing Pattern</h1>
+        <p>Search a location, switch between map and satellite, and draw your landing pattern directly on the map.</p>
+
+        <div class="search-row">
+          <input id="locationSearch" type="text" placeholder="Search location, drop zone or address">
+          <button class="action-btn" id="clearSearchBtn" type="button">Clear</button>
+        </div>
+
+        <div class="tool-row">
+          <button class="map-type-btn active" data-maptype="satellite" type="button">Satellite</button>
+          <button class="map-type-btn" data-maptype="roadmap" type="button">Map</button>
+
+          <button class="tool-btn active" data-tool="move" type="button">✋ Move</button>
+          <button class="tool-btn" data-tool="free" type="button">✏ Free Draw</button>
+          <button class="tool-btn" data-tool="line" type="button">／ Line</button>
+          <button class="tool-btn" data-tool="arrow" type="button">➜ Arrow</button>
+
+          <div class="color-group" aria-label="Drawing color">
+            <button class="color-btn active" data-color="#ff2d2d" style="background:#ff2d2d" aria-label="Red" type="button"></button>
+            <button class="color-btn" data-color="#2f80ff" style="background:#2f80ff" aria-label="Blue" type="button"></button>
+            <button class="color-btn" data-color="#36d16f" style="background:#36d16f" aria-label="Green" type="button"></button>
+            <button class="color-btn" data-color="#ffd84a" style="background:#ffd84a" aria-label="Yellow" type="button"></button>
+            <button class="color-btn" data-color="#ffffff" style="background:#ffffff" aria-label="White" type="button"></button>
+          </div>
+
+          <button class="action-btn" id="undoBtn" type="button">Undo</button>
+          <button class="action-btn" id="clearBtn" type="button">Clear Drawings</button>
+        </div>
+
+        <div class="api-warning" id="apiWarning">
+          Google Maps needs your API key. Replace <strong>AIzaSyCOEgETd7wSz9RAwNEmjw8LTB7flPNdAck</strong> at the bottom of this file before uploading it to GitHub Pages.
+        </div>
+      </section>
+
+      <section class="map-card">
+        <div id="map"></div>
+        <div class="map-message" id="mapMessage">Tool: Move · Color: Red</div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>Sequence – Body Flight Academy</footer>
+
+  <script>
+    let map;
+    let autocomplete;
+    let projectionOverlay;
+
+    let currentTool = 'move';
+    let currentColor = '#ff2d2d';
+    let drawings = [];
+    let currentPath = [];
+    let currentPolyline = null;
+    let isPointerDown = false;
+
+    const mapEl = document.getElementById('map');
+    const messageEl = document.getElementById('mapMessage');
+
+    function toolName(tool) {
+      return {
+        move: 'Move',
+        free: 'Free Draw',
+        line: 'Line',
+        arrow: 'Arrow'
+      }[tool] || tool;
+    }
+
+    function updateMessage(extra = '') {
+      const colorName = {
+        '#ff2d2d': 'Red',
+        '#2f80ff': 'Blue',
+        '#36d16f': 'Green',
+        '#ffd84a': 'Yellow',
+        '#ffffff': 'White'
+      }[currentColor] || currentColor;
+
+      messageEl.textContent = `Tool: ${toolName(currentTool)} · Color: ${colorName}${extra ? ' · ' + extra : ''}`;
+    }
+
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === tool);
+      });
+
+      if (map) {
+        const drawing = tool !== 'move';
+        map.setOptions({
+          draggable: !drawing,
+          gestureHandling: drawing ? 'none' : 'greedy',
+          disableDoubleClickZoom: drawing
+        });
+      }
+
+      mapEl.style.cursor = tool === 'move' ? '' : 'crosshair';
+      updateMessage();
+    }
+
+    function setColor(color) {
+      currentColor = color;
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === color);
+      });
+      updateMessage();
+    }
+
+    function pointToLatLng(clientX, clientY) {
+      if (!projectionOverlay) return null;
+      const projection = projectionOverlay.getProjection();
+      if (!projection) return null;
+
+      const rect = mapEl.getBoundingClientRect();
+      const pixel = new google.maps.Point(clientX - rect.left, clientY - rect.top);
+      return projection.fromContainerPixelToLatLng(pixel);
+    }
+
+    function addPolyline(path, arrow) {
+      const options = {
+        path,
+        map,
+        strokeColor: currentColor,
+        strokeOpacity: 1,
+        strokeWeight: 4,
+        clickable: false,
+        zIndex: 20
+      };
+
+      if (arrow) {
+        options.icons = [{
+          icon: {
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 4,
+            strokeColor: currentColor,
+            fillColor: currentColor,
+            fillOpacity: 1
+          },
+          offset: '100%'
+        }];
+      }
+
+      const polyline = new google.maps.Polyline(options);
+      drawings.push(polyline);
+      return polyline;
+    }
+
+    function startDrawing(event) {
+      if (currentTool === 'move') return;
+      const point = pointToLatLng(event.clientX, event.clientY);
+      if (!point) return;
+
+      event.preventDefault();
+      isPointerDown = true;
+      currentPath = [point];
+
+      if (currentTool === 'free') {
+        currentPolyline = new google.maps.Polyline({
+          path: currentPath,
+          map,
+          strokeColor: currentColor,
+          strokeOpacity: 1,
+          strokeWeight: 4,
+          clickable: false,
+          zIndex: 20
+        });
+      }
+    }
+
+    function continueDrawing(event) {
+      if (!isPointerDown || currentTool !== 'free' || !currentPolyline) return;
+
+      const point = pointToLatLng(event.clientX, event.clientY);
+      if (!point) return;
+
+      event.preventDefault();
+      currentPath.push(point);
+      currentPolyline.setPath(currentPath);
+    }
+
+    function endDrawing(event) {
+      if (!isPointerDown || currentTool === 'move') return;
+      isPointerDown = false;
+
+      const point = pointToLatLng(event.clientX, event.clientY);
+      if (point) currentPath.push(point);
+
+      if (currentTool === 'free') {
+        if (currentPolyline) {
+          drawings.push(currentPolyline);
+          currentPolyline = null;
+        }
+      } else if (currentTool === 'line') {
+        if (currentPath.length >= 2) {
+          addPolyline([currentPath[0], currentPath[currentPath.length - 1]], false);
+        }
+      } else if (currentTool === 'arrow') {
+        if (currentPath.length >= 2) {
+          addPolyline([currentPath[0], currentPath[currentPath.length - 1]], true);
+        }
+      }
+
+      currentPath = [];
+    }
+
+    function undo() {
+      const last = drawings.pop();
+      if (last) last.setMap(null);
+    }
+
+    function clearDrawings() {
+      drawings.forEach(d => d.setMap(null));
+      drawings = [];
+      if (currentPolyline) {
+        currentPolyline.setMap(null);
+        currentPolyline = null;
+      }
+    }
+
+    async function initMap() {
+      const apiWarning = document.getElementById('apiWarning');
+      apiWarning.style.display = 'none';
+
+      map = new google.maps.Map(mapEl, {
+        center: { lat: 31.7683, lng: 35.2137 },
+        zoom: 13,
+        mapTypeId: 'satellite',
+        streetViewControl: false,
+        fullscreenControl: true,
+        mapTypeControl: false,
+        gestureHandling: 'greedy'
+      });
+
+      projectionOverlay = new google.maps.OverlayView();
+      projectionOverlay.onAdd = function() {};
+      projectionOverlay.draw = function() {};
+      projectionOverlay.onRemove = function() {};
+      projectionOverlay.setMap(map);
+
+      const input = document.getElementById('locationSearch');
+      autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ['geometry', 'name', 'formatted_address']
+      });
+
+      autocomplete.bindTo('bounds', map);
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+          updateMessage('Location not found');
+          return;
+        }
+
+        if (place.geometry.viewport) {
+          map.fitBounds(place.geometry.viewport);
+        } else {
+          map.setCenter(place.geometry.location);
+          map.setZoom(16);
+        }
+
+        updateMessage(place.name || 'Location selected');
+      });
+
+      mapEl.addEventListener('pointerdown', startDrawing);
+      mapEl.addEventListener('pointermove', continueDrawing);
+      mapEl.addEventListener('pointerup', endDrawing);
+      mapEl.addEventListener('pointercancel', () => {
+        isPointerDown = false;
+        currentPath = [];
+        if (currentPolyline) {
+          currentPolyline.setMap(null);
+          currentPolyline = null;
+        }
+      });
+
+      setTool('move');
+      updateMessage();
+    }
+
+    window.initMap = initMap;
+
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => setTool(btn.dataset.tool));
+    });
+
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', () => setColor(btn.dataset.color));
+    });
+
+    document.querySelectorAll('.map-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!map) return;
+        const type = btn.dataset.maptype;
+        map.setMapTypeId(type);
+        document.querySelectorAll('.map-type-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.maptype === type);
+        });
+      });
+    });
+
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('clearBtn').addEventListener('click', clearDrawings);
+
+    document.getElementById('clearSearchBtn').addEventListener('click', () => {
+      document.getElementById('locationSearch').value = '';
+      updateMessage();
+    });
+  </script>
+
+  <!--
+    IMPORTANT:
+    Replace YOUR_GOOGLE_MAPS_API_KEY with your actual Google Maps API key.
+  -->
+  <script
+    async
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&loading=async&libraries=places&callback=initMap">
+  </script>
+</body>
+</html>
