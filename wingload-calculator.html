@@ -66,7 +66,7 @@
       border: 1px solid #2b2b2b;
       border-radius: 999px;
       padding: 4px;
-      margin: 0 auto 28px;
+      margin: 0 0 28px;
     }
 
     .unit-toggle button {
@@ -88,8 +88,8 @@
     .calc-head {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
+      justify-content: flex-start;
+      gap: 18px;
       flex-wrap: wrap;
       margin-bottom: 18px;
     }
@@ -97,6 +97,16 @@
     .calc-head h1,
     .chart-card h2 {
       margin: 0;
+    }
+
+    .calc-head > div:first-child {
+      order: 2;
+    }
+
+    .unit-toggle {
+      order: 1;
+      margin-left: 0;
+      margin-right: auto;
     }
 
     .fields {
@@ -191,11 +201,20 @@
     .scale-track {
       position: relative;
       display: grid;
-      grid-template-columns: 10fr 4fr 3fr 6fr;
+      grid-template-columns: 10fr 4fr 3fr 18fr;
       height: 64px;
       border-radius: 15px;
       overflow: visible;
       margin: 34px 0 14px;
+    }
+
+    .scale-slider {
+      position: absolute;
+      inset: -22px 0 -18px 0;
+      width: 100%;
+      opacity: 0;
+      cursor: ew-resize;
+      z-index: 6;
     }
 
     .zone {
@@ -256,19 +275,13 @@
     }
 
     .scale-numbers {
-      display: grid;
-      grid-template-columns: 10fr 4fr 3fr 6fr;
-      color: #777;
-      font-size: .78rem;
-    }
-
-    .scale-numbers div {
       display: flex;
       justify-content: space-between;
-    }
-
-    .scale-numbers div:not(:first-child) {
-      justify-content: flex-end;
+      color: #f0f0f0;
+      font-size: .92rem;
+      font-weight: 800;
+      padding: 0 2px;
+      margin-top: 8px;
     }
 
     .experience-note {
@@ -315,25 +328,25 @@
     }
 
     .table-scroll {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      overflow-x: visible;
       border: 1px solid #2c2c2c;
       border-radius: 16px;
     }
 
     .sim-table {
       width: 100%;
-      min-width: 810px;
+      min-width: 0;
+      table-layout: fixed;
       border-collapse: collapse;
       background: #111;
-      font-size: .84rem;
+      font-size: clamp(.64rem, .85vw, .84rem);
     }
 
     .sim-table th,
     .sim-table td {
       border-right: 1px solid #2d2d2d;
       border-bottom: 1px solid #2d2d2d;
-      padding: 8px 7px;
+      padding: 7px 3px;
       text-align: center;
       white-space: nowrap;
     }
@@ -367,6 +380,15 @@
     }
 
     @media (max-width: 720px) {
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .sim-table {
+        min-width: 810px;
+        table-layout: auto;
+      }
       .fields {
         grid-template-columns: 1fr;
       }
@@ -403,16 +425,6 @@
   <main class="page-shell">
     <div class="calculator-wrap">
 
-      <section class="formula-card">
-        <div class="formula-title">Wingload formula</div>
-        <div class="formula" id="formulaDisplay">
-          WingLoad =
-          <span class="fraction">
-            <span class="top">(My Weight + Gear Weight) × 2.2</span>
-            <span class="bottom">Canopy Size</span>
-          </span>
-        </div>
-      </section>
 
       <section class="calc-card">
         <div class="calc-head">
@@ -471,23 +483,44 @@
               <div class="marker-arrow"></div>
             </div>
 
-            <div class="zone student">STUDENT<small>≤ 1.0</small></div>
-            <div class="zone intermediate">INTERMEDIATE<small>1.0–1.4</small></div>
-            <div class="zone advanced">ADVANCED<small>1.4–1.7</small></div>
-            <div class="zone expert">EXPERT<small>1.7+</small></div>
+            <input id="scaleSlider" class="scale-slider" type="range" min="0.20" max="3.50" step="0.01" value="1.00" aria-label="Wingload slider">
+
+            <div class="zone student">STUDENT</div>
+            <div class="zone intermediate">INTERMEDIATE</div>
+            <div class="zone advanced">ADVANCED</div>
+            <div class="zone expert">EXPERT</div>
           </div>
 
           <div class="scale-numbers">
-            <div><span>0</span><span>1.0</span></div>
-            <div><span>1.4</span></div>
-            <div><span>1.7</span></div>
-            <div><span>2.3+</span></div>
+            <span>0</span>
+            <span>0.5</span>
+            <span>1.0</span>
+            <span>1.4</span>
+            <span>1.7</span>
+            <span>2.0</span>
+            <span>2.5</span>
+            <span>3.0</span>
+            <span>3.5</span>
           </div>
 
           <div class="experience-note">
             The colored categories are a visual training aid based on the ranges defined for this Sequence calculator.
             Wing loading alone does not determine whether a canopy is appropriate for a jumper.
           </div>
+        </div>
+      </section>
+
+      
+
+
+      <section class="formula-card">
+        <div class="formula-title">Wingload formula</div>
+        <div class="formula" id="formulaDisplay">
+          WingLoad =
+          <span class="fraction">
+            <span class="top">(My Weight + Gear Weight) × 2.2</span>
+            <span class="bottom">Canopy Size</span>
+          </span>
         </div>
       </section>
 
@@ -540,6 +573,7 @@
     const formulaDisplay = document.getElementById('formulaDisplay');
     const scaleMarker = document.getElementById('scaleMarker');
     const markerValue = document.getElementById('markerValue');
+    const scaleSlider = document.getElementById('scaleSlider');
     const kgBtn = document.getElementById('kgBtn');
     const lbBtn = document.getElementById('lbBtn');
 
@@ -603,11 +637,31 @@
       experienceTitle.textContent = title;
       experienceText.textContent = copy;
 
-      // Scale visually runs from 0 to 2.3; values above 2.3 sit at the end.
-      const maxScale = 2.3;
+      // Scale visually runs from 0 to 3.5; values above 3.5 sit at the end.
+      const maxScale = 3.5;
       const pct = Math.max(0, Math.min(100, (wl / maxScale) * 100));
       scaleMarker.style.left = pct + '%';
       scaleMarker.style.display = 'block';
+      scaleSlider.value = Math.max(parseFloat(scaleSlider.min), Math.min(parseFloat(scaleSlider.max), wl));
+    }
+
+    function updateCanopyFromSlider() {
+      const desiredWingload = parseFloat(scaleSlider.value);
+      const person = parseFloat(bodyWeight.value);
+      const gear = parseFloat(gearWeight.value);
+
+      if (!Number.isFinite(desiredWingload) || desiredWingload <= 0 ||
+          !Number.isFinite(person) || !Number.isFinite(gear)) {
+        return;
+      }
+
+      const exitWeightLb = unit === 'kg'
+        ? (person + gear) * 2.2
+        : (person + gear);
+
+      const newCanopySize = exitWeightLb / desiredWingload;
+      canopySize.value = Math.max(1, Math.round(newCanopySize));
+      calculate();
     }
 
     function convertExistingValues(from, to) {
@@ -646,7 +700,7 @@
       const label = document.getElementById('exitWeightLabel');
 
       const displayWeights = unit === 'kg'
-        ? exitWeightsLb.map(lb => (lb / KG_TO_LB).toFixed(1))
+        ? exitWeightsLb.map(lb => String(Math.round(lb / KG_TO_LB)))
         : exitWeightsLb.map(lb => String(lb));
 
       heading.textContent = unit === 'kg' ? 'EXIT WEIGHT · KG' : 'EXIT WEIGHT · LB';
@@ -669,6 +723,8 @@
     [bodyWeight, gearWeight, canopySize].forEach(input => {
       input.addEventListener('input', calculate);
     });
+
+    scaleSlider.addEventListener('input', updateCanopyFromSlider);
 
     kgBtn.addEventListener('click', () => setUnit('kg'));
     lbBtn.addEventListener('click', () => setUnit('lb'));
