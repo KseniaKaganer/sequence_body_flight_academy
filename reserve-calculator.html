@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Reserve Calculator | Sequence</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .reserve-wrap {
+      width: min(760px, 100%);
+      margin: 28px auto 0;
+    }
+
+    .reserve-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(20px, 5vw, 34px);
+      margin-bottom: 22px;
+    }
+
+    .reserve-card h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 6vw, 3.8rem);
+    }
+
+    .reserve-card .intro {
+      margin: 0 0 28px;
+      color: #9d9d9d;
+      line-height: 1.6;
+    }
+
+    .date-label {
+      display: block;
+      margin: 0 0 9px 4px;
+      color: #c8c8c8;
+      font-size: .92rem;
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .date-text {
+      width: 100%;
+      min-height: 58px;
+      border: 1px solid #313131;
+      border-radius: 16px;
+      background: #151515;
+      color: #fff;
+      font-size: 1.2rem;
+      padding: 12px 16px;
+      outline: none;
+    }
+
+    .date-text:focus {
+      border-color: #ff1a13;
+      box-shadow: 0 0 0 3px rgba(255,26,19,.12);
+    }
+
+    .calendar-wrap {
+      position: relative;
+      width: 58px;
+      min-width: 58px;
+    }
+
+    .calendar-button {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      border: 1px solid #313131;
+      background: #151515;
+      color: #fff;
+      font-size: 1.45rem;
+      cursor: pointer;
+    }
+
+    .calendar-button:hover {
+      border-color: #ff1a13;
+    }
+
+    .native-date {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .hint {
+      margin: 8px 4px 0;
+      color: #747474;
+      font-size: .82rem;
+    }
+
+    .error {
+      min-height: 22px;
+      margin-top: 8px;
+      color: #ff7777;
+      font-size: .88rem;
+    }
+
+    .result-card {
+      margin-top: 28px;
+      padding: 22px;
+      border-radius: 20px;
+      border: 1px solid #303030;
+      background: #121212;
+      text-align: center;
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .result-label {
+      color: #909090;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .78rem;
+      margin-bottom: 10px;
+    }
+
+    .result-date {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+
+    .result-sub {
+      margin-top: 10px;
+      color: #999;
+    }
+
+    .result-card.expired {
+      border-color: #a52b2b;
+      background: rgba(130, 20, 20, .16);
+    }
+
+    .result-card.expired .result-date,
+    .result-card.expired .result-sub {
+      color: #ff5d5d;
+    }
+
+    .expired-badge {
+      display: none;
+      margin: 14px auto 0;
+      width: fit-content;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: #a52323;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .08em;
+      font-size: .82rem;
+    }
+
+    .result-card.expired .expired-badge {
+      display: block;
+    }
+
+    @media (max-width: 520px) {
+      .date-row {
+        grid-template-columns: 1fr 58px;
+      }
+
+      .reserve-card {
+        border-radius: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="inner-header">
+    <img src="assets/sequence-icon.png" alt="Sequence">
+    <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
+    <a class="back-link" href="index.html">← Menu</a>
+  </header>
+
+  <main class="page-shell">
+    <div class="reserve-wrap">
+      <section class="reserve-card">
+        <h1>Reserve Calculator</h1>
+        <p class="intro">Enter the reserve packing date. The calculator will show the date 180 days later.</p>
+
+        <label class="date-label" for="packingDateText">Packing date</label>
+
+        <div class="date-row">
+          <input
+            id="packingDateText"
+            class="date-text"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="DD / MM / YYYY"
+            aria-describedby="dateHint dateError">
+
+          <div class="calendar-wrap">
+            <button class="calendar-button" type="button" aria-label="Choose date from calendar">📅</button>
+            <input id="packingDateCalendar" class="native-date" type="date" aria-label="Choose packing date from calendar">
+          </div>
+        </div>
+
+        <div class="hint" id="dateHint">Format: DD / MM / YYYY</div>
+        <div class="error" id="dateError" aria-live="polite"></div>
+
+        <div class="result-card" id="resultCard" aria-live="polite">
+          <div class="result-label">180 days later</div>
+          <div class="result-date" id="resultDate">—</div>
+          <div class="result-sub" id="resultSub">Select a valid date.</div>
+          <div class="expired-badge">EXPIRED</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>Sequence – Body Flight Academy</footer>
+
+  <script>
+    (() => {
+      const textInput = document.getElementById('packingDateText');
+      const calendarInput = document.getElementById('packingDateCalendar');
+      const resultCard = document.getElementById('resultCard');
+      const resultDate = document.getElementById('resultDate');
+      const resultSub = document.getElementById('resultSub');
+      const dateError = document.getElementById('dateError');
+
+      function pad2(n) {
+        return String(n).padStart(2, '0');
+      }
+
+      function formatDMY(date) {
+        return `${pad2(date.getDate())} / ${pad2(date.getMonth() + 1)} / ${date.getFullYear()}`;
+      }
+
+      function formatISO(date) {
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+      }
+
+      function localToday() {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      }
+
+      function parseDMY(value) {
+        const match = value.trim().match(/^(\d{1,2})\s*[\/.\-\s]\s*(\d{1,2})\s*[\/.\-\s]\s*(\d{4})$/);
+        if (!match) return null;
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+
+        const date = new Date(year, month - 1, day);
+
+        if (
+          date.getFullYear() !== year ||
+          date.getMonth() !== month - 1 ||
+          date.getDate() !== day
+        ) {
+          return null;
+        }
+
+        return date;
+      }
+
+      function add180Days(date) {
+        const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        result.setDate(result.getDate() + 180);
+        return result;
+      }
+
+      function updateResult(date) {
+        if (!date) {
+          resultDate.textContent = '—';
+          resultSub.textContent = 'Select a valid date.';
+          resultCard.classList.remove('expired');
+          return;
+        }
+
+        const expiry = add180Days(date);
+        const today = localToday();
+        const expired = expiry < today;
+
+        resultDate.textContent = formatDMY(expiry);
+
+        if (expired) {
+          resultSub.textContent = `Expired before today (${formatDMY(today)})`;
+          resultCard.classList.add('expired');
+        } else {
+          resultSub.textContent = `Valid through ${formatDMY(expiry)}`;
+          resultCard.classList.remove('expired');
+        }
+      }
+
+      function applyDate(date) {
+        textInput.value = formatDMY(date);
+        calendarInput.value = formatISO(date);
+        dateError.textContent = '';
+        updateResult(date);
+      }
+
+      textInput.addEventListener('input', () => {
+        const date = parseDMY(textInput.value);
+
+        if (!textInput.value.trim()) {
+          dateError.textContent = '';
+          calendarInput.value = '';
+          updateResult(null);
+          return;
+        }
+
+        if (!date) {
+          dateError.textContent = 'Please enter a valid date in DD / MM / YYYY format.';
+          resultDate.textContent = '—';
+          resultSub.textContent = 'Invalid date.';
+          resultCard.classList.remove('expired');
+          return;
+        }
+
+        dateError.textContent = '';
+        calendarInput.value = formatISO(date);
+        updateResult(date);
+      });
+
+      textInput.addEventListener('blur', () => {
+        const date = parseDMY(textInput.value);
+        if (date) textInput.value = formatDMY(date);
+      });
+
+      calendarInput.addEventListener('change', () => {
+        if (!calendarInput.value) return;
+
+        const [year, month, day] = calendarInput.value.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        applyDate(date);
+      });
+
+      // Default to today's local calendar date.
+      applyDate(localToday());
+    })();
+  </script>
+</body>
+</html>
