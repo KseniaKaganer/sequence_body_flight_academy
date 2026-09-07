@@ -79,7 +79,8 @@
     }
 
     .run-btn,
-    .stop-btn {
+    .stop-btn,
+    .restart-btn {
       min-height: 48px;
       border: 0;
       border-radius: 999px;
@@ -94,10 +95,16 @@
       color: #000;
     }
 
-    .stop-btn {
+    .stop-btn,
+    .restart-btn {
       background: #202020;
       color: #fff;
       border: 1px solid #353535;
+    }
+
+    .restart-btn:hover,
+    .stop-btn:hover {
+      border-color: #ff1a13;
     }
 
     .loop-control {
@@ -109,6 +116,29 @@
       color: #ddd;
       cursor: pointer;
       user-select: none;
+    }
+
+    .repeat-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      color: #ddd;
+    }
+
+    .repeat-field > label {
+      font-size: .92rem;
+      white-space: nowrap;
+    }
+
+    .input-shell.compact {
+      width: 110px;
+    }
+
+    .input-shell.compact input {
+      min-height: 46px;
+      font-size: 1rem;
+      padding-right: 48px;
     }
 
     .loop-control input {
@@ -202,21 +232,37 @@
       pointer-events: none;
     }
 
-    .readout {
-      position: absolute;
-      left: 50%;
-      bottom: 9.5%;
-      transform: translateX(-50%);
-      z-index: 7;
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.76);
-      color: #fff;
-      font-weight: 900;
-      font-size: clamp(.82rem, 2.6vw, 1.15rem);
-      letter-spacing: .03em;
+
+
+    .telemetry-row {
+      width: min(760px, 100%);
+      margin: 16px auto 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .telemetry-box {
+      background: #111;
+      border: 1px solid #2c2c2c;
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .telemetry-label {
+      color: #8f8f8f;
+      font-size: .84rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .telemetry-box strong {
+      font-size: clamp(1rem, 3vw, 1.35rem);
       white-space: nowrap;
-      backdrop-filter: blur(4px);
     }
 
     .countdown-overlay {
@@ -284,13 +330,23 @@
       }
 
       .run-btn,
-      .stop-btn {
+      .stop-btn,
+      .restart-btn {
         flex: 1 1 120px;
       }
 
-      .loop-control {
+      .loop-control,
+      .repeat-field {
         width: 100%;
         padding-left: 2px;
+      }
+
+      .repeat-field {
+        justify-content: space-between;
+      }
+
+      .telemetry-row {
+        grid-template-columns: 1fr 1fr;
       }
 
       .altimeter-stage {
@@ -349,11 +405,25 @@
         <div class="actions">
           <button class="run-btn" id="runBtn" type="button">Run</button>
           <button class="stop-btn" id="stopBtn" type="button">Stop</button>
+          <button class="restart-btn" id="restartBtn" type="button">Restart</button>
+
+          <label class="loop-control">
+            <input id="notFromExit" type="checkbox">
+            <span>Not from exit — descend at 1,000 ft every 5 seconds from the start</span>
+          </label>
 
           <label class="loop-control">
             <input id="loopMode" type="checkbox">
-            <span>Loop simulation with 10-second pull/countdown between runs</span>
+            <span>Loop simulation</span>
           </label>
+
+          <div class="repeat-field">
+            <label for="repeatDelay">Repeat countdown</label>
+            <div class="input-shell compact">
+              <input id="repeatDelay" type="number" min="1" max="120" step="1" value="10" inputmode="numeric">
+              <span class="input-unit">sec</span>
+            </div>
+          </div>
         </div>
 
         <div class="status-line" id="statusLine" aria-live="polite">
@@ -361,7 +431,8 @@
         </div>
 
         <p class="timing-note">
-          Timing: the first 1,000 ft takes 10 seconds. After that, every 1,000 ft takes 5 seconds.
+          Timing: normally, the first 1,000 ft takes 10 seconds and every following 1,000 ft takes 5 seconds.
+          With “Not from exit” selected, the simulation uses 5 seconds per 1,000 ft from the start.
           The pointer stops at the selected opening altitude.
         </p>
       </section>
@@ -372,13 +443,24 @@
 
           <div class="needle" id="needle"></div>
           <div class="needle-center"></div>
-          <div class="readout" id="readout">12,000 FT</div>
 
           <div class="pull-overlay" id="pullOverlay">PULL</div>
 
           <div class="countdown-overlay" id="countdownOverlay" aria-live="assertive">
             <div class="countdown-number" id="countdownNumber">10</div>
             <div class="countdown-label">NEXT JUMP</div>
+          </div>
+        </div>
+
+        <div class="telemetry-row">
+          <div class="telemetry-box">
+            <span class="telemetry-label">Altitude</span>
+            <strong id="readout">12,000 FT</strong>
+          </div>
+
+          <div class="telemetry-box">
+            <span class="telemetry-label">Time</span>
+            <strong id="timerReadout">0.0 s</strong>
           </div>
         </div>
       </section>
@@ -393,10 +475,14 @@
       const setAltitude = document.getElementById('setAltitude');
       const openingAltitude = document.getElementById('openingAltitude');
       const loopMode = document.getElementById('loopMode');
+      const notFromExit = document.getElementById('notFromExit');
+      const repeatDelay = document.getElementById('repeatDelay');
       const runBtn = document.getElementById('runBtn');
       const stopBtn = document.getElementById('stopBtn');
+      const restartBtn = document.getElementById('restartBtn');
       const needle = document.getElementById('needle');
       const readout = document.getElementById('readout');
+      const timerReadout = document.getElementById('timerReadout');
       const statusLine = document.getElementById('statusLine');
       const countdownOverlay = document.getElementById('countdownOverlay');
       const countdownNumber = document.getElementById('countdownNumber');
@@ -406,6 +492,7 @@
       let countdownTimer = null;
       let running = false;
       let stopped = false;
+      let elapsedSeconds = 0;
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
@@ -448,8 +535,9 @@
       }
 
       function durationForSegment(segmentIndex, deltaKft) {
-        // First 1,000 ft = 10 s; all subsequent 1,000 ft = 5 s.
-        const secondsPerK = segmentIndex === 0 ? 10 : 5;
+        // Normal mode: first 1,000 ft = 10 s, then 5 s per 1,000 ft.
+        // "Not from exit": 5 s per 1,000 ft from the start.
+        const secondsPerK = notFromExit.checked ? 5 : (segmentIndex === 0 ? 10 : 5);
         return secondsPerK * 1000 * deltaKft;
       }
 
@@ -463,7 +551,9 @@
               return;
             }
 
+            const segmentElapsed = (now - startTime) / 1000;
             const progress = Math.min(1, (now - startTime) / durationMs);
+            timerReadout.textContent = (elapsedSeconds + Math.min(segmentElapsed, durationMs / 1000)).toFixed(1) + ' s';
             const eased = progress; // linear descent
             const current = from + (to - from) * eased;
 
@@ -473,6 +563,8 @@
             if (progress < 1) {
               animationFrame = requestAnimationFrame(tick);
             } else {
+              elapsedSeconds += durationMs / 1000;
+              timerReadout.textContent = elapsedSeconds.toFixed(1) + ' s';
               animationFrame = null;
               resolve(true);
             }
@@ -488,6 +580,8 @@
         const { start, opening } = readSettings();
         stopped = false;
         running = true;
+        elapsedSeconds = 0;
+        timerReadout.textContent = '0.0 s';
         runBtn.disabled = true;
         pullOverlay.classList.remove('show');
         countdownOverlay.classList.remove('show');
@@ -533,10 +627,14 @@
 
       function waitForCountdown() {
         return new Promise(resolve => {
-          let count = 10;
+          let count = parseInt(repeatDelay.value, 10);
+          if (!Number.isFinite(count)) count = 10;
+          count = clamp(count, 1, 120);
+          repeatDelay.value = count;
+
           countdownNumber.textContent = count;
           countdownOverlay.classList.add('show');
-          statusLine.textContent = 'Pull · next simulation in 10 seconds';
+          statusLine.textContent = `Pull · next simulation in ${count} second${count === 1 ? '' : 's'}`;
 
           countdownTimer = setInterval(() => {
             if (stopped || !loopMode.checked) {
@@ -565,6 +663,19 @@
             statusLine.textContent = `Pull · next simulation in ${count} second${count === 1 ? '' : 's'}`;
           }, 1000);
         });
+      }
+
+
+      function restartSimulation() {
+        stopSimulation();
+        stopped = false;
+        const { start, opening } = readSettings();
+        elapsedSeconds = 0;
+        timerReadout.textContent = '0.0 s';
+        setPointer(start);
+        pullOverlay.classList.remove('show');
+        countdownOverlay.classList.remove('show');
+        statusLine.textContent = `Ready · ${formatAltitude(start)} → ${formatAltitude(opening)}`;
       }
 
       function stopSimulation() {
@@ -601,6 +712,7 @@
       });
 
       stopBtn.addEventListener('click', stopSimulation);
+      restartBtn.addEventListener('click', restartSimulation);
       setAltitude.addEventListener('input', resetPreview);
       openingAltitude.addEventListener('input', resetPreview);
 
@@ -614,6 +726,7 @@
       });
 
       setPointer(12);
+      timerReadout.textContent = '0.0 s';
       resetPreview();
     })();
   </script>
