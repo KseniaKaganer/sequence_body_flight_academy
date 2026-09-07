@@ -107,29 +107,6 @@
       border-color: #ff1a13;
     }
 
-    .loop-control {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 48px;
-      padding: 0 14px;
-      color: #ddd;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .repeat-field {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 48px;
-      color: #ddd;
-    }
-
-    .repeat-field > label {
-      font-size: .92rem;
-      white-space: nowrap;
-    }
 
     .input-shell.compact {
       width: 110px;
@@ -265,6 +242,96 @@
     .telemetry-box strong {
       font-size: .9rem;
       white-space: nowrap;
+    }
+
+
+    .settings-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(18px, 4vw, 30px);
+      margin-bottom: 22px;
+    }
+
+    .settings-head {
+      margin-bottom: 16px;
+    }
+
+    .settings-head h2 {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 1.8rem);
+    }
+
+    .settings-head p {
+      margin: 6px 0 0;
+      color: #8f8f8f;
+      font-size: .92rem;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .setting-option,
+    .setting-field {
+      min-height: 78px;
+      padding: 14px 16px;
+      border: 1px solid #2c2c2c;
+      border-radius: 16px;
+      background: #121212;
+    }
+
+    .setting-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .setting-option input {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+      accent-color: #ff1a13;
+      flex: 0 0 auto;
+    }
+
+    .setting-option strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+
+    .setting-option span {
+      display: block;
+      color: #8f8f8f;
+      font-size: .86rem;
+      line-height: 1.45;
+    }
+
+    .setting-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .setting-field > label {
+      color: #ddd;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .setting-field {
+        align-items: center;
+      }
     }
 
     .countdown-overlay {
@@ -405,36 +472,7 @@
           <button class="run-btn" id="runBtn" type="button">Run</button>
           <button class="stop-btn" id="stopBtn" type="button">Stop</button>
           <button class="restart-btn" id="restartBtn" type="button">Restart</button>
-
-          <label class="loop-control">
-            <input id="notFromExit" type="checkbox">
-            <span>Not from exit — descend at 1,000 ft every 5 seconds from the start</span>
-          </label>
-
-          <label class="loop-control">
-            <input id="loopMode" type="checkbox">
-            <span>Loop simulation</span>
-          </label>
-
-          <div class="repeat-field">
-            <label for="repeatDelay">Repeat countdown</label>
-            <div class="input-shell compact">
-              <input id="repeatDelay" type="number" min="1" max="120" step="1" value="10" inputmode="numeric">
-              <span class="input-unit">sec</span>
-            </div>
-          </div>
         </div>
-
-        <div class="status-line" id="statusLine" aria-live="polite">
-          Ready · 12,000 ft → 4,500 ft
-        </div>
-
-        <p class="timing-note">
-          Timing: normally, the first 1,000 ft takes 10 seconds and every following 1,000 ft takes 5 seconds.
-          With “Not from exit” selected, the simulation uses 5 seconds per 1,000 ft from the start.
-          Altitudes above 12,000 ft continue around the dial: 13k points to 1, 14k to 2, and so on.
-          The pointer stops at the selected opening altitude.
-        </p>
       </section>
 
       <section class="altimeter-card">
@@ -464,6 +502,53 @@
           </div>
         </div>
       </section>
+
+      <section class="settings-card">
+        <div class="settings-head">
+          <div>
+            <h2>Simulation Settings</h2>
+            <p>Adjust how the descent and repeat cycle behave.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <label class="setting-option">
+            <input id="notFromExit" type="checkbox">
+            <div>
+              <strong>Not from exit</strong>
+              <span>Use 1,000 ft every 5 seconds from the very beginning.</span>
+            </div>
+          </label>
+
+          <label class="setting-option">
+            <input id="loopMode" type="checkbox">
+            <div>
+              <strong>Loop simulation</strong>
+              <span>Automatically repeat the simulation after reaching opening altitude.</span>
+            </div>
+          </label>
+
+          <div class="setting-field">
+            <label for="repeatDelay">Repeat countdown</label>
+            <div class="input-shell compact">
+              <input id="repeatDelay" type="number" min="1" max="120" step="1" value="10" inputmode="numeric">
+              <span class="input-unit">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-line" id="statusLine" aria-live="polite">
+          Ready · 12,000 FT → 4,500 FT
+        </div>
+
+        <p class="timing-note">
+          Timing: normally, the first 1,000 ft takes 10 seconds and every following 1,000 ft takes 5 seconds.
+          With “Not from exit” selected, the simulation uses 5 seconds per 1,000 ft from the start.
+          Altitudes above 12,000 ft continue around the dial: 13k points to 1, 14k to 2, and so on.
+          The pointer stops at the selected opening altitude.
+        </p>
+      </section>
+
 
     </div>
   </main>
@@ -671,13 +756,17 @@
       function restartSimulation() {
         stopSimulation();
         stopped = false;
+
         const { start, opening } = readSettings();
         elapsedSeconds = 0;
         timerReadout.textContent = '0.0 s';
         setPointer(start);
         pullOverlay.classList.remove('show');
         countdownOverlay.classList.remove('show');
-        statusLine.textContent = `Ready · ${formatAltitude(start)} → ${formatAltitude(opening)}`;
+        statusLine.textContent = `Restarting · ${formatAltitude(start)} → ${formatAltitude(opening)}`;
+
+        // Restart means: reset to the beginning and immediately run again.
+        runDescent();
       }
 
       function stopSimulation() {
