@@ -6,19 +6,616 @@
   <meta name="theme-color" content="#000000">
   <title>Altimeter Simulation | Sequence</title>
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .sim-wrap {
+      width: min(980px, 100%);
+      margin: 24px auto 0;
+    }
+
+    .control-card,
+    .altimeter-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(18px, 4vw, 30px);
+      margin-bottom: 22px;
+    }
+
+    .control-card h1 {
+      margin: 0 0 22px;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field label {
+      display: block;
+      margin: 0 0 8px 4px;
+      color: #c8c8c8;
+      font-size: .92rem;
+    }
+
+    .input-shell {
+      position: relative;
+    }
+
+    .input-shell input {
+      width: 100%;
+      min-height: 58px;
+      border-radius: 16px;
+      border: 1px solid #313131;
+      background: #151515;
+      color: #fff;
+      font-size: 1.25rem;
+      padding: 12px 58px 12px 16px;
+      outline: none;
+    }
+
+    .input-shell input:focus {
+      border-color: #ff1a13;
+      box-shadow: 0 0 0 3px rgba(255,26,19,.12);
+    }
+
+    .input-unit {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      pointer-events: none;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .run-btn,
+    .stop-btn {
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 24px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .run-btn {
+      background: #fff;
+      color: #000;
+    }
+
+    .stop-btn {
+      background: #202020;
+      color: #fff;
+      border: 1px solid #353535;
+    }
+
+    .loop-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 14px;
+      color: #ddd;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .loop-control input {
+      width: 20px;
+      height: 20px;
+      accent-color: #ff1a13;
+    }
+
+    .status-line {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #151515;
+      color: #aaa;
+      line-height: 1.5;
+    }
+
+    .altimeter-card {
+      display: flex;
+      justify-content: center;
+    }
+
+    .altimeter-stage {
+      position: relative;
+      width: min(760px, 100%);
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: 28px;
+      background: #000;
+    }
+
+    .altimeter-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .needle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 5.4%;
+      height: 34%;
+      transform-origin: 50% 100%;
+      transform: translate(-50%, -100%) rotate(0deg);
+      z-index: 5;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,.45));
+    }
+
+    .needle::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 13px solid transparent;
+      border-right: 13px solid transparent;
+      border-bottom: 34px solid #111;
+    }
+
+    .needle::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 27px;
+      bottom: 0;
+      width: 10px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #111;
+    }
+
+    .needle-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4.5%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: #111;
+      border: 4px solid #fff;
+      z-index: 6;
+      box-shadow: 0 2px 5px rgba(0,0,0,.4);
+      pointer-events: none;
+    }
+
+    .readout {
+      position: absolute;
+      left: 50%;
+      bottom: 9.5%;
+      transform: translateX(-50%);
+      z-index: 7;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.76);
+      color: #fff;
+      font-weight: 900;
+      font-size: clamp(.82rem, 2.6vw, 1.15rem);
+      letter-spacing: .03em;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    .countdown-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: rgba(0,0,0,.72);
+      color: #fff;
+      text-align: center;
+    }
+
+    .countdown-overlay.show {
+      display: flex;
+    }
+
+    .countdown-number {
+      font-size: clamp(5rem, 24vw, 12rem);
+      font-weight: 950;
+      line-height: .8;
+    }
+
+    .countdown-label {
+      margin-top: 18px;
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .pull-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 18;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.58);
+      color: #fff;
+      font-size: clamp(3rem, 14vw, 8rem);
+      font-weight: 950;
+      letter-spacing: .06em;
+    }
+
+    .pull-overlay.show {
+      display: flex;
+    }
+
+    .timing-note {
+      color: #8f8f8f;
+      font-size: .88rem;
+      line-height: 1.55;
+      margin: 16px 2px 0;
+    }
+
+    @media (max-width: 720px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        align-items: stretch;
+      }
+
+      .run-btn,
+      .stop-btn {
+        flex: 1 1 120px;
+      }
+
+      .loop-control {
+        width: 100%;
+        padding-left: 2px;
+      }
+
+      .altimeter-stage {
+        border-radius: 18px;
+      }
+
+      .needle::before {
+        border-left-width: 9px;
+        border-right-width: 9px;
+        border-bottom-width: 25px;
+      }
+
+      .needle::after {
+        top: 20px;
+        width: 7px;
+      }
+
+      .needle-center {
+        border-width: 3px;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <header class="inner-header">
     <img src="assets/sequence-icon.png" alt="Sequence">
     <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
     <a class="back-link" href="index.html">← Menu</a>
   </header>
+
   <main class="page-shell">
-    <section class="placeholder">
-      <h1>Altimeter Simulation</h1>
-      <p>This page is ready for your content.<br>You can replace this section with your app, calculator, simulation, game or travel information.</p>
-    </section>
+    <div class="sim-wrap">
+
+      <section class="control-card">
+        <h1>Altimeter Simulation</h1>
+
+        <div class="controls">
+          <div class="field">
+            <label for="setAltitude">Set altitude</label>
+            <div class="input-shell">
+              <input id="setAltitude" type="number" min="1" max="12" step="0.5" value="12" inputmode="decimal">
+              <span class="input-unit">k ft</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="openingAltitude">Opening altitude</label>
+            <div class="input-shell">
+              <input id="openingAltitude" type="number" min="0.5" max="11.5" step="0.5" value="4.5" inputmode="decimal">
+              <span class="input-unit">k ft</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="run-btn" id="runBtn" type="button">Run</button>
+          <button class="stop-btn" id="stopBtn" type="button">Stop</button>
+
+          <label class="loop-control">
+            <input id="loopMode" type="checkbox">
+            <span>Loop simulation with 10-second pull/countdown between runs</span>
+          </label>
+        </div>
+
+        <div class="status-line" id="statusLine" aria-live="polite">
+          Ready · 12,000 ft → 4,500 ft
+        </div>
+
+        <p class="timing-note">
+          Timing: the first 1,000 ft takes 10 seconds. After that, every 1,000 ft takes 5 seconds.
+          The pointer stops at the selected opening altitude.
+        </p>
+      </section>
+
+      <section class="altimeter-card">
+        <div class="altimeter-stage" id="altimeterStage">
+          <img class="altimeter-image" src="assets/altimeter.png" alt="Analog skydiving altimeter">
+
+          <div class="needle" id="needle"></div>
+          <div class="needle-center"></div>
+          <div class="readout" id="readout">12,000 FT</div>
+
+          <div class="pull-overlay" id="pullOverlay">PULL</div>
+
+          <div class="countdown-overlay" id="countdownOverlay" aria-live="assertive">
+            <div class="countdown-number" id="countdownNumber">10</div>
+            <div class="countdown-label">NEXT JUMP</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
   </main>
+
   <footer>Sequence – Body Flight Academy</footer>
+
+  <script>
+    (() => {
+      const setAltitude = document.getElementById('setAltitude');
+      const openingAltitude = document.getElementById('openingAltitude');
+      const loopMode = document.getElementById('loopMode');
+      const runBtn = document.getElementById('runBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const needle = document.getElementById('needle');
+      const readout = document.getElementById('readout');
+      const statusLine = document.getElementById('statusLine');
+      const countdownOverlay = document.getElementById('countdownOverlay');
+      const countdownNumber = document.getElementById('countdownNumber');
+      const pullOverlay = document.getElementById('pullOverlay');
+
+      let animationFrame = null;
+      let countdownTimer = null;
+      let running = false;
+      let stopped = false;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function formatAltitude(kft) {
+        return Math.round(kft * 1000).toLocaleString('en-US') + ' FT';
+      }
+
+      function altitudeToAngle(kft) {
+        // 12/0 is straight up. As altitude descends the pointer moves counter-clockwise.
+        return (kft - 12) * 30;
+      }
+
+      function setPointer(kft) {
+        const angle = altitudeToAngle(kft);
+        needle.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+        readout.textContent = formatAltitude(kft);
+      }
+
+      function readSettings() {
+        let start = parseFloat(setAltitude.value);
+        let opening = parseFloat(openingAltitude.value);
+
+        if (!Number.isFinite(start)) start = 12;
+        if (!Number.isFinite(opening)) opening = 4.5;
+
+        start = clamp(start, 1, 12);
+        opening = clamp(opening, 0.5, 11.5);
+
+        if (opening >= start) {
+          opening = Math.max(0.5, start - 0.5);
+          openingAltitude.value = opening;
+        }
+
+        setAltitude.value = start;
+        openingAltitude.value = opening;
+
+        return { start, opening };
+      }
+
+      function durationForSegment(segmentIndex, deltaKft) {
+        // First 1,000 ft = 10 s; all subsequent 1,000 ft = 5 s.
+        const secondsPerK = segmentIndex === 0 ? 10 : 5;
+        return secondsPerK * 1000 * deltaKft;
+      }
+
+      function animateSegment(from, to, durationMs) {
+        return new Promise(resolve => {
+          const startTime = performance.now();
+
+          function tick(now) {
+            if (stopped) {
+              resolve(false);
+              return;
+            }
+
+            const progress = Math.min(1, (now - startTime) / durationMs);
+            const eased = progress; // linear descent
+            const current = from + (to - from) * eased;
+
+            setPointer(current);
+            statusLine.textContent = `Descending · ${formatAltitude(current)}`;
+
+            if (progress < 1) {
+              animationFrame = requestAnimationFrame(tick);
+            } else {
+              animationFrame = null;
+              resolve(true);
+            }
+          }
+
+          animationFrame = requestAnimationFrame(tick);
+        });
+      }
+
+      async function runDescent() {
+        if (running) return;
+
+        const { start, opening } = readSettings();
+        stopped = false;
+        running = true;
+        runBtn.disabled = true;
+        pullOverlay.classList.remove('show');
+        countdownOverlay.classList.remove('show');
+
+        setPointer(start);
+        statusLine.textContent = `Running · ${formatAltitude(start)} → ${formatAltitude(opening)}`;
+
+        let current = start;
+        let segmentIndex = 0;
+
+        while (current > opening && !stopped) {
+          const next = Math.max(opening, current - 1);
+          const delta = current - next;
+          const duration = durationForSegment(segmentIndex, delta);
+          const completed = await animateSegment(current, next, duration);
+
+          if (!completed || stopped) break;
+
+          current = next;
+          segmentIndex += 1;
+        }
+
+        running = false;
+        runBtn.disabled = false;
+
+        if (stopped) {
+          statusLine.textContent = 'Stopped';
+          return;
+        }
+
+        setPointer(opening);
+        statusLine.textContent = `Opening altitude · ${formatAltitude(opening)}`;
+        pullOverlay.classList.add('show');
+
+        if (loopMode.checked) {
+          await waitForCountdown();
+          if (!stopped && loopMode.checked) {
+            pullOverlay.classList.remove('show');
+            runDescent();
+          }
+        }
+      }
+
+      function waitForCountdown() {
+        return new Promise(resolve => {
+          let count = 10;
+          countdownNumber.textContent = count;
+          countdownOverlay.classList.add('show');
+          statusLine.textContent = 'Pull · next simulation in 10 seconds';
+
+          countdownTimer = setInterval(() => {
+            if (stopped || !loopMode.checked) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+              countdownOverlay.classList.remove('show');
+              resolve();
+              return;
+            }
+
+            count -= 1;
+
+            if (count <= 0) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+              countdownOverlay.classList.remove('show');
+
+              const { start } = readSettings();
+              setPointer(start);
+              statusLine.textContent = 'Restarting simulation';
+              resolve();
+              return;
+            }
+
+            countdownNumber.textContent = count;
+            statusLine.textContent = `Pull · next simulation in ${count} second${count === 1 ? '' : 's'}`;
+          }, 1000);
+        });
+      }
+
+      function stopSimulation() {
+        stopped = true;
+        running = false;
+        runBtn.disabled = false;
+
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+
+        countdownOverlay.classList.remove('show');
+        pullOverlay.classList.remove('show');
+        statusLine.textContent = 'Stopped';
+      }
+
+      function resetPreview() {
+        if (running) return;
+        const { start, opening } = readSettings();
+        setPointer(start);
+        statusLine.textContent = `Ready · ${formatAltitude(start)} → ${formatAltitude(opening)}`;
+      }
+
+      runBtn.addEventListener('click', () => {
+        stopSimulation();
+        stopped = false;
+        runDescent();
+      });
+
+      stopBtn.addEventListener('click', stopSimulation);
+      setAltitude.addEventListener('input', resetPreview);
+      openingAltitude.addEventListener('input', resetPreview);
+
+      loopMode.addEventListener('change', () => {
+        if (!loopMode.checked && countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          countdownOverlay.classList.remove('show');
+          statusLine.textContent = 'Loop disabled';
+        }
+      });
+
+      setPointer(12);
+      resetPreview();
+    })();
+  </script>
 </body>
 </html>
