@@ -6,6 +6,168 @@
   <meta name="theme-color" content="#000000">
   <title>Canopy Traffic Game | Sequence</title>
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .game-wrap {
+      width: min(1180px, 100%);
+      margin: 24px auto 0;
+    }
+
+    .game-card,
+    .game-stage-card {
+      background: #0d0d0d;
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(16px, 3vw, 24px);
+      margin-bottom: 22px;
+    }
+
+    .game-card h1 {
+      margin: 0 0 6px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+    }
+
+    .game-card p {
+      margin: 0;
+      color: #929292;
+      line-height: 1.55;
+    }
+
+    .game-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      margin-top: 18px;
+    }
+
+    .control-field {
+      min-width: 180px;
+    }
+
+    .control-field label {
+      display: block;
+      margin: 0 0 7px 4px;
+      color: #c6c6c6;
+      font-size: .9rem;
+    }
+
+    .control-field select {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid #333;
+      background: #151515;
+      color: #fff;
+      padding: 0 14px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .game-btn {
+      min-height: 48px;
+      border: 1px solid #333;
+      border-radius: 999px;
+      background: #181818;
+      color: #fff;
+      padding: 0 20px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .game-btn.primary {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+    }
+
+    .game-btn:hover {
+      border-color: #ff1a13;
+    }
+
+    .game-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .stat-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #2c2c2c;
+      background: #121212;
+      color: #aaa;
+      font-size: .86rem;
+    }
+
+    .stat-pill strong {
+      color: #fff;
+    }
+
+    .game-stage-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .canvas-shell {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 430px;
+      background: linear-gradient(#69b8ff 0%, #b8dcff 58%, #d9e7d1 58%, #79a84f 100%);
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .game-overlay {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.62);
+      color: #fff;
+      font-size: .86rem;
+      font-weight: 700;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .game-message {
+      padding: 12px 16px;
+      color: #a0a0a0;
+      background: #0d0d0d;
+      border-top: 1px solid #292929;
+      font-size: .9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      .canvas-shell {
+        min-height: 360px;
+        aspect-ratio: 4 / 5;
+      }
+
+      .game-controls {
+        align-items: stretch;
+      }
+
+      .control-field {
+        width: 100%;
+      }
+
+      .game-btn {
+        flex: 1 1 120px;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="inner-header">
@@ -13,12 +175,446 @@
     <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
     <a class="back-link" href="index.html">← Menu</a>
   </header>
+
   <main class="page-shell">
-    <section class="placeholder">
-      <h1>Canopy Traffic Game</h1>
-      <p>This page is ready for your content.<br>You can replace this section with your app, calculator, simulation, game or travel information.</p>
-    </section>
+    <div class="game-wrap">
+
+      <section class="game-card">
+        <h1>Canopy Traffic Game</h1>
+        <p>Choose the number of skydivers and run the jump. The aircraft crosses the sky, skydivers exit, open rectangular canopies, and descend into the landing area.</p>
+
+        <div class="game-controls">
+          <div class="control-field">
+            <label for="skydiverCount">Number of skydivers</label>
+            <select id="skydiverCount">
+              <option value="3">3 skydivers</option>
+              <option value="5" selected>5 skydivers</option>
+              <option value="8">8 skydivers</option>
+              <option value="10">10 skydivers</option>
+              <option value="12">12 skydivers</option>
+              <option value="15">15 skydivers</option>
+              <option value="20">20 skydivers</option>
+            </select>
+          </div>
+
+          <button class="game-btn primary" id="startBtn" type="button">Start Game</button>
+          <button class="game-btn" id="pauseBtn" type="button">Pause</button>
+          <button class="game-btn" id="restartBtn" type="button">Restart</button>
+        </div>
+
+        <div class="game-stats">
+          <div class="stat-pill">Exited: <strong id="exitedStat">0</strong></div>
+          <div class="stat-pill">Canopies open: <strong id="openStat">0</strong></div>
+          <div class="stat-pill">Landed: <strong id="landedStat">0</strong></div>
+        </div>
+      </section>
+
+      <section class="game-stage-card">
+        <div class="canvas-shell" id="canvasShell">
+          <canvas id="gameCanvas" aria-label="Animated canopy traffic game"></canvas>
+          <div class="game-overlay" id="gameOverlay">Ready</div>
+        </div>
+        <div class="game-message">
+          First version: automatic traffic simulation. Next we can make it interactive so you control one canopy and need to avoid other traffic while entering a landing pattern.
+        </div>
+      </section>
+
+    </div>
   </main>
+
   <footer>Sequence – Body Flight Academy</footer>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const shell = document.getElementById('canvasShell');
+      const ctx = canvas.getContext('2d');
+
+      const countSelect = document.getElementById('skydiverCount');
+      const startBtn = document.getElementById('startBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const restartBtn = document.getElementById('restartBtn');
+
+      const exitedStat = document.getElementById('exitedStat');
+      const openStat = document.getElementById('openStat');
+      const landedStat = document.getElementById('landedStat');
+      const overlay = document.getElementById('gameOverlay');
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+
+      let plane = null;
+      let jumpers = [];
+      let running = false;
+      let paused = false;
+      let finished = false;
+      let lastTime = 0;
+      let raf = null;
+
+      const canopyColors = [
+        '#ff3b30', '#0a84ff', '#32d74b', '#ffd60a',
+        '#bf5af2', '#ff9f0a', '#64d2ff', '#ff375f'
+      ];
+
+      function resizeCanvas() {
+        const rect = shell.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+        dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function resetGame() {
+        running = false;
+        paused = false;
+        finished = false;
+        lastTime = 0;
+
+        if (raf) {
+          cancelAnimationFrame(raf);
+          raf = null;
+        }
+
+        plane = {
+          x: -120,
+          y: Math.max(68, height * 0.14),
+          speed: Math.max(75, width * 0.085)
+        };
+
+        jumpers = [];
+        exitedStat.textContent = '0';
+        openStat.textContent = '0';
+        landedStat.textContent = '0';
+        overlay.textContent = 'Ready';
+        pauseBtn.textContent = 'Pause';
+
+        draw();
+      }
+
+      function startGame() {
+        resetGame();
+
+        const count = Number(countSelect.value);
+        const exitSpacing = Math.max(0.42, Math.min(0.9, 7 / count));
+
+        for (let i = 0; i < count; i++) {
+          jumpers.push({
+            id: i,
+            state: 'waiting',
+            exitDelay: 1.15 + i * exitSpacing,
+            x: 0,
+            y: 0,
+            vx: (Math.random() - 0.5) * 9,
+            vy: 0,
+            freefallTime: 0,
+            canopyOpenTime: 1.8 + Math.random() * 1.0,
+            canopyColor: canopyColors[i % canopyColors.length],
+            canopyWidth: 44 + Math.random() * 12,
+            canopyHeight: 13 + Math.random() * 4,
+            drift: (Math.random() - 0.5) * 13,
+            landed: false
+          });
+        }
+
+        running = true;
+        paused = false;
+        finished = false;
+        overlay.textContent = 'Aircraft run';
+        lastTime = performance.now();
+        raf = requestAnimationFrame(loop);
+      }
+
+      function loop(now) {
+        if (!running) return;
+
+        if (paused) {
+          lastTime = now;
+          raf = requestAnimationFrame(loop);
+          return;
+        }
+
+        const dt = Math.min(0.033, Math.max(0, (now - lastTime) / 1000));
+        lastTime = now;
+
+        update(dt);
+        draw();
+
+        if (running) {
+          raf = requestAnimationFrame(loop);
+        }
+      }
+
+      function update(dt) {
+        plane.x += plane.speed * dt;
+
+        const elapsed = performance.now() / 1000;
+        const startClock = jumpers.length ? jumpers[0].gameStart : null;
+
+        if (jumpers.length && !jumpers[0].gameStart) {
+          const now = performance.now() / 1000;
+          jumpers.forEach(j => j.gameStart = now);
+        }
+
+        const gameTime = jumpers.length ? (performance.now() / 1000 - jumpers[0].gameStart) : 0;
+
+        for (const j of jumpers) {
+          if (j.state === 'waiting' && gameTime >= j.exitDelay) {
+            j.state = 'freefall';
+            j.x = plane.x - 30;
+            j.y = plane.y + 10;
+            j.vy = Math.max(105, height * 0.16);
+            j.freefallTime = 0;
+          }
+
+          if (j.state === 'freefall') {
+            j.freefallTime += dt;
+            j.vy += 78 * dt;
+            j.x += j.vx * dt;
+            j.y += j.vy * dt;
+
+            if (j.freefallTime >= j.canopyOpenTime || j.y > height * 0.40) {
+              j.state = 'canopy';
+              j.vy = Math.max(28, height * 0.055);
+            }
+          } else if (j.state === 'canopy') {
+            j.x += j.drift * dt;
+            j.y += j.vy * dt;
+
+            const groundY = height * 0.87;
+            if (j.y >= groundY) {
+              j.y = groundY;
+              j.state = 'landed';
+              j.landed = true;
+            }
+          }
+        }
+
+        const exited = jumpers.filter(j => j.state !== 'waiting').length;
+        const open = jumpers.filter(j => j.state === 'canopy' || j.state === 'landed').length;
+        const landed = jumpers.filter(j => j.state === 'landed').length;
+
+        exitedStat.textContent = exited;
+        openStat.textContent = open;
+        landedStat.textContent = landed;
+
+        if (landed === jumpers.length && jumpers.length > 0) {
+          finished = true;
+          running = false;
+          overlay.textContent = 'All skydivers landed!';
+        } else if (open > 0) {
+          overlay.textContent = 'Canopy traffic';
+        } else if (exited > 0) {
+          overlay.textContent = 'Freefall';
+        }
+      }
+
+      function drawSky() {
+        ctx.clearRect(0, 0, width, height);
+
+        const groundY = height * 0.87;
+
+        // Clouds
+        ctx.fillStyle = 'rgba(255,255,255,.62)';
+        for (let i = 0; i < 6; i++) {
+          const x = (i * width / 5 + 55) % width;
+          const y = 80 + (i % 3) * 62;
+          ctx.beginPath();
+          ctx.ellipse(x, y, 48, 15, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Ground
+        ctx.fillStyle = '#6f9c46';
+        ctx.fillRect(0, groundY, width, height - groundY);
+
+        // Landing area
+        ctx.fillStyle = '#9cc66d';
+        ctx.fillRect(width * 0.18, groundY + 8, width * 0.64, Math.max(30, height * 0.055));
+
+        ctx.strokeStyle = 'rgba(255,255,255,.75)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 9]);
+        ctx.beginPath();
+        ctx.moveTo(width * 0.22, groundY + 27);
+        ctx.lineTo(width * 0.78, groundY + 27);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawPlane() {
+        if (!plane) return;
+
+        ctx.save();
+        ctx.translate(plane.x, plane.y);
+
+        ctx.fillStyle = '#f4f4f4';
+        ctx.strokeStyle = '#2d2d2d';
+        ctx.lineWidth = 2;
+
+        // fuselage
+        ctx.beginPath();
+        ctx.moveTo(-44, -9);
+        ctx.lineTo(28, -9);
+        ctx.lineTo(48, 0);
+        ctx.lineTo(28, 9);
+        ctx.lineTo(-44, 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // wing
+        ctx.fillStyle = '#d8d8d8';
+        ctx.beginPath();
+        ctx.moveTo(-8, -5);
+        ctx.lineTo(10, -31);
+        ctx.lineTo(20, -31);
+        ctx.lineTo(12, -4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-5, 5);
+        ctx.lineTo(10, 29);
+        ctx.lineTo(20, 29);
+        ctx.lineTo(12, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // tail
+        ctx.beginPath();
+        ctx.moveTo(-36, -8);
+        ctx.lineTo(-46, -25);
+        ctx.lineTo(-33, -24);
+        ctx.lineTo(-22, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff1a13';
+        ctx.fillRect(25, -6, 8, 12);
+
+        ctx.restore();
+      }
+
+      function drawJumper(j) {
+        ctx.save();
+        ctx.translate(j.x, j.y);
+
+        if (j.state === 'freefall') {
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, -5, 4, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(0, -1);
+          ctx.lineTo(0, 12);
+          ctx.moveTo(0, 4);
+          ctx.lineTo(-8, 0);
+          ctx.moveTo(0, 4);
+          ctx.lineTo(9, 0);
+          ctx.moveTo(0, 12);
+          ctx.lineTo(-7, 20);
+          ctx.moveTo(0, 12);
+          ctx.lineTo(7, 20);
+          ctx.stroke();
+        }
+
+        if (j.state === 'canopy' || j.state === 'landed') {
+          // lines
+          ctx.strokeStyle = '#222';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(-j.canopyWidth * 0.38, -24);
+          ctx.lineTo(-3, 0);
+          ctx.moveTo(j.canopyWidth * 0.38, -24);
+          ctx.lineTo(3, 0);
+          ctx.stroke();
+
+          // rectangular ram-air canopy
+          ctx.fillStyle = j.canopyColor;
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(
+            -j.canopyWidth / 2,
+            -38,
+            j.canopyWidth,
+            j.canopyHeight,
+            3
+          );
+          ctx.fill();
+          ctx.stroke();
+
+          // cells
+          ctx.strokeStyle = 'rgba(0,0,0,.35)';
+          ctx.lineWidth = 1;
+          for (let c = 1; c < 6; c++) {
+            const cx = -j.canopyWidth / 2 + (j.canopyWidth / 6) * c;
+            ctx.beginPath();
+            ctx.moveTo(cx, -38);
+            ctx.lineTo(cx, -38 + j.canopyHeight);
+            ctx.stroke();
+          }
+
+          // jumper body
+          ctx.fillStyle = '#111';
+          ctx.beginPath();
+          ctx.arc(0, 2, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(-2.5, 5, 5, 10);
+
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 14);
+          ctx.lineTo(-5, 21);
+          ctx.moveTo(0, 14);
+          ctx.lineTo(5, 21);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function draw() {
+        drawSky();
+        drawPlane();
+
+        for (const jumper of jumpers) {
+          if (jumper.state !== 'waiting') drawJumper(jumper);
+        }
+      }
+
+      startBtn.addEventListener('click', startGame);
+
+      pauseBtn.addEventListener('click', () => {
+        if (!running && !finished) return;
+        paused = !paused;
+        pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+        overlay.textContent = paused ? 'Paused' : 'Canopy traffic';
+      });
+
+      restartBtn.addEventListener('click', startGame);
+
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        draw();
+      });
+
+      resizeCanvas();
+      resetGame();
+    })();
+  </script>
 </body>
 </html>
