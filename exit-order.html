@@ -51,20 +51,23 @@
     .drop-zone-label { position: absolute; top: calc(54% + 64px); left: 50%; transform: translateX(-50%); color: #8a8a8a; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
 
     .jumper {
-      position: absolute; top: 128px; left: 50%; transform: translate(-50%,-50%);
-      min-width: 72px; max-width: 150px; text-align: center; z-index: 5;
-      animation: freefall 2.25s cubic-bezier(.2,.7,.28,1) forwards;
+      position: absolute; top: 118px; left: 50%;
+      width: 120px; text-align: center; z-index: 5;
+      opacity: 0;
+      animation: exitThenFreefall var(--fall-time, 40s) linear forwards;
     }
-    .jumper-icon { width: 36px; height: 36px; margin: 0 auto 5px; border-radius: 50%; border: 3px solid #fff; position: relative; background: #121212; }
-    .jumper-icon::before, .jumper-icon::after { content: ''; position: absolute; background: #fff; border-radius: 4px; }
-    .jumper-icon::before { width: 30px; height: 4px; left: 0; top: 16px; transform: rotate(-12deg); }
-    .jumper-icon::after { width: 4px; height: 30px; left: 13px; top: 7px; transform: rotate(18deg); }
+    .jumper-art { width: 92px; height: 62px; margin: 0 auto 6px; display: block; }
+    .jumper-art svg { width: 100%; height: 100%; overflow: visible; }
     .jumper-label { display: inline-block; background: rgba(0,0,0,.84); border: 1px solid #363636; border-radius: 999px; padding: 5px 9px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
-    @keyframes freefall {
-      0% { top: 128px; opacity: 0; transform: translate(-50%,-50%) scale(.65) rotate(0deg); }
-      8% { opacity: 1; }
-      100% { top: 82%; opacity: 0; transform: translate(calc(-50% + var(--drift)), -50%) scale(.95) rotate(var(--spin)); }
+    @keyframes exitThenFreefall {
+      0%   { left: 49%; top: 118px; opacity: 0; transform: translate(-50%,-50%) scale(.72); }
+      2%   { opacity: 1; }
+      12%  { left: var(--exit-x); top: 150px; opacity: 1; transform: translate(-50%,-50%) scale(.9); }
+      100% { left: var(--fall-x); top: 82%; opacity: .15; transform: translate(-50%,-50%) scale(1); }
     }
+    .exit-thumb { width: 50px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; }
+    .exit-thumb svg { width: 50px; height: 38px; overflow: visible; }
+    .exit-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
     .stage-status {
       position: absolute; left: 16px; bottom: 14px; right: 16px; display: flex; justify-content: space-between; gap: 12px; align-items: end;
@@ -160,9 +163,8 @@
         </div>
       </div>
       <div class="game-controls">
-        <button class="game-btn primary" id="startBtn" type="button">Start Exit Run</button>
+        <button class="game-btn primary" id="startBtn" type="button">Run</button>
         <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
-        <button class="game-btn" id="resetBtn" type="button">Reset</button>
         <div class="speed-field">
           <label for="speedSelect">Simulation speed</label>
           <select id="speedSelect">
@@ -246,7 +248,6 @@
     const groupCount = document.getElementById('groupCount');
     const startBtn = document.getElementById('startBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const speedSelect = document.getElementById('speedSelect');
 
     function renderOrder() {
@@ -257,7 +258,7 @@
         row.className = 'exit-row' + (i === activeIndex ? ' active' : '');
         row.innerHTML = `
           <div class="exit-num">${i + 1}</div>
-          <div><div class="exit-name">${t.name}</div><div class="exit-sub">${t.sub}</div></div>
+          <div class="exit-main"><div class="exit-thumb">${exitArt(key)}</div><div><div class="exit-name">${t.name}</div><div class="exit-sub">${t.sub}</div></div></div>
           <div class="row-actions">
             <button class="mini-btn" type="button" data-action="up" data-index="${i}" aria-label="Move up" ${i===0?'disabled':''}>↑</button>
             <button class="mini-btn" type="button" data-action="down" data-index="${i}" aria-label="Move down" ${i===order.length-1?'disabled':''}>↓</button>
@@ -267,7 +268,8 @@
       });
       exitTotal.textContent = order.length;
       groupCount.textContent = `${order.length} ${order.length === 1 ? 'group' : 'groups'}`;
-      startBtn.disabled = running || order.length === 0;
+      startBtn.disabled = order.length === 0;
+      startBtn.textContent = running ? 'Stop' : 'Run';
       shuffleBtn.disabled = running || order.length < 2;
     }
 
@@ -299,53 +301,83 @@
 
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 
-    function resetSimulation(resetOrder = false) {
+    function stopRun(message = 'Stopped') {
       clearTimers();
-      running = false; activeIndex = -1;
-      if (resetOrder) order = [...defaultOrder];
+      running = false;
+      activeIndex = -1;
       plane.style.transition = 'none';
       plane.style.left = '-180px';
-      requestAnimationFrame(() => { plane.style.transition = ''; });
       stage.querySelectorAll('.jumper').forEach(el => el.remove());
-      currentExit.textContent = 'Ready';
-      exitCounter.textContent = '0';
+      currentExit.textContent = message;
       renderOrder();
     }
 
-    resetBtn.addEventListener('click', () => resetSimulation(true));
+    function exitArt(key) {
+      const stroke = '#fff';
+      const red = '#ff1a13';
+      const person = (x,y,rot=0,scale=1,accent=false) => `
+        <g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale})" stroke="${accent?red:stroke}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <circle cx="0" cy="-11" r="4" fill="${accent?red:stroke}" stroke="none"/>
+          <path d="M0 -6 L0 8 M0 -1 L-10 4 M0 -1 L10 4 M0 8 L-8 17 M0 8 L8 17"/>
+        </g>`;
+      let body = '';
+      if (key === 'belly-solo') body = person(46,31,90,1.05);
+      if (key === 'belly-group') body = person(32,30,90,.82) + person(60,30,-90,.82,true);
+      if (key === 'freefly-solo') body = person(46,28,0,1.05);
+      if (key === 'freefly-group') body = person(34,29,0,.85) + person(58,29,0,.85,true);
+      if (key === 'tandem') body = person(43,27,8,1.0) + person(49,31,8,.88,true) + `<path d="M38 21 L54 38" stroke="${red}" stroke-width="2.5"/>`;
+      if (key === 'aff') body = person(46,29,90,.95,true) + person(28,30,90,.72) + person(64,30,90,.72);
+      if (key === 'tracking-solo') body = person(46,29,72,1.05);
+      if (key === 'tracking-group') body = person(33,31,72,.82) + person(59,27,72,.82,true);
+      if (key === 'wingsuit') body = `<g transform="translate(46 29) rotate(80)" fill="${stroke}" stroke="${stroke}" stroke-width="2"><circle cx="0" cy="-15" r="4"/><path d="M0 -10 L0 13 L-16 5 L-8 -5 Z M0 -10 L0 13 L16 5 L8 -5 Z M0 13 L-8 22 L0 18 L8 22 Z"/></g>`;
+      if (key === 'high-pull') body = person(46,38,0,.72) + `<path d="M20 17 Q46 -2 72 17" stroke="${red}" stroke-width="3" fill="none"/><path d="M20 17 L39 31 M72 17 L53 31" stroke="${stroke}" stroke-width="2"/>`;
+      return `<svg viewBox="0 0 92 62" aria-hidden="true">${body}</svg>`;
+    }
 
     function dropJumper(key, index) {
       const t = TYPES[key];
       const jumper = document.createElement('div');
       jumper.className = 'jumper';
-      const drift = ((index % 2 ? 1 : -1) * (20 + (index % 3) * 12));
-      const spin = ((index % 2 ? 1 : -1) * (10 + (index % 4) * 8));
-      jumper.style.setProperty('--drift', `${drift}px`);
-      jumper.style.setProperty('--spin', `${spin}deg`);
-      jumper.innerHTML = `<div class="jumper-icon"></div><div class="jumper-label">${t.short}</div>`;
+      const direction = index % 2 ? 1 : -1;
+      const exitDistance = 18 + (index % 3) * 5;
+      const fallDistance = 8 + (index % 4) * 4;
+      jumper.style.setProperty('--exit-x', `${50 + direction * exitDistance}%`);
+      jumper.style.setProperty('--fall-x', `${50 + direction * fallDistance}%`);
+      jumper.style.setProperty('--fall-time', '40s');
+      jumper.innerHTML = `<div class="jumper-art">${exitArt(key)}</div><div class="jumper-label">${t.short}</div>`;
       stage.appendChild(jumper);
-      timers.push(setTimeout(() => jumper.remove(), 2450));
+      timers.push(setTimeout(() => jumper.remove(), 40500));
     }
 
     function startRun() {
-      if (running || !order.length) return;
+      if (running) { stopRun('Stopped'); return; }
+      if (!order.length) return;
       clearTimers();
       stage.querySelectorAll('.jumper').forEach(el => el.remove());
-      running = true; activeIndex = -1;
-      startBtn.disabled = true; shuffleBtn.disabled = true;
+      running = true;
+      activeIndex = -1;
+      shuffleBtn.disabled = true;
       exitCounter.textContent = '0';
       currentExit.textContent = 'Aircraft on jump run';
+      renderOrder();
 
       const interval = Number(speedSelect.value);
       const totalDuration = Math.max(3400, interval * (order.length + 1));
-      plane.style.transition = `left ${totalDuration}ms linear`;
-      plane.style.left = 'calc(100% + 40px)';
+      plane.style.transition = 'none';
+      plane.style.left = '-180px';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          plane.style.transition = `left ${totalDuration}ms linear`;
+          plane.style.left = 'calc(100% + 40px)';
+        });
+      });
 
       const firstDrop = Math.min(1450, totalDuration * .22);
       order.forEach((key, i) => {
         timers.push(setTimeout(() => {
+          if (!running) return;
           activeIndex = i;
-          currentExit.textContent = TYPES[key].short;
+          currentExit.textContent = `${TYPES[key].short} · 40 sec freefall`;
           exitCounter.textContent = String(i + 1);
           renderOrder();
           dropJumper(key, i);
@@ -353,14 +385,16 @@
       });
 
       timers.push(setTimeout(() => {
-        running = false; activeIndex = -1;
-        currentExit.textContent = 'Exit run complete';
+        if (!running) return;
+        activeIndex = -1;
+        currentExit.textContent = 'All exits out · freefall continues';
         renderOrder();
-      }, firstDrop + order.length * interval + 500));
+      }, firstDrop + order.length * interval + 250));
+
+      timers.push(setTimeout(() => {
+        if (!running) return;
+        stopRun('Simulation complete');
+      }, firstDrop + (order.length - 1) * interval + 40500));
     }
 
     startBtn.addEventListener('click', startRun);
-    renderOrder();
-  </script>
-</body>
-</html>
