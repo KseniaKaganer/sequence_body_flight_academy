@@ -16,12 +16,28 @@
       flex: 0 0 auto;
     }
 
+    .menu-symbol {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      background: #141414;
+      border: 1px solid #2b2b2b;
+      font-size: 34px;
+      line-height: 1;
+    }
+
     @media (max-width: 720px) {
-      .menu-card img.menu-logo {
+      .menu-card img.menu-logo,
+      .menu-symbol {
         width: 58px;
         height: 58px;
         border-radius: 12px;
       }
+
+      .menu-symbol { font-size: 28px; }
     }
   </style>
 </head>
@@ -66,6 +82,28 @@
           <div>
             <h2>Altimeter Simulation</h2>
             <p>Practice altitude awareness.</p>
+          </div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+
+      <a class="menu-card" href="https://www.markschulze.net/winds/" target="_blank" rel="noopener">
+        <div class="menu-card-content">
+          <div class="menu-symbol" aria-hidden="true">🌤️</div>
+          <div>
+            <h2>Weather &amp; Winds</h2>
+            <p>Check wind forecast and weather conditions.</p>
+          </div>
+        </div>
+        <div class="arrow">↗</div>
+      </a>
+
+      <a class="menu-card" href="exit-order.html">
+        <div class="menu-card-content">
+          <div class="menu-symbol" aria-hidden="true">✈️</div>
+          <div>
+            <h2>Exit Order</h2>
+            <p>Build and simulate the exit sequence from the aircraft.</p>
           </div>
         </div>
         <div class="arrow">→</div>

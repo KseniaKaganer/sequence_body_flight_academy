@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Exit Order · Sequence</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #000; color: #fff; font-family: Arial, Helvetica, sans-serif; }
+    button, select { font: inherit; }
+
+    .inner-header {
+      min-height: 74px; display: flex; align-items: center; gap: 12px;
+      padding: 12px clamp(16px, 4vw, 34px); border-bottom: 1px solid #202020;
+      position: sticky; top: 0; z-index: 20; background: rgba(0,0,0,.94); backdrop-filter: blur(10px);
+    }
+    .inner-header img { width: 42px; height: 42px; object-fit: contain; }
+    .brand-name { font-weight: 900; letter-spacing: .06em; font-size: .82rem; }
+    .back-link { margin-left: auto; color: #fff; text-decoration: none; font-weight: 800; }
+    .back-link:hover { color: #ff1a13; }
+
+    .page-shell { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 28px 0 46px; }
+    .hero { margin-bottom: 18px; }
+    .hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.6rem); letter-spacing: -.04em; }
+    .hero p { color: #a8a8a8; max-width: 760px; line-height: 1.55; margin: 9px 0 0; }
+
+    .game-card, .order-card {
+      background: #0d0d0d; border: 1px solid #292929; border-radius: 24px; overflow: hidden;
+    }
+
+    .game-stage {
+      position: relative; min-height: 430px; overflow: hidden;
+      background: linear-gradient(#111 0%, #191919 68%, #0c0c0c 68%, #080808 100%);
+      border-bottom: 1px solid #292929;
+    }
+    .horizon { position: absolute; left: 0; right: 0; bottom: 31%; height: 1px; background: #333; }
+    .cloud { position: absolute; color: #666; opacity: .32; font-size: clamp(38px, 6vw, 72px); user-select: none; }
+    .cloud.c1 { top: 17%; left: 11%; }
+    .cloud.c2 { top: 34%; right: 13%; transform: scale(.8); }
+    .cloud.c3 { top: 8%; right: 42%; transform: scale(.55); }
+
+    .plane {
+      position: absolute; top: 84px; left: -180px; width: 150px; height: 72px;
+      transition: left .08s linear; filter: drop-shadow(0 7px 10px rgba(0,0,0,.45));
+    }
+    .plane svg { width: 100%; height: 100%; display: block; }
+
+    .drop-zone { position: absolute; left: 50%; top: 54%; transform: translate(-50%,-50%); width: 3px; height: 118px; background: linear-gradient(transparent,#ff1a13,transparent); opacity: .55; }
+    .drop-zone-label { position: absolute; top: calc(54% + 64px); left: 50%; transform: translateX(-50%); color: #8a8a8a; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+
+    .jumper {
+      position: absolute; top: 128px; left: 50%; transform: translate(-50%,-50%);
+      min-width: 72px; max-width: 150px; text-align: center; z-index: 5;
+      animation: freefall 2.25s cubic-bezier(.2,.7,.28,1) forwards;
+    }
+    .jumper-icon { width: 36px; height: 36px; margin: 0 auto 5px; border-radius: 50%; border: 3px solid #fff; position: relative; background: #121212; }
+    .jumper-icon::before, .jumper-icon::after { content: ''; position: absolute; background: #fff; border-radius: 4px; }
+    .jumper-icon::before { width: 30px; height: 4px; left: 0; top: 16px; transform: rotate(-12deg); }
+    .jumper-icon::after { width: 4px; height: 30px; left: 13px; top: 7px; transform: rotate(18deg); }
+    .jumper-label { display: inline-block; background: rgba(0,0,0,.84); border: 1px solid #363636; border-radius: 999px; padding: 5px 9px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+    @keyframes freefall {
+      0% { top: 128px; opacity: 0; transform: translate(-50%,-50%) scale(.65) rotate(0deg); }
+      8% { opacity: 1; }
+      100% { top: 82%; opacity: 0; transform: translate(calc(-50% + var(--drift)), -50%) scale(.95) rotate(var(--spin)); }
+    }
+
+    .stage-status {
+      position: absolute; left: 16px; bottom: 14px; right: 16px; display: flex; justify-content: space-between; gap: 12px; align-items: end;
+    }
+    .status-pill { background: rgba(0,0,0,.78); border: 1px solid #323232; border-radius: 999px; padding: 8px 12px; color: #ddd; font-size: .82rem; }
+    #currentExit { color: #fff; font-weight: 900; }
+
+    .game-controls { padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .game-btn { border: 1px solid #353535; background: #171717; color: #fff; border-radius: 13px; padding: 11px 16px; font-weight: 900; cursor: pointer; }
+    .game-btn.primary { background: #ff1a13; border-color: #ff1a13; }
+    .game-btn:hover { transform: translateY(-1px); }
+    .game-btn:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+    .speed-field { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #aaa; font-size: .85rem; }
+    .speed-field select { background: #151515; color: #fff; border: 1px solid #353535; border-radius: 10px; padding: 9px 10px; }
+
+    .layout { display: grid; grid-template-columns: 1.45fr .85fr; gap: 18px; align-items: start; margin-top: 18px; }
+    .order-card { padding: 18px; }
+    .order-head { display: flex; gap: 12px; align-items: start; justify-content: space-between; margin-bottom: 14px; }
+    .order-head h2 { margin: 0; font-size: 1.35rem; }
+    .order-head p { margin: 5px 0 0; color: #8f8f8f; font-size: .88rem; line-height: 1.45; }
+    .count-badge { background: #171717; border: 1px solid #303030; padding: 7px 10px; border-radius: 999px; color: #aaa; font-size: .78rem; white-space: nowrap; }
+
+    .order-list { display: grid; gap: 9px; }
+    .exit-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; min-height: 64px; padding: 9px 10px; background: #131313; border: 1px solid #2a2a2a; border-radius: 15px; }
+    .exit-row.active { border-color: #ff1a13; box-shadow: inset 0 0 0 1px #ff1a13; }
+    .exit-num { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #202020; color: #aaa; font-weight: 900; font-size: .8rem; }
+    .exit-name { font-weight: 900; }
+    .exit-sub { color: #888; margin-top: 3px; font-size: .78rem; }
+    .row-actions { display: flex; gap: 5px; }
+    .mini-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #353535; background: #191919; color: #fff; cursor: pointer; font-weight: 900; }
+    .mini-btn:hover { border-color: #666; }
+
+    .add-panel { margin-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .add-panel select { min-width: 0; background: #151515; color: #fff; border: 1px solid #343434; border-radius: 12px; padding: 10px; }
+
+    .info-card { background: #0d0d0d; border: 1px solid #292929; border-radius: 24px; padding: 18px; }
+    .info-card h2 { margin: 0 0 11px; font-size: 1.25rem; }
+    .type-list { display: grid; gap: 8px; }
+    .type-item { padding: 11px 12px; border-radius: 13px; background: #131313; border: 1px solid #272727; }
+    .type-item strong { display: block; font-size: .9rem; }
+    .type-item span { color: #848484; font-size: .78rem; }
+    .notice { margin-top: 13px; padding: 12px 13px; border-left: 3px solid #ff1a13; background: #121212; color: #aaa; font-size: .8rem; line-height: 1.5; border-radius: 0 10px 10px 0; }
+
+    @media (max-width: 850px) {
+      .layout { grid-template-columns: 1fr; }
+      .game-stage { min-height: 390px; }
+    }
+    @media (max-width: 620px) {
+      .brand-name { display: none; }
+      .page-shell { width: min(100% - 18px, 1180px); padding-top: 18px; }
+      .game-card, .order-card, .info-card { border-radius: 18px; }
+      .game-stage { min-height: 350px; }
+      .plane { width: 118px; height: 58px; top: 70px; }
+      .game-controls { align-items: stretch; }
+      .game-btn { flex: 1 1 110px; }
+      .speed-field { width: 100%; margin-left: 0; justify-content: space-between; }
+      .exit-row { grid-template-columns: 30px 1fr; }
+      .row-actions { grid-column: 2; }
+      .stage-status { align-items: stretch; flex-direction: column; }
+      .status-pill { width: fit-content; }
+    }
+  </style>
+</head>
+<body>
+  <header class="inner-header">
+    <img src="assets/sequence-icon.png" alt="Sequence">
+    <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
+    <a class="back-link" href="index.html">← Menu</a>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero">
+      <h1>Exit Order</h1>
+      <p>Build an aircraft exit sequence, reorder the groups, then run the simulation and watch each exit leave the plane.</p>
+    </section>
+
+    <section class="game-card">
+      <div class="game-stage" id="gameStage">
+        <div class="cloud c1">☁</div><div class="cloud c2">☁</div><div class="cloud c3">☁</div>
+        <div class="horizon"></div>
+        <div class="drop-zone"></div>
+        <div class="drop-zone-label">Exit point</div>
+        <div class="plane" id="plane" aria-hidden="true">
+          <svg viewBox="0 0 210 90" role="img">
+            <path fill="#f4f4f4" d="M8 46c4-7 13-10 26-10h53L118 7h17l-11 29h50c11 0 20 4 27 10-7 6-16 10-27 10h-50l11 29h-17L87 56H34C21 56 12 53 8 46Z"/>
+            <path fill="#ff1a13" d="M84 36h45l-4 20H84z" opacity=".9"/>
+            <circle cx="175" cy="46" r="4" fill="#111"/>
+          </svg>
+        </div>
+        <div class="stage-status">
+          <div class="status-pill">Status: <span id="currentExit">Ready</span></div>
+          <div class="status-pill"><span id="exitCounter">0</span> / <span id="exitTotal">7</span> exits</div>
+        </div>
+      </div>
+      <div class="game-controls">
+        <button class="game-btn primary" id="startBtn" type="button">Start Exit Run</button>
+        <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
+        <button class="game-btn" id="resetBtn" type="button">Reset</button>
+        <div class="speed-field">
+          <label for="speedSelect">Simulation speed</label>
+          <select id="speedSelect">
+            <option value="1900">Normal</option>
+            <option value="1200">Fast</option>
+            <option value="2600">Slow</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="order-card">
+        <div class="order-head">
+          <div>
+            <h2>Your exit sequence</h2>
+            <p>Use ↑ and ↓ to arrange the groups in the order you want them to leave.</p>
+          </div>
+          <div class="count-badge" id="groupCount">7 groups</div>
+        </div>
+        <div class="order-list" id="orderList"></div>
+        <div class="add-panel">
+          <select id="addType" aria-label="Add exit type">
+            <option value="belly-solo">Belly Flyer · Solo</option>
+            <option value="belly-group">Belly Flyers · Group</option>
+            <option value="freefly-solo">Freefly Flyer (Sit Fly) · Solo</option>
+            <option value="freefly-group">Freefly Flyers (Sit Fly) · Group</option>
+            <option value="tandem">Tandem</option>
+            <option value="aff">AFF Student + Instructor</option>
+            <option value="tracking-solo">Tracking · Solo</option>
+            <option value="tracking-group">Tracking · Group</option>
+            <option value="wingsuit">Wingsuit</option>
+            <option value="high-pull">High Pull</option>
+          </select>
+          <button class="game-btn" id="addBtn" type="button">+ Add</button>
+        </div>
+      </section>
+
+      <aside class="info-card">
+        <h2>Exit types</h2>
+        <div class="type-list">
+          <div class="type-item"><strong>Belly Flyer</strong><span>Solo or group</span></div>
+          <div class="type-item"><strong>Freefly Flyer (Sit Fly)</strong><span>Solo or group</span></div>
+          <div class="type-item"><strong>Tandem</strong><span>Tandem pair</span></div>
+          <div class="type-item"><strong>AFF Student + Instructor</strong><span>Student training exit</span></div>
+          <div class="type-item"><strong>Tracking</strong><span>Solo or group</span></div>
+          <div class="type-item"><strong>Wingsuit</strong><span>Wingsuit exit</span></div>
+          <div class="type-item"><strong>High Pull</strong><span>Planned high deployment</span></div>
+        </div>
+        <div class="notice">Training visualization only. Actual exit order and separation depend on the DZ, aircraft, winds, group sizes and local procedures.</div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const TYPES = {
+      'belly-solo': { name: 'Belly Flyer', sub: 'Solo', short: 'Belly · Solo' },
+      'belly-group': { name: 'Belly Flyers', sub: 'Group', short: 'Belly · Group' },
+      'freefly-solo': { name: 'Freefly Flyer', sub: 'Sit Fly · Solo', short: 'Freefly · Solo' },
+      'freefly-group': { name: 'Freefly Flyers', sub: 'Sit Fly · Group', short: 'Freefly · Group' },
+      'tandem': { name: 'Tandem', sub: 'Tandem pair', short: 'Tandem' },
+      'aff': { name: 'AFF Student + Instructor', sub: 'AFF training exit', short: 'AFF' },
+      'tracking-solo': { name: 'Tracking', sub: 'Solo', short: 'Tracking · Solo' },
+      'tracking-group': { name: 'Tracking', sub: 'Group', short: 'Tracking · Group' },
+      'wingsuit': { name: 'Wingsuit', sub: 'Wingsuit flyer', short: 'Wingsuit' },
+      'high-pull': { name: 'High Pull', sub: 'Planned high deployment', short: 'High Pull' }
+    };
+
+    const defaultOrder = ['belly-group','freefly-group','aff','tandem','tracking-group','wingsuit','high-pull'];
+    let order = [...defaultOrder];
+    let running = false;
+    let activeIndex = -1;
+    let timers = [];
+
+    const orderList = document.getElementById('orderList');
+    const plane = document.getElementById('plane');
+    const stage = document.getElementById('gameStage');
+    const currentExit = document.getElementById('currentExit');
+    const exitCounter = document.getElementById('exitCounter');
+    const exitTotal = document.getElementById('exitTotal');
+    const groupCount = document.getElementById('groupCount');
+    const startBtn = document.getElementById('startBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const speedSelect = document.getElementById('speedSelect');
+
+    function renderOrder() {
+      orderList.innerHTML = '';
+      order.forEach((key, i) => {
+        const t = TYPES[key];
+        const row = document.createElement('div');
+        row.className = 'exit-row' + (i === activeIndex ? ' active' : '');
+        row.innerHTML = `
+          <div class="exit-num">${i + 1}</div>
+          <div><div class="exit-name">${t.name}</div><div class="exit-sub">${t.sub}</div></div>
+          <div class="row-actions">
+            <button class="mini-btn" type="button" data-action="up" data-index="${i}" aria-label="Move up" ${i===0?'disabled':''}>↑</button>
+            <button class="mini-btn" type="button" data-action="down" data-index="${i}" aria-label="Move down" ${i===order.length-1?'disabled':''}>↓</button>
+            <button class="mini-btn" type="button" data-action="remove" data-index="${i}" aria-label="Remove">×</button>
+          </div>`;
+        orderList.appendChild(row);
+      });
+      exitTotal.textContent = order.length;
+      groupCount.textContent = `${order.length} ${order.length === 1 ? 'group' : 'groups'}`;
+      startBtn.disabled = running || order.length === 0;
+      shuffleBtn.disabled = running || order.length < 2;
+    }
+
+    orderList.addEventListener('click', e => {
+      if (running) return;
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const i = Number(btn.dataset.index);
+      const action = btn.dataset.action;
+      if (action === 'up' && i > 0) [order[i-1], order[i]] = [order[i], order[i-1]];
+      if (action === 'down' && i < order.length - 1) [order[i+1], order[i]] = [order[i], order[i+1]];
+      if (action === 'remove') order.splice(i, 1);
+      renderOrder();
+    });
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      if (running) return;
+      order.push(document.getElementById('addType').value);
+      renderOrder();
+    });
+
+    shuffleBtn.addEventListener('click', () => {
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      renderOrder();
+    });
+
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    function resetSimulation(resetOrder = false) {
+      clearTimers();
+      running = false; activeIndex = -1;
+      if (resetOrder) order = [...defaultOrder];
+      plane.style.transition = 'none';
+      plane.style.left = '-180px';
+      requestAnimationFrame(() => { plane.style.transition = ''; });
+      stage.querySelectorAll('.jumper').forEach(el => el.remove());
+      currentExit.textContent = 'Ready';
+      exitCounter.textContent = '0';
+      renderOrder();
+    }
+
+    resetBtn.addEventListener('click', () => resetSimulation(true));
+
+    function dropJumper(key, index) {
+      const t = TYPES[key];
+      const jumper = document.createElement('div');
+      jumper.className = 'jumper';
+      const drift = ((index % 2 ? 1 : -1) * (20 + (index % 3) * 12));
+      const spin = ((index % 2 ? 1 : -1) * (10 + (index % 4) * 8));
+      jumper.style.setProperty('--drift', `${drift}px`);
+      jumper.style.setProperty('--spin', `${spin}deg`);
+      jumper.innerHTML = `<div class="jumper-icon"></div><div class="jumper-label">${t.short}</div>`;
+      stage.appendChild(jumper);
+      timers.push(setTimeout(() => jumper.remove(), 2450));
+    }
+
+    function startRun() {
+      if (running || !order.length) return;
+      clearTimers();
+      stage.querySelectorAll('.jumper').forEach(el => el.remove());
+      running = true; activeIndex = -1;
+      startBtn.disabled = true; shuffleBtn.disabled = true;
+      exitCounter.textContent = '0';
+      currentExit.textContent = 'Aircraft on jump run';
+
+      const interval = Number(speedSelect.value);
+      const totalDuration = Math.max(3400, interval * (order.length + 1));
+      plane.style.transition = `left ${totalDuration}ms linear`;
+      plane.style.left = 'calc(100% + 40px)';
+
+      const firstDrop = Math.min(1450, totalDuration * .22);
+      order.forEach((key, i) => {
+        timers.push(setTimeout(() => {
+          activeIndex = i;
+          currentExit.textContent = TYPES[key].short;
+          exitCounter.textContent = String(i + 1);
+          renderOrder();
+          dropJumper(key, i);
+        }, firstDrop + i * interval));
+      });
+
+      timers.push(setTimeout(() => {
+        running = false; activeIndex = -1;
+        currentExit.textContent = 'Exit run complete';
+        renderOrder();
+      }, firstDrop + order.length * interval + 500));
+    }
+
+    startBtn.addEventListener('click', startRun);
+    renderOrder();
+  </script>
+</body>
+</html>
