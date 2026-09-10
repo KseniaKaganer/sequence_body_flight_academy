@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Wind Tunnel Simulator – Sequence</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .wt-page {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 26px 0 42px;
+    }
+
+    .wt-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .wt-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid #313131;
+      background: #121212;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+
+    .wt-title {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+    }
+
+    .wt-subtitle {
+      color: #aaa;
+      margin: 7px 0 0;
+      max-width: 720px;
+      line-height: 1.45;
+    }
+
+    .wt-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 290px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .wt-stage-card,
+    .wt-controls {
+      background: #111315;
+      border: 1px solid #2a2d31;
+      border-radius: 18px;
+    }
+
+    .wt-stage-card {
+      overflow: hidden;
+    }
+
+    .wt-stage-head {
+      padding: 14px 17px;
+      border-bottom: 1px solid #282b2f;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .wt-stage-head strong {
+      font-size: 16px;
+    }
+
+    .wt-hint {
+      font-size: 13px;
+      color: #9ba0a7;
+    }
+
+    #tunnelCanvasWrap {
+      height: min(70vh, 720px);
+      min-height: 520px;
+      position: relative;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,.05), transparent 43%),
+        linear-gradient(#0b0d0f, #090a0b);
+      touch-action: none;
+    }
+
+    #tunnelCanvasWrap canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .wt-overlay {
+      position: absolute;
+      left: 13px;
+      bottom: 13px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+
+    .wt-chip {
+      border: 1px solid #34383e;
+      background: rgba(8,9,10,.78);
+      backdrop-filter: blur(7px);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: #d5d7da;
+    }
+
+    .wt-controls {
+      padding: 18px;
+      position: sticky;
+      top: 14px;
+    }
+
+    .wt-controls h2 {
+      margin: 0 0 16px;
+      font-size: 19px;
+    }
+
+    .wt-group {
+      margin-bottom: 18px;
+    }
+
+    .wt-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .wt-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .wt-label-row label,
+    .wt-group-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ededed;
+    }
+
+    .wt-value {
+      color: #ff3b35;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .wt-range {
+      width: 100%;
+      accent-color: #ff1a13;
+    }
+
+    .wt-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .wt-btn {
+      appearance: none;
+      border: 1px solid #34383e;
+      background: #17191c;
+      color: #fff;
+      border-radius: 10px;
+      min-height: 42px;
+      padding: 8px 7px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .wt-btn:hover {
+      border-color: #555b64;
+    }
+
+    .wt-btn.active {
+      background: #ff1a13;
+      border-color: #ff1a13;
+    }
+
+    .wt-btn.wide {
+      width: 100%;
+    }
+
+    .wt-divider {
+      border: 0;
+      border-top: 1px solid #292c30;
+      margin: 17px 0;
+    }
+
+    .wt-status {
+      margin-top: 14px;
+      padding: 11px 12px;
+      border-radius: 11px;
+      border: 1px solid #2e3237;
+      background: #0d0f11;
+      color: #aeb3ba;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .wt-loading {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #c7c9cc;
+      font-weight: 700;
+      background: #0b0d0f;
+      z-index: 5;
+    }
+
+    .wt-loading.hidden {
+      display: none;
+    }
+
+    @media (max-width: 860px) {
+      .wt-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .wt-controls {
+        position: static;
+      }
+
+      #tunnelCanvasWrap {
+        height: 62vh;
+        min-height: 480px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .wt-page {
+        width: min(100% - 18px, 1180px);
+        padding-top: 16px;
+      }
+
+      #tunnelCanvasWrap {
+        min-height: 430px;
+        height: 58vh;
+      }
+
+      .wt-controls {
+        padding: 14px;
+      }
+
+      .wt-buttons {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <img class="brand-logo" src="assets/sequence-logo.png" alt="Sequence Body Flight Academy">
+  </header>
+
+  <main class="wt-page">
+    <div class="wt-topbar">
+      <div>
+        <h1 class="wt-title">Wind Tunnel Simulator</h1>
+        <p class="wt-subtitle">
+          Move the body flyer through the airflow and watch the wind particles deflect around the body.
+        </p>
+      </div>
+      <a class="wt-back" href="index.html">← Back to tools</a>
+    </div>
+
+    <div class="wt-layout">
+      <section class="wt-stage-card">
+        <div class="wt-stage-head">
+          <strong>Interactive tunnel</strong>
+          <span class="wt-hint">Drag the flyer · drag empty space to rotate view · scroll/pinch to zoom</span>
+        </div>
+
+        <div id="tunnelCanvasWrap">
+          <div id="loading" class="wt-loading">Loading 3D simulator…</div>
+          <div class="wt-overlay">
+            <span class="wt-chip">Airflow ↑</span>
+            <span class="wt-chip" id="poseChip">Pose: Belly</span>
+            <span class="wt-chip" id="speedChip">Wind: 65%</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="wt-controls">
+        <h2>Simulator controls</h2>
+
+        <div class="wt-group">
+          <div class="wt-label-row">
+            <label for="windSpeed">Wind speed</label>
+            <span class="wt-value" id="windSpeedValue">65%</span>
+          </div>
+          <input class="wt-range" id="windSpeed" type="range" min="20" max="100" value="65">
+        </div>
+
+        <div class="wt-group">
+          <div class="wt-label-row">
+            <label for="particleDensity">Air particles</label>
+            <span class="wt-value" id="particleValue">500</span>
+          </div>
+          <input class="wt-range" id="particleDensity" type="range" min="150" max="900" step="50" value="500">
+        </div>
+
+        <hr class="wt-divider">
+
+        <div class="wt-group">
+          <div class="wt-group-title" style="margin-bottom:9px">Body position</div>
+          <div class="wt-buttons">
+            <button class="wt-btn active" type="button" data-pose="belly">Belly</button>
+            <button class="wt-btn" type="button" data-pose="sit">Sit</button>
+            <button class="wt-btn" type="button" data-pose="headdown">Head Down</button>
+          </div>
+        </div>
+
+        <div class="wt-group">
+          <div class="wt-label-row">
+            <label for="bodyHeight">Flyer height</label>
+            <span class="wt-value" id="heightValue">50%</span>
+          </div>
+          <input class="wt-range" id="bodyHeight" type="range" min="12" max="86" value="50">
+        </div>
+
+        <div class="wt-group">
+          <div class="wt-label-row">
+            <label for="bodyRotation">Body rotation</label>
+            <span class="wt-value" id="rotationValue">0°</span>
+          </div>
+          <input class="wt-range" id="bodyRotation" type="range" min="-180" max="180" value="0">
+        </div>
+
+        <button class="wt-btn wide" type="button" id="centerFlyer">Center flyer</button>
+
+        <div class="wt-status">
+          The particles are simulated locally in your browser. When they reach the flyer,
+          their velocity is pushed away from the body before continuing upward.
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer>Sequence – Body Flight Academy</footer>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js';
+
+    const wrap = document.getElementById('tunnelCanvasWrap');
+    const loading = document.getElementById('loading');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090b0d);
+    scene.fog = new THREE.Fog(0x090b0d, 10, 24);
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(7.8, 5.8, 10.4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    wrap.prepend(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 4.2, 0);
+    controls.minDistance = 6;
+    controls.maxDistance = 20;
+    controls.maxPolarAngle = Math.PI * 0.9;
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x30343a, 1.65));
+
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(5, 10, 7);
+    key.castShadow = true;
+    scene.add(key);
+
+    const redLight = new THREE.PointLight(0xff1a13, 10, 15);
+    redLight.position.set(-4, 4, 3);
+    scene.add(redLight);
+
+    // Tunnel
+    const tunnelRadius = 3.25;
+    const tunnelHeight = 8.6;
+
+    const floor = new THREE.Mesh(
+      new THREE.CylinderGeometry(tunnelRadius, tunnelRadius, 0.22, 64),
+      new THREE.MeshStandardMaterial({ color: 0x181b1f, metalness: 0.55, roughness: 0.55 })
+    );
+    floor.position.y = 0;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const ringMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4d535b,
+      metalness: 0.7,
+      roughness: 0.35
+    });
+
+    [0.15, 2.2, 4.4, 6.6, 8.45].forEach(y => {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(tunnelRadius, 0.045, 8, 72),
+        ringMaterial
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = y;
+      scene.add(ring);
+    });
+
+    const wall = new THREE.Mesh(
+      new THREE.CylinderGeometry(tunnelRadius, tunnelRadius, tunnelHeight, 64, 1, true),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xbfd8ef,
+        transparent: true,
+        opacity: 0.075,
+        roughness: 0.15,
+        metalness: 0,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    wall.position.y = tunnelHeight / 2;
+    scene.add(wall);
+
+    // Grid fan at bottom.
+    const fanGrid = new THREE.GridHelper(tunnelRadius * 1.75, 16, 0x555b63, 0x25292e);
+    fanGrid.position.y = 0.13;
+    scene.add(fanGrid);
+
+    // Flyer model
+    const flyer = new THREE.Group();
+    flyer.position.set(0, 4.1, 0);
+    scene.add(flyer);
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xe8c5ad, roughness: 0.72 });
+    const suitMat = new THREE.MeshStandardMaterial({ color: 0xe3221b, roughness: 0.62 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x17191c, roughness: 0.48 });
+
+    const collisionParts = [];
+
+    function addPart(parent, geometry, material, position, rotation, scale, collisionRadius = 0) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.copy(position);
+      if (rotation) mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+      if (scale) mesh.scale.copy(scale);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      if (collisionRadius > 0) collisionParts.push({ mesh, radius: collisionRadius });
+      return mesh;
+    }
+
+    const torso = addPart(
+      flyer,
+      new THREE.CapsuleGeometry(0.48, 1.05, 7, 14),
+      suitMat,
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Euler(0, 0, 0),
+      new THREE.Vector3(1, 1, 0.7),
+      0.68
+    );
+
+    const head = addPart(
+      flyer,
+      new THREE.SphereGeometry(0.36, 22, 18),
+      skinMat,
+      new THREE.Vector3(0, 1.18, 0),
+      null,
+      null,
+      0.40
+    );
+
+    const helmet = addPart(
+      flyer,
+      new THREE.SphereGeometry(0.38, 22, 18, 0, Math.PI * 2, 0, Math.PI * 0.63),
+      darkMat,
+      new THREE.Vector3(0, 1.20, 0),
+      new THREE.Euler(Math.PI, 0, 0),
+      null,
+      0
+    );
+
+    const limbGeo = new THREE.CapsuleGeometry(0.15, 0.92, 6, 10);
+
+    const leftArm = addPart(
+      flyer, limbGeo, suitMat,
+      new THREE.Vector3(-0.85, 0.28, 0),
+      new THREE.Euler(0, 0, Math.PI / 2.8),
+      null, 0.25
+    );
+    const rightArm = addPart(
+      flyer, limbGeo, suitMat,
+      new THREE.Vector3(0.85, 0.28, 0),
+      new THREE.Euler(0, 0, -Math.PI / 2.8),
+      null, 0.25
+    );
+    const leftLeg = addPart(
+      flyer, limbGeo, suitMat,
+      new THREE.Vector3(-0.35, -1.05, 0),
+      new THREE.Euler(0, 0, 0.25),
+      new THREE.Vector3(1.12, 1.05, 1.12), 0.28
+    );
+    const rightLeg = addPart(
+      flyer, limbGeo, suitMat,
+      new THREE.Vector3(0.35, -1.05, 0),
+      new THREE.Euler(0, 0, -0.25),
+      new THREE.Vector3(1.12, 1.05, 1.12), 0.28
+    );
+
+    const bodyPieces = { torso, head, helmet, leftArm, rightArm, leftLeg, rightLeg };
+
+    let currentPose = 'belly';
+
+    function applyPose(pose) {
+      currentPose = pose;
+
+      // Reset local positions/rotations.
+      torso.position.set(0, 0, 0);
+      torso.rotation.set(0, 0, 0);
+
+      head.position.set(0, 1.18, 0);
+      helmet.position.set(0, 1.20, 0);
+
+      leftArm.position.set(-0.85, 0.28, 0);
+      rightArm.position.set(0.85, 0.28, 0);
+      leftLeg.position.set(-0.35, -1.05, 0);
+      rightLeg.position.set(0.35, -1.05, 0);
+
+      leftArm.rotation.set(0, 0, Math.PI / 2.8);
+      rightArm.rotation.set(0, 0, -Math.PI / 2.8);
+      leftLeg.rotation.set(0, 0, 0.25);
+      rightLeg.rotation.set(0, 0, -0.25);
+
+      flyer.rotation.x = 0;
+
+      if (pose === 'belly') {
+        // Horizontal body, belly toward the floor / incoming air.
+        flyer.rotation.x = Math.PI / 2;
+        leftArm.rotation.z = Math.PI / 2.35;
+        rightArm.rotation.z = -Math.PI / 2.35;
+        leftLeg.rotation.z = 0.45;
+        rightLeg.rotation.z = -0.45;
+      } else if (pose === 'sit') {
+        flyer.rotation.x = 0;
+        torso.rotation.x = 0;
+        leftLeg.position.set(-0.42, -0.95, 0.38);
+        rightLeg.position.set(0.42, -0.95, 0.38);
+        leftLeg.rotation.x = 0.78;
+        rightLeg.rotation.x = 0.78;
+        leftArm.rotation.z = Math.PI / 2.25;
+        rightArm.rotation.z = -Math.PI / 2.25;
+      } else if (pose === 'headdown') {
+        flyer.rotation.x = Math.PI;
+        leftArm.rotation.z = Math.PI / 2.6;
+        rightArm.rotation.z = -Math.PI / 2.6;
+        leftLeg.rotation.z = 0.15;
+        rightLeg.rotation.z = -0.15;
+      }
+
+      document.getElementById('poseChip').textContent =
+        'Pose: ' + (pose === 'headdown' ? 'Head Down' : pose.charAt(0).toUpperCase() + pose.slice(1));
+    }
+
+    applyPose('belly');
+
+    // Air particles
+    let particleCount = 500;
+    let windStrength = 0.65;
+    let particlePositions;
+    let particleVelocities;
+    let particles;
+
+    const particleGeometry = new THREE.BufferGeometry();
+    const particleMaterial = new THREE.PointsMaterial({
+      color: 0xd7f1ff,
+      size: 0.055,
+      transparent: true,
+      opacity: 0.78,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    function randomInDisc(radius) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * radius;
+      return [Math.cos(a) * r, Math.sin(a) * r];
+    }
+
+    function resetParticle(i, randomY = false) {
+      const [x, z] = randomInDisc(tunnelRadius * 0.88);
+      const i3 = i * 3;
+      particlePositions[i3] = x;
+      particlePositions[i3 + 1] = randomY ? Math.random() * tunnelHeight : 0.22 + Math.random() * 0.18;
+      particlePositions[i3 + 2] = z;
+      particleVelocities[i3] = (Math.random() - 0.5) * 0.006;
+      particleVelocities[i3 + 1] = 0.034 + Math.random() * 0.018;
+      particleVelocities[i3 + 2] = (Math.random() - 0.5) * 0.006;
+    }
+
+    function buildParticles(count) {
+      particleCount = count;
+
+      if (particles) {
+        scene.remove(particles);
+        particleGeometry.dispose();
+      }
+
+      particlePositions = new Float32Array(count * 3);
+      particleVelocities = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i++) resetParticle(i, true);
+
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      particles = new THREE.Points(particleGeometry, particleMaterial);
+      scene.add(particles);
+    }
+
+    buildParticles(particleCount);
+
+    const tempWorld = new THREE.Vector3();
+    const tempParticle = new THREE.Vector3();
+    const tempNormal = new THREE.Vector3();
+
+    function updateParticles(dt) {
+      const speedScale = windStrength * 60 * dt;
+      const maxR = tunnelRadius * 0.92;
+
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+
+        let x = particlePositions[i3];
+        let y = particlePositions[i3 + 1];
+        let z = particlePositions[i3 + 2];
+
+        let vx = particleVelocities[i3];
+        let vy = particleVelocities[i3 + 1];
+        let vz = particleVelocities[i3 + 2];
+
+        // Wind wants to restore a strong upward flow.
+        vy += (0.044 - vy) * 0.035;
+        vx *= 0.992;
+        vz *= 0.992;
+
+        tempParticle.set(x, y, z);
+
+        // Approximate collision / airflow deflection around each body part.
+        for (const part of collisionParts) {
+          part.mesh.getWorldPosition(tempWorld);
+
+          const dx = x - tempWorld.x;
+          const dy = y - tempWorld.y;
+          const dz = z - tempWorld.z;
+          const distSq = dx * dx + dy * dy + dz * dz;
+          const influence = part.radius + 0.34;
+
+          if (distSq < influence * influence && distSq > 0.00001) {
+            const dist = Math.sqrt(distSq);
+            tempNormal.set(dx, dy, dz).multiplyScalar(1 / dist);
+
+            // Stronger sideways deflection than vertical reversal.
+            const push = (1 - dist / influence) * 0.045;
+            vx += tempNormal.x * push;
+            vz += tempNormal.z * push;
+            vy *= 0.91;
+
+            // A small wake/turbulence effect above the body.
+            if (dy > 0) {
+              vx += (Math.random() - 0.5) * 0.012;
+              vz += (Math.random() - 0.5) * 0.012;
+              vy *= 0.96;
+            }
+          }
+        }
+
+        x += vx * speedScale;
+        y += vy * speedScale;
+        z += vz * speedScale;
+
+        // Keep airflow inside the circular glass.
+        const radial = Math.hypot(x, z);
+        if (radial > maxR) {
+          const nx = x / radial;
+          const nz = z / radial;
+          x = nx * maxR;
+          z = nz * maxR;
+          vx -= nx * 0.018;
+          vz -= nz * 0.018;
+        }
+
+        if (y > tunnelHeight || y < 0 || !Number.isFinite(y)) {
+          resetParticle(i, false);
+          continue;
+        }
+
+        particlePositions[i3] = x;
+        particlePositions[i3 + 1] = y;
+        particlePositions[i3 + 2] = z;
+        particleVelocities[i3] = vx;
+        particleVelocities[i3 + 1] = vy;
+        particleVelocities[i3 + 2] = vz;
+      }
+
+      particleGeometry.attributes.position.needsUpdate = true;
+    }
+
+    // Drag flyer in X/Y while leaving orbit control for empty space.
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const dragHit = new THREE.Vector3();
+    let draggingFlyer = false;
+    let dragOffset = new THREE.Vector3();
+
+    function setPointerFromEvent(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+    }
+
+    renderer.domElement.addEventListener('pointerdown', e => {
+      setPointerFromEvent(e);
+      const intersections = raycaster.intersectObjects(Object.values(bodyPieces), true);
+
+      if (!intersections.length) return;
+
+      draggingFlyer = true;
+      controls.enabled = false;
+
+      const normal = new THREE.Vector3();
+      camera.getWorldDirection(normal);
+      dragPlane.setFromNormalAndCoplanarPoint(normal, flyer.position);
+
+      if (raycaster.ray.intersectPlane(dragPlane, dragHit)) {
+        dragOffset.copy(flyer.position).sub(dragHit);
+      }
+
+      renderer.domElement.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    });
+
+    renderer.domElement.addEventListener('pointermove', e => {
+      if (!draggingFlyer) return;
+      setPointerFromEvent(e);
+
+      if (raycaster.ray.intersectPlane(dragPlane, dragHit)) {
+        const next = dragHit.add(dragOffset);
+
+        const horizontalR = Math.hypot(next.x, next.z);
+        const allowedR = tunnelRadius * 0.58;
+        if (horizontalR > allowedR) {
+          next.x *= allowedR / horizontalR;
+          next.z *= allowedR / horizontalR;
+        }
+
+        flyer.position.x = next.x;
+        flyer.position.z = next.z;
+        flyer.position.y = THREE.MathUtils.clamp(next.y, 1.3, 7.3);
+
+        const pct = Math.round((flyer.position.y / tunnelHeight) * 100);
+        document.getElementById('bodyHeight').value = String(THREE.MathUtils.clamp(pct, 12, 86));
+        document.getElementById('heightValue').textContent =
+          document.getElementById('bodyHeight').value + '%';
+      }
+    });
+
+    function endDrag(e) {
+      if (!draggingFlyer) return;
+      draggingFlyer = false;
+      controls.enabled = true;
+      try { renderer.domElement.releasePointerCapture?.(e.pointerId); } catch (_) {}
+    }
+
+    renderer.domElement.addEventListener('pointerup', endDrag);
+    renderer.domElement.addEventListener('pointercancel', endDrag);
+
+    // UI
+    const windSpeed = document.getElementById('windSpeed');
+    const particleDensity = document.getElementById('particleDensity');
+    const bodyHeight = document.getElementById('bodyHeight');
+    const bodyRotation = document.getElementById('bodyRotation');
+
+    windSpeed.addEventListener('input', () => {
+      windStrength = Number(windSpeed.value) / 100;
+      document.getElementById('windSpeedValue').textContent = windSpeed.value + '%';
+      document.getElementById('speedChip').textContent = 'Wind: ' + windSpeed.value + '%';
+    });
+
+    particleDensity.addEventListener('change', () => {
+      const count = Number(particleDensity.value);
+      document.getElementById('particleValue').textContent = count;
+      buildParticles(count);
+    });
+
+    particleDensity.addEventListener('input', () => {
+      document.getElementById('particleValue').textContent = particleDensity.value;
+    });
+
+    bodyHeight.addEventListener('input', () => {
+      const pct = Number(bodyHeight.value);
+      flyer.position.y = (pct / 100) * tunnelHeight;
+      document.getElementById('heightValue').textContent = pct + '%';
+    });
+
+    bodyRotation.addEventListener('input', () => {
+      const deg = Number(bodyRotation.value);
+      flyer.rotation.y = THREE.MathUtils.degToRad(deg);
+      document.getElementById('rotationValue').textContent = deg + '°';
+    });
+
+    document.querySelectorAll('[data-pose]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-pose]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyPose(btn.dataset.pose);
+        flyer.rotation.y = THREE.MathUtils.degToRad(Number(bodyRotation.value));
+      });
+    });
+
+    document.getElementById('centerFlyer').addEventListener('click', () => {
+      flyer.position.set(0, tunnelHeight * 0.5, 0);
+      flyer.rotation.y = 0;
+      bodyHeight.value = '50';
+      bodyRotation.value = '0';
+      document.getElementById('heightValue').textContent = '50%';
+      document.getElementById('rotationValue').textContent = '0°';
+    });
+
+    function resize() {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(wrap);
+    resize();
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.034);
+      updateParticles(dt);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    loading.classList.add('hidden');
+    animate();
+  </script>
+</body>
+</html>
