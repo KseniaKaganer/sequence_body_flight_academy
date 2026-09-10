@@ -596,19 +596,18 @@
 
     applyPose('belly');
 
-    // Air particles
+    // Airflow streaks
     let particleCount = 500;
     let windStrength = 0.65;
     let particlePositions;
     let particleVelocities;
-    let particles;
+    let particleGeometry = null;
+    let particles = null;
 
-    const particleGeometry = new THREE.BufferGeometry();
-    const particleMaterial = new THREE.PointsMaterial({
-      color: 0xd7f1ff,
-      size: 0.055,
+    const particleMaterial = new THREE.LineBasicMaterial({
+      color: 0x9fe9ff,
       transparent: true,
-      opacity: 0.78,
+      opacity: 0.82,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
@@ -622,12 +621,16 @@
     function resetParticle(i, randomY = false) {
       const [x, z] = randomInDisc(tunnelRadius * 0.88);
       const i3 = i * 3;
+
       particlePositions[i3] = x;
-      particlePositions[i3 + 1] = randomY ? Math.random() * tunnelHeight : 0.22 + Math.random() * 0.18;
+      particlePositions[i3 + 1] = randomY
+        ? Math.random() * tunnelHeight
+        : 0.22 + Math.random() * 0.18;
       particlePositions[i3 + 2] = z;
-      particleVelocities[i3] = (Math.random() - 0.5) * 0.006;
-      particleVelocities[i3 + 1] = 0.034 + Math.random() * 0.018;
-      particleVelocities[i3 + 2] = (Math.random() - 0.5) * 0.006;
+
+      particleVelocities[i3] = (Math.random() - 0.5) * 0.004;
+      particleVelocities[i3 + 1] = 0.042 + Math.random() * 0.012;
+      particleVelocities[i3 + 2] = (Math.random() - 0.5) * 0.004;
     }
 
     function buildParticles(count) {
@@ -635,6 +638,8 @@
 
       if (particles) {
         scene.remove(particles);
+      }
+      if (particleGeometry) {
         particleGeometry.dispose();
       }
 
@@ -643,20 +648,73 @@
 
       for (let i = 0; i < count; i++) resetParticle(i, true);
 
-      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-      particles = new THREE.Points(particleGeometry, particleMaterial);
+      // Two vertices per airflow streak.
+      particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(count * 6), 3)
+      );
+
+      particles = new THREE.LineSegments(particleGeometry, particleMaterial);
+      particles.frustumCulled = false;
       scene.add(particles);
+
+      updateLineGeometry();
+    }
+
+    function updateLineGeometry() {
+      const lineArray = particleGeometry.attributes.position.array;
+
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        const i6 = i * 6;
+
+        const x = particlePositions[i3];
+        const y = particlePositions[i3 + 1];
+        const z = particlePositions[i3 + 2];
+
+        const vx = particleVelocities[i3];
+        const vy = particleVelocities[i3 + 1];
+        const vz = particleVelocities[i3 + 2];
+
+        const speed = Math.hypot(vx, vy, vz) || 0.001;
+
+        // Short streamline segment pointing in the local direction of flow.
+        // Faster air produces a slightly longer line.
+        const streakLength = THREE.MathUtils.clamp(
+          0.13 + speed * 4.1 * windStrength,
+          0.12,
+          0.34
+        );
+
+        const nx = vx / speed;
+        const ny = vy / speed;
+        const nz = vz / speed;
+
+        lineArray[i6] = x - nx * streakLength;
+        lineArray[i6 + 1] = y - ny * streakLength;
+        lineArray[i6 + 2] = z - nz * streakLength;
+
+        lineArray[i6 + 3] = x;
+        lineArray[i6 + 4] = y;
+        lineArray[i6 + 5] = z;
+      }
+
+      particleGeometry.attributes.position.needsUpdate = true;
     }
 
     buildParticles(particleCount);
 
     const tempWorld = new THREE.Vector3();
-    const tempParticle = new THREE.Vector3();
     const tempNormal = new THREE.Vector3();
 
     function updateParticles(dt) {
       const speedScale = windStrength * 60 * dt;
       const maxR = tunnelRadius * 0.92;
+
+      // Flyer center used to create a visible wake behind the body.
+      const flyerCenter = new THREE.Vector3();
+      flyer.getWorldPosition(flyerCenter);
 
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
@@ -669,14 +727,14 @@
         let vy = particleVelocities[i3 + 1];
         let vz = particleVelocities[i3 + 2];
 
-        // Wind wants to restore a strong upward flow.
-        vy += (0.044 - vy) * 0.035;
-        vx *= 0.992;
-        vz *= 0.992;
+        // Base wind always moves upward.
+        vy += (0.046 - vy) * 0.028;
+        vx *= 0.994;
+        vz *= 0.994;
 
-        tempParticle.set(x, y, z);
+        let bodyInteraction = false;
 
-        // Approximate collision / airflow deflection around each body part.
+        // Deflect the airflow around every body part.
         for (const part of collisionParts) {
           part.mesh.getWorldPosition(tempWorld);
 
@@ -684,40 +742,69 @@
           const dy = y - tempWorld.y;
           const dz = z - tempWorld.z;
           const distSq = dx * dx + dy * dy + dz * dz;
-          const influence = part.radius + 0.34;
+          const influence = part.radius + 0.42;
 
           if (distSq < influence * influence && distSq > 0.00001) {
+            bodyInteraction = true;
+
             const dist = Math.sqrt(distSq);
             tempNormal.set(dx, dy, dz).multiplyScalar(1 / dist);
 
-            // Stronger sideways deflection than vertical reversal.
-            const push = (1 - dist / influence) * 0.045;
+            // Air separates around the object.
+            const push = (1 - dist / influence) * 0.065;
             vx += tempNormal.x * push;
             vz += tempNormal.z * push;
-            vy *= 0.91;
 
-            // A small wake/turbulence effect above the body.
-            if (dy > 0) {
-              vx += (Math.random() - 0.5) * 0.012;
-              vz += (Math.random() - 0.5) * 0.012;
-              vy *= 0.96;
-            }
+            // Slow the air locally as it hits the body.
+            vy *= 0.84;
           }
+        }
+
+        // Wake / turbulence ABOVE the flyer because tunnel wind travels upward.
+        // This creates the disturbed, swirling region "behind" the body.
+        const wakeY = y - flyerCenter.y;
+        const wakeDx = x - flyerCenter.x;
+        const wakeDz = z - flyerCenter.z;
+        const wakeRadius = 1.30 + Math.min(Math.max(wakeY, 0), 2.6) * 0.18;
+        const wakeRadial = Math.hypot(wakeDx, wakeDz);
+
+        if (wakeY > 0.05 && wakeY < 3.0 && wakeRadial < wakeRadius) {
+          const fadeY = 1 - wakeY / 3.0;
+          const fadeR = 1 - wakeRadial / wakeRadius;
+          const turbulence = Math.max(0, fadeY * fadeR);
+
+          // Deterministic swirl plus irregular turbulence.
+          const swirl = 0.022 * turbulence;
+          vx += -wakeDz * swirl;
+          vz +=  wakeDx * swirl;
+
+          vx += (Math.random() - 0.5) * 0.035 * turbulence;
+          vz += (Math.random() - 0.5) * 0.035 * turbulence;
+          vy += (Math.random() - 0.60) * 0.017 * turbulence;
+
+          // Slightly reduced mean velocity in the wake.
+          vy *= 1 - 0.16 * turbulence;
+        }
+
+        // Extra small irregularity immediately after a collision.
+        if (bodyInteraction) {
+          vx += (Math.random() - 0.5) * 0.014;
+          vz += (Math.random() - 0.5) * 0.014;
         }
 
         x += vx * speedScale;
         y += vy * speedScale;
         z += vz * speedScale;
 
-        // Keep airflow inside the circular glass.
+        // Keep flow inside the circular glass.
         const radial = Math.hypot(x, z);
         if (radial > maxR) {
           const nx = x / radial;
           const nz = z / radial;
           x = nx * maxR;
           z = nz * maxR;
-          vx -= nx * 0.018;
-          vz -= nz * 0.018;
+          vx -= nx * 0.020;
+          vz -= nz * 0.020;
         }
 
         if (y > tunnelHeight || y < 0 || !Number.isFinite(y)) {
@@ -733,7 +820,7 @@
         particleVelocities[i3 + 2] = vz;
       }
 
-      particleGeometry.attributes.position.needsUpdate = true;
+      updateLineGeometry();
     }
 
     // Drag flyer in X/Y while leaving orbit control for empty space.
