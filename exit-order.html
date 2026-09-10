@@ -9,87 +9,165 @@
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #000; color: #fff; font-family: Arial, Helvetica, sans-serif; }
-    button { font: inherit; }
-    .inner-header { min-height:72px; display:flex; align-items:center; gap:12px; padding:12px clamp(16px,4vw,34px); border-bottom:1px solid #202020; position:sticky; top:0; z-index:30; background:rgba(0,0,0,.95); }
+    button, select { font: inherit; }
+
+    .inner-header {
+      min-height:72px; display:flex; align-items:center; gap:12px;
+      padding:12px clamp(16px,4vw,34px); border-bottom:1px solid #202020;
+      position:sticky; top:0; z-index:30; background:rgba(0,0,0,.95);
+    }
     .inner-header img { width:42px; height:42px; object-fit:contain; }
     .brand-name { font-weight:900; letter-spacing:.06em; font-size:.82rem; }
     .back-link { margin-left:auto; color:#fff; text-decoration:none; font-weight:800; }
+
     .page-shell { width:min(1220px, calc(100% - 24px)); margin:0 auto; padding:24px 0 46px; }
     .hero { margin-bottom:16px; }
     .hero h1 { margin:0; font-size:clamp(2rem,5vw,3.5rem); letter-spacing:-.04em; }
     .hero p { margin:8px 0 0; color:#a8a8a8; max-width:860px; line-height:1.5; }
-    .order-card, .sim-card, .note-card { background:#0d0d0d; border:1px solid #292929; border-radius:22px; overflow:hidden; }
+
+    .order-card, .sim-card, .note-card {
+      background:#0d0d0d; border:1px solid #292929; border-radius:22px; overflow:hidden;
+    }
+
     .order-card { padding:16px; margin-bottom:18px; }
     .order-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
     .order-head h2 { margin:0; font-size:1.32rem; }
     .order-head p { margin:5px 0 0; color:#929292; font-size:.88rem; }
     .count-badge { background:#171717; border:1px solid #303030; color:#aaa; border-radius:999px; padding:7px 10px; font-size:.76rem; white-space:nowrap; }
-    .order-board { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
-    .exit-tile { position:relative; min-height:128px; border:1px solid #303030; background:#141414; border-radius:15px; padding:9px 8px; cursor:grab; user-select:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center; transition:.15s ease; }
+
+    .order-board {
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:9px;
+    }
+
+    .exit-tile {
+      position:relative;
+      min-height:122px;
+      border:1px solid #303030;
+      background:#141414;
+      border-radius:15px;
+      padding:9px 8px;
+      cursor:grab;
+      user-select:none;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      text-align:center;
+      transition:.15s ease;
+    }
     .exit-tile:hover { border-color:#555; transform:translateY(-1px); }
     .exit-tile.dragging { opacity:.35; cursor:grabbing; }
     .exit-tile.drag-over { border-color:#ff1a13; box-shadow:inset 0 0 0 1px #ff1a13; }
-    .tile-number { position:absolute; top:7px; left:7px; width:24px; height:24px; border-radius:50%; display:grid; place-items:center; background:#242424; color:#aaa; font-weight:900; font-size:.72rem; }
-    .tile-art { width:80px; height:55px; display:grid; place-items:center; margin-top:4px; }
-    .tile-art svg { width:80px; height:55px; overflow:visible; }
-    .tile-title { font-weight:900; font-size:.86rem; line-height:1.05; margin-top:2px; }
-    .tile-mode { margin-top:5px; color:#fff; font-weight:900; font-size:1.02rem; line-height:1; }
-    .order-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+
+    .tile-number {
+      position:absolute; top:7px; left:7px;
+      width:24px; height:24px; border-radius:50%;
+      display:grid; place-items:center;
+      background:#242424; color:#aaa; font-weight:900; font-size:.72rem;
+    }
+
+    .tile-art { width:88px; height:60px; display:grid; place-items:center; margin-top:3px; }
+    .tile-art svg { width:88px; height:60px; overflow:visible; }
+    .tile-title { font-weight:900; font-size:.9rem; line-height:1.05; margin-top:2px; }
+    .tile-mode { margin-top:5px; color:#fff; font-weight:900; font-size:1.03rem; line-height:1; }
+
+    .order-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; align-items:center; }
     .game-btn { border:1px solid #363636; background:#171717; color:#fff; border-radius:12px; padding:10px 15px; font-weight:900; cursor:pointer; }
     .game-btn.primary { background:#ff1a13; border-color:#ff1a13; }
+
+    .add-panel { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+    .add-panel select { background:#151515; color:#fff; border:1px solid #353535; border-radius:10px; padding:9px 10px; min-width:220px; }
+
     .score-box { display:none; margin-top:12px; padding:12px 14px; border-radius:13px; border:1px solid #333; background:#131313; line-height:1.45; }
     .score-box.show { display:block; }
     .score-box.pass { border-color:#2f9e44; }
     .score-box.fail { border-color:#ff1a13; }
     .score-title { font-weight:900; font-size:1.06rem; }
     .score-detail { color:#aaa; font-size:.86rem; margin-top:3px; }
+
     .rules { margin-top:12px; padding:12px 13px; background:#111; border:1px solid #292929; border-radius:13px; color:#aaa; font-size:.8rem; line-height:1.5; }
     .rules strong { color:#fff; }
+
     .sim-card { margin-top:18px; }
     .sim-title { padding:16px 16px 0; }
     .sim-title h2 { margin:0; font-size:1.35rem; }
     .sim-title p { margin:5px 0 13px; color:#8f8f8f; font-size:.86rem; }
-    .game-stage { position:relative; min-height:580px; overflow:hidden; border-top:1px solid #292929; border-bottom:1px solid #292929; background:radial-gradient(ellipse at 18% 18%,rgba(255,255,255,.78) 0 3%,transparent 8%),radial-gradient(ellipse at 28% 20%,rgba(255,255,255,.5) 0 4%,transparent 10%),radial-gradient(ellipse at 72% 15%,rgba(255,255,255,.7) 0 3%,transparent 9%),radial-gradient(ellipse at 82% 17%,rgba(255,255,255,.45) 0 4%,transparent 10%),linear-gradient(#67b6e7 0%,#8bccef 58%,#c7e8f8 100%); }
+
+    .game-stage {
+      position:relative;
+      min-height:580px;
+      overflow:hidden;
+      border-top:1px solid #292929;
+      border-bottom:1px solid #292929;
+      background:
+        radial-gradient(ellipse at 18% 18%,rgba(255,255,255,.78) 0 3%,transparent 8%),
+        radial-gradient(ellipse at 28% 20%,rgba(255,255,255,.5) 0 4%,transparent 10%),
+        radial-gradient(ellipse at 72% 15%,rgba(255,255,255,.7) 0 3%,transparent 9%),
+        radial-gradient(ellipse at 82% 17%,rgba(255,255,255,.45) 0 4%,transparent 10%),
+        linear-gradient(#67b6e7 0%,#8bccef 58%,#c7e8f8 100%);
+    }
+
     .plane { position:absolute; top:25px; left:-150px; width:138px; height:64px; z-index:8; filter:drop-shadow(0 5px 7px rgba(0,0,0,.28)); }
     .plane svg { width:100%; height:100%; }
+
     .trajectory-layer { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3; }
     .trajectory-layer path { fill:none; stroke:rgba(0,0,0,.5); stroke-width:1.15; stroke-dasharray:2 5; vector-effect:non-scaling-stroke; }
-    .jumper { position:absolute; width:94px; text-align:center; z-index:6; transform:translate(-50%,-50%); opacity:0; }
-    .jumper-art { width:84px; height:62px; margin:0 auto; }
+
+    .jumper { position:absolute; width:96px; text-align:center; z-index:6; transform:translate(-50%,-50%); opacity:0; }
+    .jumper-art { width:88px; height:64px; margin:0 auto; }
     .jumper-art svg { width:100%; height:100%; overflow:visible; }
     .jumper-label { display:inline-block; margin-top:2px; padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.88); color:#111; font-size:.66rem; font-weight:900; white-space:nowrap; }
-    .canopy { position:absolute; width:90px; height:52px; z-index:7; transform:translate(-50%,-50%); opacity:0; transition:opacity .2s ease; filter:drop-shadow(0 4px 4px rgba(0,0,0,.2)); }
+
+    .canopy { position:absolute; width:92px; height:54px; z-index:7; transform:translate(-50%,-50%); opacity:0; transition:opacity .2s ease; filter:drop-shadow(0 4px 4px rgba(0,0,0,.2)); }
     .canopy svg { width:100%; height:100%; }
+
     .stage-status { position:absolute; left:12px; right:12px; bottom:10px; z-index:10; display:flex; justify-content:space-between; gap:8px; align-items:flex-end; }
     .status-pill { background:rgba(255,255,255,.88); color:#111; border:1px solid rgba(0,0,0,.14); border-radius:999px; padding:7px 10px; font-size:.76rem; }
+
     .player-controls { padding:13px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
     .player-btn { min-width:92px; border:1px solid #353535; background:#171717; color:#fff; border-radius:12px; padding:10px 15px; font-weight:900; cursor:pointer; }
     .player-btn.run { background:#ff1a13; border-color:#ff1a13; }
     .player-btn:disabled { opacity:.4; cursor:not-allowed; }
     .speed-field { margin-left:auto; display:flex; align-items:center; gap:8px; color:#aaa; font-size:.84rem; }
     .speed-field select { background:#151515; color:#fff; border:1px solid #353535; border-radius:10px; padding:8px 10px; }
+
     .note-card { padding:15px; margin-top:18px; color:#aaa; font-size:.8rem; line-height:1.5; }
-    @media (max-width:900px) { .order-board { grid-template-columns:repeat(3,minmax(0,1fr)); } .game-stage { min-height:520px; } }
+
+    @media (max-width:900px) {
+      .order-board { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .game-stage { min-height:520px; }
+      .add-panel { margin-left:0; width:100%; }
+      .add-panel select { flex:1; }
+    }
+
     @media (max-width:620px) {
       .brand-name { display:none; }
       .page-shell { width:min(100% - 16px,1220px); padding-top:16px; }
       .order-board { grid-template-columns:1fr; gap:7px; }
-      .exit-tile { min-height:78px; padding:8px 10px; display:grid; grid-template-columns:30px 76px 1fr; text-align:left; align-items:center; }
+      .exit-tile {
+        min-height:78px; padding:8px 10px;
+        display:grid; grid-template-columns:30px 80px 1fr;
+        text-align:left; align-items:center;
+      }
       .tile-number { position:static; }
-      .tile-art { width:70px; height:50px; margin:0; }
-      .tile-art svg { width:70px; height:50px; }
-      .tile-title { margin:0; font-size:.9rem; }
+      .tile-art { width:74px; height:52px; margin:0; }
+      .tile-art svg { width:74px; height:52px; }
+      .tile-title { margin:0; font-size:.92rem; }
       .tile-mode { font-size:1rem; margin-top:4px; }
       .game-stage { min-height:470px; }
       .plane { width:108px; height:52px; }
-      .jumper { width:70px; }
-      .jumper-art { width:62px; height:50px; }
+      .jumper { width:72px; }
+      .jumper-art { width:64px; height:50px; }
       .jumper-label { display:none; }
-      .canopy { width:70px; height:44px; }
+      .canopy { width:72px; height:44px; }
       .stage-status { flex-direction:column; align-items:flex-start; }
       .player-controls { align-items:stretch; }
       .player-btn { flex:1 1 90px; }
       .speed-field { width:100%; margin-left:0; justify-content:space-between; }
+      .add-panel { display:grid; grid-template-columns:1fr auto; }
+      .add-panel select { min-width:0; width:100%; }
     }
   </style>
 </head>
@@ -120,6 +198,14 @@
       <div class="order-actions">
         <button class="game-btn primary" id="checkBtn" type="button">Check Order</button>
         <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
+
+        <div class="add-panel">
+          <select id="addType">
+            <option value="wingsuit-group">Wingsuit Group</option>
+            <option value="high-pull-group">High Pull Group</option>
+          </select>
+          <button class="game-btn" id="addBtn" type="button">+ Add</button>
+        </div>
       </div>
 
       <div class="score-box" id="scoreBox" aria-live="polite"></div>
@@ -134,7 +220,7 @@
     <section class="sim-card">
       <div class="sim-title">
         <h2>Freefall Simulator</h2>
-        <p>Each exit is shown in sequence. Tracking flyers and wingsuits move through the simulated airspace and leave the screen; the other freefallers continue down and open at the bottom.</p>
+        <p>Tracking and Wingsuit exits fly across and leave the screen. High Pull exits descend much slower because they are already under canopy.</p>
       </div>
 
       <div class="game-stage" id="gameStage">
@@ -155,7 +241,7 @@
 
         <div class="stage-status">
           <div class="status-pill">Status: <span id="currentExit">Ready</span></div>
-          <div class="status-pill"><span id="exitCounter">0</span> / 10 exits</div>
+          <div class="status-pill"><span id="exitCounter">0</span> / <span id="exitTotal">10</span> exits</div>
         </div>
       </div>
 
@@ -163,6 +249,7 @@
         <button class="player-btn run" id="runBtn" type="button">▶ Run</button>
         <button class="player-btn" id="pauseBtn" type="button" disabled>Ⅱ Pause</button>
         <button class="player-btn" id="stopBtn" type="button" disabled>■ Stop</button>
+
         <div class="speed-field">
           <label for="speedSelect">Speed</label>
           <select id="speedSelect">
@@ -174,7 +261,9 @@
       </div>
     </section>
 
-    <div class="note-card">Training visualization only. Actual exit order and separation depend on the DZ, aircraft, winds, group sizes, opening altitudes, dive plans and local procedures.</div>
+    <div class="note-card">
+      Training visualization only. Actual exit order and separation depend on the DZ, aircraft, winds, group sizes, opening altitudes, dive plans and local procedures.
+    </div>
   </main>
 
   <script>
@@ -185,10 +274,12 @@
       'freefly-group': { title:'Freefly', mode:'GROUP' },
       'freefly-solo': { title:'Freefly', mode:'SOLO' },
       'tracking-solo': { title:'Tracking', mode:'SOLO' },
-      'aff': { title:'AFF', mode:'STUDENT + INSTRUCTORS' },
-      'tandem': { title:'Tandem', mode:'PAIR' },
-      'wingsuit': { title:'Wingsuit', mode:'FLYER' },
-      'high-pull': { title:'High Pull', mode:'FLYER' }
+      'aff': { title:'AFF', mode:'' },
+      'tandem': { title:'Tandem', mode:'' },
+      'wingsuit': { title:'Wingsuit', mode:'' },
+      'high-pull': { title:'High Pull', mode:'' },
+      'wingsuit-group': { title:'Wingsuit', mode:'GROUP' },
+      'high-pull-group': { title:'High Pull', mode:'GROUP' }
     };
 
     const BASE = [
@@ -197,9 +288,9 @@
     ];
 
     let order = [...BASE].sort(() => Math.random() - .5);
-    let dragIndex = null;
     let running = false, paused = false, animationFrame = null, nextExitIndex = 0;
     let liveJumpers = [], simulationStart = 0, pauseStarted = 0, pausedAccumulated = 0;
+    let dragIndex = null;
 
     const orderBoard = document.getElementById('orderBoard');
     const scoreBox = document.getElementById('scoreBox');
@@ -208,41 +299,89 @@
     const plane = document.getElementById('plane');
     const currentExit = document.getElementById('currentExit');
     const exitCounter = document.getElementById('exitCounter');
+    const exitTotal = document.getElementById('exitTotal');
     const runBtn = document.getElementById('runBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const speedSelect = document.getElementById('speedSelect');
     const checkBtn = document.getElementById('checkBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
+    const addType = document.getElementById('addType');
+    const addBtn = document.getElementById('addBtn');
 
     function person(x,y,rot=0,scale=1,pose='belly',accent=false) {
       const c = accent ? '#ff1a13' : '#111';
       let limbs = '';
-      if (pose === 'belly') limbs = 'M0 -4 L0 8 M0 1 L-14 7 M0 1 L14 7 M0 8 L-12 14 M0 8 L12 14';
+      if (pose === 'belly') limbs = 'M0 -4 L0 8 M0 1 L-15 6 M0 1 L15 6 M0 8 L-13 14 M0 8 L13 14';
       if (pose === 'sit') limbs = 'M0 -4 L0 9 M0 1 L-10 7 M0 1 L10 7 M0 9 L-8 9 L-8 19 M0 9 L8 9 L8 19';
-      if (pose === 'track') limbs = 'M0 -4 L0 11 M0 1 L-14 2 M0 1 L14 2 M0 11 L-6 23 M0 11 L6 23';
-      return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale})" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <circle cx="0" cy="-10" r="4" fill="${c}" stroke="none"/><path d="${limbs}"/>
+      if (pose === 'track') limbs = 'M0 -4 L0 11 M0 1 L-16 2 M0 1 L16 2 M0 11 L-7 23 M0 11 L7 23';
+      return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale})" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <circle cx="0" cy="-10" r="4" fill="${c}" stroke="none"/>
+        <path d="${limbs}"/>
       </g>`;
     }
 
     function iconFor(key) {
       let body = '';
+
       if (key === 'belly-solo') body = person(46,31,90,1,'belly');
-      if (key === 'belly-group') body = person(27,31,90,.72,'belly') + person(46,27,90,.72,'belly',true) + person(65,31,90,.72,'belly');
+      if (key === 'belly-group') body =
+        person(23,34,90,.66,'belly') +
+        person(46,27,90,.66,'belly',true) +
+        person(69,34,90,.66,'belly');
+
       if (key === 'freefly-solo') body = person(46,30,0,1,'sit');
-      if (key === 'freefly-group') body = person(29,30,0,.8,'sit') + person(63,30,0,.8,'sit',true);
+      if (key === 'freefly-group') body =
+        person(29,31,0,.78,'sit') +
+        person(63,31,0,.78,'sit',true);
+
       if (key === 'tracking-solo') body = person(46,31,72,1,'track');
-      if (key === 'tracking-group') body = person(28,34,72,.75,'track') + person(60,27,72,.75,'track',true);
-      if (key === 'aff') body = person(46,31,90,.82,'belly',true) + person(20,31,90,.63,'belly') + person(72,31,90,.63,'belly') + `<path d="M29 30 L37 30 M55 30 L63 30" stroke="#111" stroke-width="3.3" stroke-linecap="round"/>`;
-      if (key === 'tandem') body = person(41,30,90,.88,'belly') + person(51,30,90,.84,'belly',true) + `<path d="M33 23 L58 36 M33 36 L58 23" stroke="#ff1a13" stroke-width="2.4"/>`;
-      if (key === 'wingsuit') body = `<g transform="translate(46 30) rotate(76)" fill="#111" stroke="#111" stroke-width="1.8"><circle cx="0" cy="-15" r="4"/><path d="M0 -9 L0 13 L-18 4 L-8 -5 Z M0 -9 L0 13 L18 4 L8 -5 Z M0 13 L-9 23 L0 19 L9 23 Z"/></g>`;
-      if (key === 'high-pull') body = person(46,41,0,.62,'belly') + `<path d="M17 15 Q46 -4 75 15" stroke="#111" stroke-width="3.2" fill="#111"/><path d="M19 15 L40 32 M73 15 L53 32" stroke="#111" stroke-width="1.8"/>`;
-      return `<svg viewBox="0 0 92 62">${body}</svg>`;
+      if (key === 'tracking-group') body =
+        person(27,34,72,.73,'track') +
+        person(61,27,72,.73,'track',true);
+
+      if (key === 'aff') body =
+        person(46,31,90,.82,'belly',true) +
+        person(19,31,90,.62,'belly') +
+        person(73,31,90,.62,'belly') +
+        `<path d="M29 30 L37 30 M55 30 L63 30" stroke="#111" stroke-width="3.4" stroke-linecap="round"/>`;
+
+      if (key === 'tandem') body =
+        person(40,30,90,.88,'belly') +
+        person(51,30,90,.84,'belly',true) +
+        `<path d="M33 23 L58 36 M33 36 L58 23" stroke="#111" stroke-width="2.2"/>`;
+
+      if (key === 'wingsuit' || key === 'wingsuit-group') {
+        const one = `<g transform="translate(46 31) rotate(76)" fill="#111" stroke="#111" stroke-width="1.8">
+          <circle cx="0" cy="-15" r="4"/>
+          <path d="M0 -9 L0 13 L-18 4 L-8 -5 Z M0 -9 L0 13 L18 4 L8 -5 Z M0 13 L-9 23 L0 19 L9 23 Z"/>
+        </g>`;
+        if (key === 'wingsuit') body = one;
+        else body =
+          `<g transform="translate(-13 6) scale(.78)">${one}</g>` +
+          `<g transform="translate(18 -4) scale(.78)">${one}</g>`;
+      }
+
+      if (key === 'high-pull' || key === 'high-pull-group') {
+        const canopy = `<path d="M14 18 Q46 -7 78 18 Q46 10 14 18Z" fill="#111"/>
+          <path d="M16 18 L39 34 M76 18 L53 34 M31 14 L45 34 M61 14 L49 34" stroke="#111" stroke-width="1.5"/>`;
+        if (key === 'high-pull') {
+          body = canopy + person(46,44,0,.55,'belly');
+        } else {
+          body = `<g transform="translate(-10 1) scale(.76)">${canopy}${person(46,44,0,.55,'belly')}</g>
+                  <g transform="translate(19 4) scale(.76)">${canopy}${person(46,44,0,.55,'belly',true)}</g>`;
+        }
+      }
+
+      return `<svg viewBox="0 0 92 62" aria-hidden="true">${body}</svg>`;
     }
 
     function canopyArt() {
-      return `<svg viewBox="0 0 100 58"><path d="M10 22 Q50 -5 90 22 Q50 14 10 22Z" fill="#ff1a13" stroke="#111" stroke-width="2"/><path d="M10 22 L42 47 M90 22 L58 47 M31 18 L47 47 M69 18 L53 47" fill="none" stroke="#111" stroke-width="1.6"/><circle cx="50" cy="51" r="3.5" fill="#111"/></svg>`;
+      return `<svg viewBox="0 0 100 58" aria-hidden="true">
+        <path d="M10 22 Q50 -5 90 22 Q50 14 10 22Z" fill="#111"/>
+        <path d="M10 22 L42 47 M90 22 L58 47 M31 18 L47 47 M69 18 L53 47" fill="none" stroke="#111" stroke-width="1.6"/>
+        <circle cx="50" cy="51" r="3.5" fill="#111"/>
+      </svg>`;
     }
 
     function renderOrder() {
@@ -253,9 +392,14 @@
         tile.className = 'exit-tile';
         tile.draggable = !running;
         tile.dataset.index = index;
-        tile.innerHTML = `<div class="tile-number">${index+1}</div><div class="tile-art">${iconFor(key)}</div><div class="tile-title">${t.title}</div><div class="tile-mode">${t.mode}</div>`;
+        tile.innerHTML = `
+          <div class="tile-number">${index+1}</div>
+          <div class="tile-art">${iconFor(key)}</div>
+          <div class="tile-title">${t.title}</div>
+          ${t.mode ? `<div class="tile-mode">${t.mode}</div>` : ''}`;
         orderBoard.appendChild(tile);
       });
+      exitTotal.textContent = order.length;
     }
 
     orderBoard.addEventListener('dragstart', e => {
@@ -263,12 +407,8 @@
       if (!tile || running) return;
       dragIndex = Number(tile.dataset.index);
       tile.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
     });
-    orderBoard.addEventListener('dragend', e => {
-      document.querySelectorAll('.exit-tile').forEach(x => x.classList.remove('dragging','drag-over'));
-      dragIndex = null;
-    });
+
     orderBoard.addEventListener('dragover', e => {
       e.preventDefault();
       const tile = e.target.closest('.exit-tile');
@@ -276,6 +416,7 @@
       document.querySelectorAll('.exit-tile').forEach(x => x.classList.remove('drag-over'));
       tile.classList.add('drag-over');
     });
+
     orderBoard.addEventListener('drop', e => {
       e.preventDefault();
       const tile = e.target.closest('.exit-tile');
@@ -283,43 +424,28 @@
       const targetIndex = Number(tile.dataset.index);
       const [moved] = order.splice(dragIndex,1);
       order.splice(targetIndex,0,moved);
+      dragIndex = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
 
-    let touchIndex = null;
-    orderBoard.addEventListener('touchstart', e => {
-      if (running) return;
-      const tile = e.target.closest('.exit-tile');
-      if (!tile) return;
-      touchIndex = Number(tile.dataset.index);
-      tile.classList.add('dragging');
-    }, {passive:true});
-    orderBoard.addEventListener('touchmove', e => {
-      if (touchIndex === null) return;
-      const t = e.touches[0];
-      const target = document.elementFromPoint(t.clientX,t.clientY)?.closest('.exit-tile');
-      document.querySelectorAll('.exit-tile').forEach(x => x.classList.remove('drag-over'));
-      if (target) target.classList.add('drag-over');
-    }, {passive:true});
-    orderBoard.addEventListener('touchend', e => {
-      if (touchIndex === null) return;
-      const t = e.changedTouches[0];
-      const target = document.elementFromPoint(t.clientX,t.clientY)?.closest('.exit-tile');
-      if (target) {
-        const targetIndex = Number(target.dataset.index);
-        const [moved] = order.splice(touchIndex,1);
-        order.splice(targetIndex,0,moved);
-      }
+    orderBoard.addEventListener('dragend', () => {
       document.querySelectorAll('.exit-tile').forEach(x => x.classList.remove('dragging','drag-over'));
-      touchIndex = null;
-      scoreBox.className = 'score-box';
-      renderOrder();
-    }, {passive:true});
+      dragIndex = null;
+    });
+
+    addBtn.addEventListener('click', () => {
+      const key = addType.value;
+      if (!order.includes(key)) {
+        order.push(key);
+        renderOrder();
+      }
+    });
 
     function isValidOrder(arr) {
       const p = Object.fromEntries(arr.map((k,i)=>[k,i]));
-      if (arr.length !== 10 || new Set(arr).size !== 10) return false;
+      const required = BASE.every(k => arr.includes(k));
+      if (!required) return false;
 
       if (!(p['tracking-group'] < p['tracking-solo'])) return false;
       if (!(p['belly-group'] < p['belly-solo'])) return false;
@@ -330,17 +456,21 @@
       if (!(p['freefly-solo'] < p['tracking-solo'])) return false;
       if (!(p['aff'] < p['tandem'])) return false;
 
-      const lastTwo = new Set(arr.slice(-2));
-      if (!(lastTwo.has('wingsuit') && lastTwo.has('high-pull'))) return false;
+      const mainOnly = arr.filter(k => BASE.includes(k));
+      const finalTwo = new Set(mainOnly.slice(-2));
+      if (!(finalTwo.has('wingsuit') && finalTwo.has('high-pull'))) return false;
 
-      // Tracking solo can be in position 6, 7 or 8.
-      const ts = p['tracking-solo'];
-      if (![5,6,7].includes(ts)) return false;
+      const mainPos = Object.fromEntries(mainOnly.map((k,i)=>[k,i]));
+      if (![5,6,7].includes(mainPos['tracking-solo'])) return false;
+
+      if (arr.includes('wingsuit-group') && !(p['wingsuit-group'] < p['wingsuit'])) return false;
+      if (arr.includes('high-pull-group') && !(p['high-pull-group'] < p['high-pull'])) return false;
 
       return true;
     }
 
     function scoreOrder(arr) {
+      const filtered = arr.filter(k => BASE.includes(k));
       const refs = [
         BASE,
         ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','tracking-solo','aff','tandem','high-pull','wingsuit'],
@@ -352,7 +482,7 @@
       let best = 0;
       for (const ref of refs) {
         let n = 0;
-        arr.forEach((k,i)=>{ if (k===ref[i]) n++; });
+        filtered.forEach((k,i)=>{ if (k===ref[i]) n++; });
         best = Math.max(best, Math.round(n/10*100));
       }
       return best;
@@ -369,13 +499,14 @@
 
     shuffleBtn.addEventListener('click', () => {
       if (running) return;
-      order = [...BASE].sort(()=>Math.random()-.5);
+      const extras = order.filter(k => !BASE.includes(k));
+      order = [...BASE,...extras].sort(()=>Math.random()-.5);
       scoreBox.className='score-box';
       renderOrder();
     });
 
     function clearStage() {
-      liveJumpers.forEach(j => { j.el.remove(); j.canopy.remove(); });
+      liveJumpers.forEach(j => { j.el.remove(); if (j.canopy) j.canopy.remove(); });
       liveJumpers = [];
       trajectoryLayer.innerHTML = '';
       if (animationFrame) cancelAnimationFrame(animationFrame);
@@ -384,35 +515,44 @@
 
     function createJumper(key,index,simTime) {
       const rect = stage.getBoundingClientRect();
-      const startX = rect.width * (0.09 + 0.82*index/9);
+      const total = Math.max(1, order.length);
+      const startX = rect.width * (0.08 + 0.84*(index/(total-1 || 1)));
       const startY = 95;
-      const moving = ['tracking-group','tracking-solo','wingsuit'].includes(key);
+
+      const moving = ['tracking-group','tracking-solo','wingsuit','wingsuit-group'].includes(key);
+      const isHighPull = ['high-pull','high-pull-group'].includes(key);
 
       let endX = startX;
       let endY = rect.height*.82;
 
       if (moving) {
         const dir = index % 2 === 0 ? -1 : 1;
-        endX = dir < 0 ? -130 : rect.width+130;
-        endY = rect.height * (key==='wingsuit' ? .40 : .50);
+        endX = dir < 0 ? -140 : rect.width + 140;
+        endY = rect.height * (key.includes('wingsuit') ? .40 : .50);
       }
 
       const el = document.createElement('div');
       el.className='jumper';
       el.style.left=`${startX}px`;
       el.style.top=`${startY}px`;
-      el.innerHTML=`<div class="jumper-art">${iconFor(key)}</div><div class="jumper-label">${TYPES[key].title} ${TYPES[key].mode}</div>`;
+      el.innerHTML=`<div class="jumper-art">${iconFor(key)}</div><div class="jumper-label">${TYPES[key].title}${TYPES[key].mode ? ' '+TYPES[key].mode : ''}</div>`;
       stage.appendChild(el);
 
-      const canopy = document.createElement('div');
-      canopy.className='canopy';
-      canopy.innerHTML=canopyArt();
-      stage.appendChild(canopy);
+      let canopy = null;
+      if (!isHighPull) {
+        canopy = document.createElement('div');
+        canopy.className='canopy';
+        canopy.innerHTML=canopyArt();
+        stage.appendChild(canopy);
+      }
 
       const path = document.createElementNS('http://www.w3.org/2000/svg','path');
       trajectoryLayer.appendChild(path);
 
-      liveJumpers.push({key,el,canopy,path,startX,startY,endX,endY,exitSimTime:simTime,moving,canopyOpen:false,gone:false});
+      liveJumpers.push({
+        key,el,canopy,path,startX,startY,endX,endY,exitSimTime:simTime,
+        moving,isHighPull,canopyOpen:isHighPull,gone:false,finished:false
+      });
     }
 
     function nowSim(now) {
@@ -426,6 +566,8 @@
       pauseBtn.textContent=paused?'▶ Continue':'Ⅱ Pause';
       checkBtn.disabled=running;
       shuffleBtn.disabled=running;
+      addBtn.disabled=running;
+      addType.disabled=running;
       speedSelect.disabled=running;
     }
 
@@ -441,18 +583,23 @@
         createJumper(key,nextExitIndex,t);
         nextExitIndex++;
         exitCounter.textContent=String(nextExitIndex);
-        currentExit.textContent=`${TYPES[key].title} ${TYPES[key].mode}`;
+        currentExit.textContent=`${TYPES[key].title}${TYPES[key].mode ? ' '+TYPES[key].mode : ''}`;
       }
 
       const rect=stage.getBoundingClientRect();
       const sx=1000/rect.width, sy=580/rect.height;
-      const planeProgress=Math.min(1,t/(firstExit+9*gap+1));
+      const planeProgress=Math.min(1,t/(firstExit+Math.max(0,order.length-1)*gap+1));
       plane.style.left=`${-130+planeProgress*(rect.width+80)}px`;
 
       liveJumpers.forEach(j=>{
-        if(j.gone) return;
+        if(j.gone || j.finished) return;
+
         const elapsed=Math.max(0,t-j.exitSimTime);
-        const duration=j.moving?(j.key==='wingsuit'?15:11):40;
+        let duration;
+        if (j.isHighPull) duration = 400;          // 10x slower than normal freefall
+        else if (j.moving) duration = j.key.includes('wingsuit') ? 15 : 11;
+        else duration = 40;
+
         const p=Math.min(1,elapsed/duration);
         const x=j.startX+(j.endX-j.startX)*p;
         const y=j.startY+(j.endY-j.startY)*p;
@@ -471,19 +618,28 @@
           j.path.style.opacity='.18';
         }
 
-        if(!j.moving && p>=1 && !j.canopyOpen){
+        if(!j.moving && !j.isHighPull && p>=1 && !j.canopyOpen){
           j.canopyOpen=true;
-          j.el.style.opacity='0';
+          j.el.remove(); // remove person icon when parachute opens
           j.canopy.style.left=`${x}px`;
           j.canopy.style.top=`${Math.min(rect.height-38,y)}px`;
           j.canopy.style.opacity='1';
+          j.finished=true;
         }
       });
 
       const allExited=nextExitIndex>=order.length;
-      const remaining=liveJumpers.some(j=>(!j.moving&&!j.canopyOpen)||(j.moving&&!j.gone));
 
-      if(allExited&&!remaining){
+      // High pullers count as "open" from the moment they exit.
+      const allNonHighPullOpen = liveJumpers
+        .filter(j => !j.isHighPull && !j.moving)
+        .every(j => j.canopyOpen);
+
+      const allMovingGone = liveJumpers
+        .filter(j => j.moving)
+        .every(j => j.gone);
+
+      if(allExited && allNonHighPullOpen && allMovingGone) {
         running=false;
         paused=false;
         currentExit.textContent='Simulation complete';
@@ -513,7 +669,7 @@
         paused=true;
         pauseStarted=performance.now();
         currentExit.textContent='Paused';
-      }else{
+      } else {
         paused=false;
         pausedAccumulated += performance.now()-pauseStarted;
         currentExit.textContent='Continuing';
