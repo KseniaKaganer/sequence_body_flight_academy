@@ -210,11 +210,6 @@
 
       <div class="score-box" id="scoreBox" aria-live="polite"></div>
 
-      <div class="rules">
-        <strong>* Wingsuit / High Pull:</strong> positions 9 and 10 may be switched depending on the High Pull opening altitude and the Wingsuit dive plan.<br>
-        <strong>* Tracking Solo:</strong> can also go after AFF or after Tandem, but this requires an experienced tracking jumper who can make sure the jump moves far enough off jump run and that there is sufficient separation from the first tracking group.<br>
-        <strong>* Hierarchy rule:</strong> within the same discipline, groups always exit before solo flyers.
-      </div>
     </section>
 
     <section class="sim-card">
@@ -492,9 +487,16 @@
       const pass = isValidOrder(order);
       const score = pass ? 100 : scoreOrder(order);
       scoreBox.className = `score-box show ${pass ? 'pass':'fail'}`;
+      const notes = `
+        <div class="score-detail" style="margin-top:10px">
+          <strong style="color:#fff">* Wingsuit / High Pull:</strong> positions may be switched depending on the High Pull opening altitude and the Wingsuit dive plan.<br>
+          <strong style="color:#fff">* Tracking:</strong> can also go after AFF or after Tandem, but this requires experienced tracking jumpers who can make sure the jump moves far enough off jump run and that there is sufficient separation from the first tracking group, if it exists.<br>
+          <strong style="color:#fff">* Hierarchy rule:</strong> within the same discipline, order goes from bigger group to smaller group.
+        </div>`;
+
       scoreBox.innerHTML = pass
-        ? `<div class="score-title">PASS · 100%</div><div class="score-detail">This is an accepted exit order.</div>`
-        : `<div class="score-title">NOT PASSED · ${score}%</div><div class="score-detail">Some positions need to be changed.</div>`;
+        ? `<div class="score-title">PASS · 100%</div><div class="score-detail">This is an accepted exit order.</div>${notes}`
+        : `<div class="score-title">NOT PASSED · ${score}%</div><div class="score-detail">Some positions need to be changed.</div>${notes}`;
     });
 
     shuffleBtn.addEventListener('click', () => {
