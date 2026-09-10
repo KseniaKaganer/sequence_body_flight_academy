@@ -356,9 +356,27 @@
 
   <footer>Sequence – Body Flight Academy</footer>
 
+
+  <script>
+    window.addEventListener('error', (event) => {
+      const loading = document.getElementById('loading');
+      if (loading && !loading.classList.contains('hidden')) {
+        loading.textContent = 'Could not load the 3D simulator. Please refresh the page.';
+      }
+      console.error('Wind Tunnel Simulator error:', event.error || event.message);
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+      const loading = document.getElementById('loading');
+      if (loading && !loading.classList.contains('hidden')) {
+        loading.textContent = 'Could not load the 3D simulator. Please refresh the page.';
+      }
+      console.error('Wind Tunnel Simulator promise error:', event.reason);
+    });
+  </script>
+
   <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js';
+    import * as THREE from 'https://esm.sh/three@0.180.0';
+    import { OrbitControls } from 'https://esm.sh/three@0.180.0/examples/jsm/controls/OrbitControls.js';
 
     const wrap = document.getElementById('tunnelCanvasWrap');
     const loading = document.getElementById('loading');
