@@ -57,6 +57,15 @@
       text-align:center;
       transition:.15s ease;
     }
+    .exit-tile.correct-slot {
+      border-color:#25c06d !important;
+      background:rgba(37,192,109,.16) !important;
+    }
+    .exit-tile.incorrect-slot {
+      border-color:#ff3b30 !important;
+      background:rgba(255,59,48,.16) !important;
+    }
+
     .exit-tile:hover { border-color:#555; transform:translateY(-1px); }
     .exit-tile.dragging { opacity:.35; cursor:grabbing; }
     .exit-tile.drag-over { border-color:#ff1a13; box-shadow:inset 0 0 0 1px #ff1a13; }
@@ -344,6 +353,7 @@
     }
 
     let order = [];
+    let slotResults = null;
     order = normalizeOrderItems([...BASE]);
     let running = false, paused = false, animationFrame = null, nextExitIndex = 0;
     let liveJumpers = [], simulationStart = 0, pauseStarted = 0, pausedAccumulated = 0;
@@ -449,6 +459,8 @@
 
         const tile = document.createElement('div');
         tile.className = 'exit-tile';
+        if (slotResults && slotResults[index] === true) tile.classList.add('correct-slot');
+        if (slotResults && slotResults[index] === false) tile.classList.add('incorrect-slot');
         tile.draggable = !running;
         tile.dataset.index = index;
 
@@ -474,6 +486,7 @@
       e.stopPropagation();
       const index = Number(removeBtn.dataset.remove);
       order.splice(index, 1);
+      slotResults = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
@@ -502,6 +515,7 @@
       const [moved] = order.splice(dragIndex,1);
       order.splice(targetIndex,0,moved);
       dragIndex = null;
+      slotResults = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
@@ -514,13 +528,107 @@
     addBtn.addEventListener('click', () => {
       if (running) return;
       order.push(makeExitItem(addType.value));
+      slotResults = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
 
+
+    function getSlotResults(arr) {
+      const keys = arr.map(itemKey);
+
+      const trackingKeys = keys.filter(k => k === 'tracking-group' || k === 'tracking-solo');
+      const singleTracking = trackingKeys.length === 1 ? trackingKeys[0] : null;
+
+      const rank = {
+        'tracking-group': 10,
+        'belly-group': 20,
+        'belly-solo': 30,
+        'freefly-group': 40,
+        'freefly-solo': 50,
+        'tracking-solo': 60,
+        'aff': 70,
+        'tandem': 80,
+        'wingsuit': 90,
+        'high-pull': 90
+      };
+
+      let expected = [...keys].sort((a,b) => (rank[a] ?? 999) - (rank[b] ?? 999));
+
+      // Special rule: if there is only one Tracking exit in the plane,
+      // whether Group or Solo, it must be the very first exit.
+      if (singleTracking) {
+        expected = [
+          singleTracking,
+          ...expected.filter(k => k !== singleTracking)
+        ];
+      }
+
+      const candidates = [expected];
+
+      // With multiple Tracking exits, Tracking Solo may be in its normal place,
+      // after AFF, or after Tandem.
+      if (!singleTracking && keys.includes('tracking-solo')) {
+        const base = expected.filter(k => k !== 'tracking-solo');
+        const tracking = expected.filter(k => k === 'tracking-solo');
+
+        const afterAff = [...base];
+        const affIndex = afterAff.lastIndexOf('aff');
+        if (affIndex >= 0) {
+          afterAff.splice(affIndex + 1, 0, ...tracking);
+          candidates.push(afterAff);
+        }
+
+        const afterTandem = [...base];
+        const tandemIndex = afterTandem.lastIndexOf('tandem');
+        if (tandemIndex >= 0) {
+          afterTandem.splice(tandemIndex + 1, 0, ...tracking);
+          candidates.push(afterTandem);
+        }
+      }
+
+      const allCandidates = [];
+      for (const candidate of candidates) {
+        allCandidates.push(candidate);
+
+        // Wingsuit and High Pull may switch order.
+        const lateIndexes = candidate
+          .map((k,i) => (k === 'wingsuit' || k === 'high-pull') ? i : -1)
+          .filter(i => i >= 0);
+
+        if (lateIndexes.length > 1) {
+          const swapped = [...candidate];
+          const lateValues = lateIndexes.map(i => candidate[i]).reverse();
+          lateIndexes.forEach((idx, j) => swapped[idx] = lateValues[j]);
+          allCandidates.push(swapped);
+        }
+      }
+
+      let best = Array(keys.length).fill(false);
+      let bestCount = -1;
+
+      for (const candidate of allCandidates) {
+        const current = keys.map((key, i) => key === candidate[i]);
+        const count = current.filter(Boolean).length;
+        if (count > bestCount) {
+          best = current;
+          bestCount = count;
+        }
+      }
+
+      return best;
+    }
+
     function isValidOrder(arr) {
       arr = arr.map(itemKey);
       if (!arr.length) return false;
+
+      const trackingPositions = arr
+        .map((key, i) => (key === 'tracking-group' || key === 'tracking-solo') ? i : -1)
+        .filter(i => i >= 0);
+
+      // If there is only one Tracking exit, Group or Solo, it must be first.
+      if (trackingPositions.length === 1 && trackingPositions[0] !== 0) return false;
 
       const positions = type => arr
         .map((key, i) => key === type ? i : -1)
@@ -559,7 +667,7 @@
       }
 
       const trackingSoloPositions = positions('tracking-solo');
-      if (trackingSoloPositions.length) {
+      if (trackingSoloPositions.length && trackingPositions.length > 1) {
         const latestFreefly = Math.max(
           -1,
           ...positions('freefly-group'),
@@ -582,6 +690,15 @@
       let checks = 0;
       let passed = 0;
 
+      const trackingPositions = arr
+        .map((key, i) => (key === 'tracking-group' || key === 'tracking-solo') ? i : -1)
+        .filter(i => i >= 0);
+
+      if (trackingPositions.length === 1) {
+        checks++;
+        if (trackingPositions[0] === 0) passed++;
+      }
+
       const positions = type => arr
         .map((key, i) => key === type ? i : -1)
         .filter(i => i >= 0);
@@ -598,8 +715,10 @@
       checkBefore('freefly-group','freefly-solo');
       checkBefore('belly-group','freefly-group');
       checkBefore('belly-solo','freefly-group');
-      checkBefore('freefly-group','tracking-solo');
-      checkBefore('freefly-solo','tracking-solo');
+      if (trackingPositions.length > 1) {
+        checkBefore('freefly-group','tracking-solo');
+        checkBefore('freefly-solo','tracking-solo');
+      }
       checkBefore('aff','tandem');
 
       const late = [...positions('wingsuit'), ...positions('high-pull')];
@@ -617,6 +736,8 @@
     checkBtn.addEventListener('click', () => {
       const pass = isValidOrder(order);
       const score = pass ? 100 : scoreOrder(order);
+      slotResults = pass ? Array(order.length).fill(true) : getSlotResults(order);
+      renderOrder();
       scoreBox.className = `score-box show ${pass ? 'pass':'fail'}`;
       const notes = `
         <div class="score-detail" style="margin-top:10px">
@@ -654,6 +775,7 @@
 
       const randomKey = availablePool[Math.floor(Math.random() * availablePool.length)];
       order.push(makeExitItem(randomKey));
+      slotResults = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
@@ -661,6 +783,7 @@
     shuffleBtn.addEventListener('click', () => {
       if (running) return;
       order = [...order].sort(() => Math.random() - .5);
+      slotResults = null;
       scoreBox.className = 'score-box';
       renderOrder();
     });
