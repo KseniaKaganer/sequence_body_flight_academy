@@ -72,6 +72,14 @@
     .tile-art svg { width:88px; height:60px; overflow:visible; }
     .tile-title { font-weight:900; font-size:.9rem; line-height:1.05; margin-top:2px; }
     .tile-mode { margin-top:5px; color:#fff; font-weight:900; font-size:1.03rem; line-height:1; }
+    .tile-remove {
+      position:absolute; top:7px; right:7px;
+      width:24px; height:24px; border-radius:50%;
+      border:1px solid #343434; background:#1d1d1d; color:#aaa;
+      display:grid; place-items:center; padding:0; line-height:1;
+      font-size:.9rem; font-weight:900; cursor:pointer;
+    }
+    .tile-remove:hover { color:#fff; border-color:#666; }
 
     .order-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; align-items:center; }
     .game-btn { border:1px solid #363636; background:#171717; color:#fff; border-radius:12px; padding:10px 15px; font-weight:900; cursor:pointer; }
@@ -152,6 +160,7 @@
         text-align:left; align-items:center;
       }
       .tile-number { position:static; }
+      .tile-remove { top:50%; transform:translateY(-50%); right:10px; }
       .tile-art { width:74px; height:52px; margin:0; }
       .tile-art svg { width:74px; height:52px; }
       .tile-title { margin:0; font-size:.92rem; }
@@ -198,11 +207,20 @@
       <div class="order-actions">
         <button class="game-btn primary" id="checkBtn" type="button">Check Order</button>
         <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
+        <button class="game-btn" id="levelUpBtn" type="button">Level Up</button>
 
         <div class="add-panel">
           <select id="addType">
-            <option value="wingsuit-group">Wingsuit Group</option>
-            <option value="high-pull-group">High Pull Group</option>
+            <option value="belly-group">Belly Group</option>
+            <option value="belly-solo">Belly Solo</option>
+            <option value="freefly-group">Freefly Group</option>
+            <option value="freefly-solo">Freefly Solo</option>
+            <option value="tracking-group">Tracking Group</option>
+            <option value="tracking-solo">Tracking Solo</option>
+            <option value="aff">AFF</option>
+            <option value="tandem">Tandem</option>
+            <option value="wingsuit">Wingsuit</option>
+            <option value="high-pull">High Pull</option>
           </select>
           <button class="game-btn" id="addBtn" type="button">+ Add</button>
         </div>
@@ -215,7 +233,7 @@
     <section class="sim-card">
       <div class="sim-title">
         <h2>Freefall Simulator</h2>
-        <p>Tracking and Wingsuit exits fly across and leave the screen. High Pull exits descend much slower because they are already under canopy.</p>
+        <p>Tracking and Wingsuit exits are excluded from this simulator. High Pull exits are already under canopy and descend 10× slower.</p>
       </div>
 
       <div class="game-stage" id="gameStage">
@@ -272,17 +290,60 @@
       'aff': { title:'AFF', mode:'' },
       'tandem': { title:'Tandem', mode:'' },
       'wingsuit': { title:'Wingsuit', mode:'' },
-      'high-pull': { title:'High Pull', mode:'' },
-      'wingsuit-group': { title:'Wingsuit', mode:'GROUP' },
-      'high-pull-group': { title:'High Pull', mode:'GROUP' }
+      'high-pull': { title:'High Pull', mode:'' }
     };
 
-    const BASE = [
-      'tracking-group','belly-group','belly-solo','freefly-group','freefly-solo',
-      'tracking-solo','aff','tandem','wingsuit','high-pull'
-    ];
+    const BASE = ['belly-solo','freefly-solo','tandem','tracking-solo','aff'];
 
-    let order = [...BASE].sort(() => Math.random() - .5);
+
+    const GROUP_TYPES = new Set(['tracking-group','belly-group','freefly-group']);
+
+    function disciplineOf(key) {
+      if (key.startsWith('tracking')) return 'tracking';
+      if (key.startsWith('belly')) return 'belly';
+      if (key.startsWith('freefly')) return 'freefly';
+      return null;
+    }
+
+    function usedGroupSizesForDiscipline(discipline) {
+      return order
+        .filter(item => typeof item === 'object' && item.groupSize && disciplineOf(item.key) === discipline)
+        .map(item => item.groupSize);
+    }
+
+    function nextGroupSizeFor(key) {
+      const discipline = disciplineOf(key);
+      const used = usedGroupSizesForDiscipline(discipline);
+
+      const available = [2,3,4,5].filter(n => !used.includes(n));
+      if (available.length) {
+        return available[Math.floor(Math.random() * available.length)];
+      }
+
+      const maxUsed = used.length ? Math.max(...used) : 5;
+      return Math.max(6, maxUsed + 1);
+    }
+
+    function makeExitItem(key) {
+      if (GROUP_TYPES.has(key)) {
+        return { key, groupSize: nextGroupSizeFor(key) };
+      }
+      return { key };
+    }
+
+    function itemKey(item) {
+      return typeof item === 'string' ? item : item.key;
+    }
+
+    function itemGroupSize(item) {
+      return typeof item === 'object' ? item.groupSize || null : null;
+    }
+
+    function normalizeOrderItems(items) {
+      return items.map(item => typeof item === 'string' ? makeExitItem(item) : item);
+    }
+
+    let order = normalizeOrderItems([...BASE]);
     let running = false, paused = false, animationFrame = null, nextExitIndex = 0;
     let liveJumpers = [], simulationStart = 0, pauseStarted = 0, pausedAccumulated = 0;
     let dragIndex = null;
@@ -301,6 +362,7 @@
     const speedSelect = document.getElementById('speedSelect');
     const checkBtn = document.getElementById('checkBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
+    const levelUpBtn = document.getElementById('levelUpBtn');
     const addType = document.getElementById('addType');
     const addBtn = document.getElementById('addBtn');
 
@@ -346,26 +408,18 @@
         person(51,30,90,.84,'belly',true) +
         `<path d="M33 23 L58 36 M33 36 L58 23" stroke="#111" stroke-width="2.2"/>`;
 
-      if (key === 'wingsuit' || key === 'wingsuit-group') {
+      if (key === 'wingsuit') {
         const one = `<g transform="translate(46 31) rotate(76)" fill="#111" stroke="#111" stroke-width="1.8">
           <circle cx="0" cy="-15" r="4"/>
           <path d="M0 -9 L0 13 L-18 4 L-8 -5 Z M0 -9 L0 13 L18 4 L8 -5 Z M0 13 L-9 23 L0 19 L9 23 Z"/>
         </g>`;
-        if (key === 'wingsuit') body = one;
-        else body =
-          `<g transform="translate(-13 6) scale(.78)">${one}</g>` +
-          `<g transform="translate(18 -4) scale(.78)">${one}</g>`;
+        body = one;
       }
 
-      if (key === 'high-pull' || key === 'high-pull-group') {
+      if (key === 'high-pull') {
         const canopy = `<path d="M14 18 Q46 -7 78 18 Q46 10 14 18Z" fill="#111"/>
           <path d="M16 18 L39 34 M76 18 L53 34 M31 14 L45 34 M61 14 L49 34" stroke="#111" stroke-width="1.5"/>`;
-        if (key === 'high-pull') {
-          body = canopy + person(46,44,0,.55,'belly');
-        } else {
-          body = `<g transform="translate(-10 1) scale(.76)">${canopy}${person(46,44,0,.55,'belly')}</g>
-                  <g transform="translate(19 4) scale(.76)">${canopy}${person(46,44,0,.55,'belly',true)}</g>`;
-        }
+        body = canopy + person(46,44,0,.55,'belly');
       }
 
       return `<svg viewBox="0 0 92 62" aria-hidden="true">${body}</svg>`;
@@ -389,6 +443,7 @@
         tile.dataset.index = index;
         tile.innerHTML = `
           <div class="tile-number">${index+1}</div>
+          <button class="tile-remove" type="button" aria-label="Remove exit" data-remove="${index}">×</button>
           <div class="tile-art">${iconFor(key)}</div>
           <div class="tile-title">${t.title}</div>
           ${t.mode ? `<div class="tile-mode">${t.mode}</div>` : ''}`;
@@ -397,7 +452,18 @@
       exitTotal.textContent = order.length;
     }
 
+    orderBoard.addEventListener('click', e => {
+      const removeBtn = e.target.closest('.tile-remove');
+      if (!removeBtn || running) return;
+      e.stopPropagation();
+      const index = Number(removeBtn.dataset.remove);
+      order.splice(index, 1);
+      scoreBox.className = 'score-box';
+      renderOrder();
+    });
+
     orderBoard.addEventListener('dragstart', e => {
+      if (e.target.closest('.tile-remove')) return;
       const tile = e.target.closest('.exit-tile');
       if (!tile || running) return;
       dragIndex = Number(tile.dataset.index);
@@ -430,57 +496,106 @@
     });
 
     addBtn.addEventListener('click', () => {
-      const key = addType.value;
-      if (!order.includes(key)) {
-        order.push(key);
-        renderOrder();
-      }
+      if (running) return;
+      order.push(makeExitItem(addType.value));
+      scoreBox.className = 'score-box';
+      renderOrder();
     });
 
     function isValidOrder(arr) {
-      const p = Object.fromEntries(arr.map((k,i)=>[k,i]));
-      const required = BASE.every(k => arr.includes(k));
-      if (!required) return false;
+      arr = arr.map(itemKey);
+      if (!arr.length) return false;
 
-      if (!(p['tracking-group'] < p['tracking-solo'])) return false;
-      if (!(p['belly-group'] < p['belly-solo'])) return false;
-      if (!(p['freefly-group'] < p['freefly-solo'])) return false;
+      const positions = type => arr
+        .map((key, i) => key === type ? i : -1)
+        .filter(i => i >= 0);
 
-      if (!(p['tracking-group'] < p['belly-group'])) return false;
-      if (!(p['belly-solo'] < p['freefly-group'])) return false;
-      if (!(p['freefly-solo'] < p['tracking-solo'])) return false;
-      if (!(p['aff'] < p['tandem'])) return false;
+      const allBefore = (a, b) => {
+        const A = positions(a), B = positions(b);
+        if (!A.length || !B.length) return true;
+        return Math.max(...A) < Math.min(...B);
+      };
 
-      const mainOnly = arr.filter(k => BASE.includes(k));
-      const finalTwo = new Set(mainOnly.slice(-2));
-      if (!(finalTwo.has('wingsuit') && finalTwo.has('high-pull'))) return false;
+      // Within each discipline, group exits must be before solo exits.
+      if (!allBefore('tracking-group', 'tracking-solo')) return false;
+      if (!allBefore('belly-group', 'belly-solo')) return false;
+      if (!allBefore('freefly-group', 'freefly-solo')) return false;
 
-      const mainPos = Object.fromEntries(mainOnly.map((k,i)=>[k,i]));
-      if (![5,6,7].includes(mainPos['tracking-solo'])) return false;
+      // Standard hierarchy between disciplines.
+      const rank = {
+        'tracking-group': 10,
+        'belly-group': 20,
+        'belly-solo': 30,
+        'freefly-group': 40,
+        'freefly-solo': 50,
+        'tracking-solo': 60,
+        'aff': 70,
+        'tandem': 80,
+        'wingsuit': 90,
+        'high-pull': 90
+      };
 
-      if (arr.includes('wingsuit-group') && !(p['wingsuit-group'] < p['wingsuit'])) return false;
-      if (arr.includes('high-pull-group') && !(p['high-pull-group'] < p['high-pull'])) return false;
+      // Tracking solo is the one flexible category: it may stay in its normal
+      // position or move after AFF / Tandem.
+      const withoutTrackingSolo = arr.filter(k => k !== 'tracking-solo');
+      for (let i = 1; i < withoutTrackingSolo.length; i++) {
+        if (rank[withoutTrackingSolo[i]] < rank[withoutTrackingSolo[i-1]]) return false;
+      }
+
+      const trackingSoloPositions = positions('tracking-solo');
+      if (trackingSoloPositions.length) {
+        const latestFreefly = Math.max(
+          -1,
+          ...positions('freefly-group'),
+          ...positions('freefly-solo')
+        );
+        if (trackingSoloPositions.some(i => i <= latestFreefly)) return false;
+
+        // Tracking must still be before Wingsuit / High Pull when those exist.
+        const lateExits = [...positions('wingsuit'), ...positions('high-pull')];
+        if (lateExits.length && trackingSoloPositions.some(i => i > Math.min(...lateExits))) return false;
+      }
 
       return true;
     }
 
     function scoreOrder(arr) {
-      const filtered = arr.filter(k => BASE.includes(k));
-      const refs = [
-        BASE,
-        ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','tracking-solo','aff','tandem','high-pull','wingsuit'],
-        ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','aff','tracking-solo','tandem','wingsuit','high-pull'],
-        ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','aff','tracking-solo','tandem','high-pull','wingsuit'],
-        ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','aff','tandem','tracking-solo','wingsuit','high-pull'],
-        ['tracking-group','belly-group','belly-solo','freefly-group','freefly-solo','aff','tandem','tracking-solo','high-pull','wingsuit']
-      ];
-      let best = 0;
-      for (const ref of refs) {
-        let n = 0;
-        filtered.forEach((k,i)=>{ if (k===ref[i]) n++; });
-        best = Math.max(best, Math.round(n/10*100));
+      arr = arr.map(itemKey);
+      if (!arr.length) return 0;
+
+      let checks = 0;
+      let passed = 0;
+
+      const positions = type => arr
+        .map((key, i) => key === type ? i : -1)
+        .filter(i => i >= 0);
+
+      const checkBefore = (a,b) => {
+        const A = positions(a), B = positions(b);
+        if (!A.length || !B.length) return;
+        checks++;
+        if (Math.max(...A) < Math.min(...B)) passed++;
+      };
+
+      checkBefore('tracking-group','tracking-solo');
+      checkBefore('belly-group','belly-solo');
+      checkBefore('freefly-group','freefly-solo');
+      checkBefore('belly-group','freefly-group');
+      checkBefore('belly-solo','freefly-group');
+      checkBefore('freefly-group','tracking-solo');
+      checkBefore('freefly-solo','tracking-solo');
+      checkBefore('aff','tandem');
+
+      const late = [...positions('wingsuit'), ...positions('high-pull')];
+      if (late.length) {
+        const normal = arr.map((k,i) => (!['wingsuit','high-pull'].includes(k) ? i : -1)).filter(i => i >= 0);
+        if (normal.length) {
+          checks++;
+          if (Math.max(...normal) < Math.min(...late)) passed++;
+        }
       }
-      return best;
+
+      return checks ? Math.round((passed / checks) * 100) : 100;
     }
 
     checkBtn.addEventListener('click', () => {
@@ -499,11 +614,27 @@
         : `<div class="score-title">NOT PASSED · ${score}%</div><div class="score-detail">Some positions need to be changed.</div>${notes}`;
     });
 
+
+    levelUpBtn.addEventListener('click', () => {
+      if (running) return;
+
+      const pool = [
+        'belly-group','belly-solo',
+        'freefly-group','freefly-solo',
+        'tracking-group','tracking-solo',
+        'aff','tandem','wingsuit','high-pull'
+      ];
+
+      const randomKey = pool[Math.floor(Math.random() * pool.length)];
+      order.push(makeExitItem(randomKey));
+      scoreBox.className = 'score-box';
+      renderOrder();
+    });
+
     shuffleBtn.addEventListener('click', () => {
       if (running) return;
-      const extras = order.filter(k => !BASE.includes(k));
-      order = [...BASE,...extras].sort(()=>Math.random()-.5);
-      scoreBox.className='score-box';
+      order = [...order].sort(() => Math.random() - .5);
+      scoreBox.className = 'score-box';
       renderOrder();
     });
 
@@ -521,8 +652,10 @@
       const startX = rect.width * (0.08 + 0.84*(index/(total-1 || 1)));
       const startY = 95;
 
-      const moving = ['tracking-group','tracking-solo','wingsuit','wingsuit-group'].includes(key);
-      const isHighPull = ['high-pull','high-pull-group'].includes(key);
+      const excludedFromSimulator = ['tracking-group','tracking-solo','wingsuit'].includes(key);
+      if (excludedFromSimulator) return;
+      const moving = false;
+      const isHighPull = key === 'high-pull';
 
       let endX = startX;
       let endY = rect.height*.82;
@@ -568,6 +701,7 @@
       pauseBtn.textContent=paused?'▶ Continue':'Ⅱ Pause';
       checkBtn.disabled=running;
       shuffleBtn.disabled=running;
+      levelUpBtn.disabled=running;
       addBtn.disabled=running;
       addType.disabled=running;
       speedSelect.disabled=running;
@@ -581,7 +715,7 @@
       const firstExit=1, gap=2.4;
 
       while(nextExitIndex<order.length && t>=firstExit+nextExitIndex*gap) {
-        const key=order[nextExitIndex];
+        const key=itemKey(order[nextExitIndex]);
         createJumper(key,nextExitIndex,t);
         nextExitIndex++;
         exitCounter.textContent=String(nextExitIndex);
