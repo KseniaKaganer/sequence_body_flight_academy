@@ -57,6 +57,18 @@
       text-align:center;
       transition:.15s ease;
     }
+    /* Pointer/touch drag support for phones and tablets */
+    .exit-tile {
+      touch-action:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .exit-tile.touch-dragging {
+      opacity:.72;
+      transform:scale(.98);
+      z-index:20;
+    }
+
     .exit-tile.correct-slot {
       border-color:#25c06d !important;
       background:rgba(37,192,109,.16) !important;
@@ -152,6 +164,16 @@
 
     .note-card { padding:15px; margin-top:18px; color:#aaa; font-size:.8rem; line-height:1.5; }
 
+    
+    .game-btn.correct-order-on {
+      border-color:#25c06d;
+      background:rgba(37,192,109,.18);
+      color:#fff;
+    }
+    .exit-tile.locked-order {
+      cursor:default !important;
+    }
+
     @media (max-width:900px) {
       .order-board { grid-template-columns:repeat(3,minmax(0,1fr)); }
       .game-stage { min-height:520px; }
@@ -217,6 +239,7 @@
         <button class="game-btn primary" id="checkBtn" type="button">Check Order</button>
         <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
         <button class="game-btn" id="levelUpBtn" type="button">Level Up</button>
+        <button class="game-btn" id="correctOrderToggle" type="button" aria-pressed="false">Correct Order: OFF</button>
 
         <div class="add-panel">
           <select id="addType">
@@ -354,6 +377,8 @@
 
     let order = [];
     let slotResults = null;
+    let correctOrderMode = false;
+    let learningOrderBackup = null;
     order = normalizeOrderItems([...BASE]);
     let running = false, paused = false, animationFrame = null, nextExitIndex = 0;
     let liveJumpers = [], simulationStart = 0, pauseStarted = 0, pausedAccumulated = 0;
@@ -374,6 +399,7 @@
     const checkBtn = document.getElementById('checkBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
     const levelUpBtn = document.getElementById('levelUpBtn');
+    const correctOrderToggle = document.getElementById('correctOrderToggle');
     const addType = document.getElementById('addType');
     const addBtn = document.getElementById('addBtn');
 
@@ -463,7 +489,8 @@
         tile.className = 'exit-tile';
         if (slotResults && slotResults[index] === true) tile.classList.add('correct-slot');
         if (slotResults && slotResults[index] === false) tile.classList.add('incorrect-slot');
-        tile.draggable = !running;
+        tile.draggable = !running && !correctOrderMode;
+        tile.classList.toggle('locked-order', correctOrderMode);
         tile.dataset.index = index;
 
         const modeText = t.mode
@@ -487,13 +514,25 @@
       if (!removeBtn || running) return;
       e.stopPropagation();
       const index = Number(removeBtn.dataset.remove);
-      order.splice(index, 1);
-      slotResults = null;
-      scoreBox.className = 'score-box';
+      const [removedItem] = order.splice(index, 1);
+
+      if (correctOrderMode) {
+        if (learningOrderBackup && removedItem) {
+          const backupIndex = learningOrderBackup.indexOf(removedItem);
+          if (backupIndex >= 0) learningOrderBackup.splice(backupIndex, 1);
+        }
+        order = buildCorrectOrder(order);
+        slotResults = Array(order.length).fill(true);
+      } else {
+        slotResults = null;
+        scoreBox.className = 'score-box';
+      }
+
       renderOrder();
     });
 
     orderBoard.addEventListener('dragstart', e => {
+      if (correctOrderMode) return;
       if (e.target.closest('.tile-remove')) return;
       const tile = e.target.closest('.exit-tile');
       if (!tile || running) return;
@@ -527,14 +566,167 @@
       dragIndex = null;
     });
 
+    // Mobile / tablet drag-and-drop using Pointer Events.
+    let pointerDrag = null;
+
+    orderBoard.addEventListener('pointerdown', e => {
+      if (running || correctOrderMode || e.pointerType === 'mouse') return;
+      if (e.target.closest('.tile-remove')) return;
+
+      const tile = e.target.closest('.exit-tile');
+      if (!tile) return;
+
+      pointerDrag = {
+        pointerId: e.pointerId,
+        sourceIndex: Number(tile.dataset.index),
+        targetIndex: Number(tile.dataset.index),
+        tile
+      };
+
+      dragIndex = pointerDrag.sourceIndex;
+      tile.classList.add('touch-dragging');
+      tile.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    });
+
+    orderBoard.addEventListener('pointermove', e => {
+      if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+      e.preventDefault();
+
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const targetTile = hit && hit.closest ? hit.closest('.exit-tile') : null;
+
+      document.querySelectorAll('.exit-tile').forEach(x => x.classList.remove('drag-over'));
+
+      if (targetTile && orderBoard.contains(targetTile)) {
+        pointerDrag.targetIndex = Number(targetTile.dataset.index);
+        if (targetTile !== pointerDrag.tile) targetTile.classList.add('drag-over');
+      }
+    });
+
+    function finishPointerDrag(e) {
+      if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+
+      const { sourceIndex, targetIndex, tile } = pointerDrag;
+      try { tile.releasePointerCapture?.(e.pointerId); } catch (_) {}
+
+      document.querySelectorAll('.exit-tile').forEach(x =>
+        x.classList.remove('touch-dragging','drag-over')
+      );
+
+      pointerDrag = null;
+      dragIndex = null;
+
+      if (
+        Number.isInteger(sourceIndex) &&
+        Number.isInteger(targetIndex) &&
+        sourceIndex !== targetIndex &&
+        sourceIndex >= 0 &&
+        sourceIndex < order.length &&
+        targetIndex >= 0 &&
+        targetIndex < order.length
+      ) {
+        const [moved] = order.splice(sourceIndex, 1);
+        order.splice(targetIndex, 0, moved);
+        slotResults = null;
+        scoreBox.className = 'score-box';
+        renderOrder();
+      }
+    }
+
+    orderBoard.addEventListener('pointerup', finishPointerDrag);
+    orderBoard.addEventListener('pointercancel', e => {
+      if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+      document.querySelectorAll('.exit-tile').forEach(x =>
+        x.classList.remove('touch-dragging','drag-over')
+      );
+      pointerDrag = null;
+      dragIndex = null;
+    });
+
     addBtn.addEventListener('click', () => {
       if (running) return;
-      order.push(makeExitItem(addType.value));
-      slotResults = null;
-      scoreBox.className = 'score-box';
+
+      const newItem = makeExitItem(addType.value);
+      order.push(newItem);
+
+      if (correctOrderMode && learningOrderBackup) {
+        learningOrderBackup.push(newItem);
+      }
+
+      if (correctOrderMode) {
+        order = buildCorrectOrder(order);
+        slotResults = Array(order.length).fill(true);
+      } else {
+        slotResults = null;
+        scoreBox.className = 'score-box';
+      }
+
       renderOrder();
     });
 
+
+
+    function buildCorrectOrder(items) {
+      const rank = {
+        'tracking-group': 10,
+        'belly-group': 20,
+        'belly-solo': 30,
+        'freefly-group': 40,
+        'freefly-solo': 50,
+        'tracking-solo': 60,
+        'aff': 70,
+        'tandem': 80,
+        'wingsuit': 90,
+        'high-pull': 90
+      };
+
+      const copy = [...items];
+
+      // If there is only one Tracking exit of either type, it goes first.
+      const trackingItems = copy.filter(item => {
+        const key = itemKey(item);
+        return key === 'tracking-group' || key === 'tracking-solo';
+      });
+
+      if (trackingItems.length === 1) {
+        const onlyTracking = trackingItems[0];
+        return [
+          onlyTracking,
+          ...copy
+            .filter(item => item !== onlyTracking)
+            .sort((a,b) => (rank[itemKey(a)] ?? 999) - (rank[itemKey(b)] ?? 999))
+        ];
+      }
+
+      // Otherwise use the normal learning hierarchy.
+      return copy.sort((a,b) => {
+        const ra = rank[itemKey(a)] ?? 999;
+        const rb = rank[itemKey(b)] ?? 999;
+        if (ra !== rb) return ra - rb;
+
+        // For groups of the same discipline, bigger groups go first.
+        const sa = itemGroupSize(a) || 0;
+        const sb = itemGroupSize(b) || 0;
+        if (sa !== sb) return sb - sa;
+
+        return 0;
+      });
+    }
+
+    function updateCorrectOrderModeUI() {
+      correctOrderToggle.textContent = correctOrderMode
+        ? 'Correct Order: ON'
+        : 'Correct Order: OFF';
+      correctOrderToggle.setAttribute('aria-pressed', String(correctOrderMode));
+      correctOrderToggle.classList.toggle('correct-order-on', correctOrderMode);
+
+      shuffleBtn.disabled = correctOrderMode || running;
+      levelUpBtn.disabled = running;
+      addBtn.disabled = running;
+      addType.disabled = running;
+      checkBtn.disabled = correctOrderMode || running;
+    }
 
     function getSlotResults(arr) {
       const keys = arr.map(itemKey);
@@ -754,6 +946,29 @@
     });
 
 
+
+    correctOrderToggle.addEventListener('click', () => {
+      if (running) return;
+
+      if (!correctOrderMode) {
+        // Remember the student's current learning-game order.
+        learningOrderBackup = [...order];
+        correctOrderMode = true;
+        order = buildCorrectOrder(order);
+        slotResults = Array(order.length).fill(true);
+      } else {
+        // Return exactly to the order the student had before switching on.
+        correctOrderMode = false;
+        if (learningOrderBackup) order = [...learningOrderBackup];
+        learningOrderBackup = null;
+        slotResults = null;
+        scoreBox.className = 'score-box';
+      }
+
+      updateCorrectOrderModeUI();
+      renderOrder();
+    });
+
     levelUpBtn.addEventListener('click', () => {
       if (running) return;
 
@@ -776,9 +991,21 @@
         : pool;
 
       const randomKey = availablePool[Math.floor(Math.random() * availablePool.length)];
-      order.push(makeExitItem(randomKey));
-      slotResults = null;
-      scoreBox.className = 'score-box';
+      const newItem = makeExitItem(randomKey);
+      order.push(newItem);
+
+      if (correctOrderMode && learningOrderBackup) {
+        learningOrderBackup.push(newItem);
+      }
+
+      if (correctOrderMode) {
+        order = buildCorrectOrder(order);
+        slotResults = Array(order.length).fill(true);
+      } else {
+        slotResults = null;
+        scoreBox.className = 'score-box';
+      }
+
       renderOrder();
     });
 
@@ -868,8 +1095,12 @@
       stopBtn.disabled=!running;
       pauseBtn.textContent=paused?'▶ Continue':'Ⅱ Pause';
       checkBtn.disabled=running;
-      shuffleBtn.disabled=running;
+      shuffleBtn.disabled=running || correctOrderMode;
       levelUpBtn.disabled=running;
+      addBtn.disabled=running;
+      addType.disabled=running;
+      checkBtn.disabled=running || correctOrderMode;
+      correctOrderToggle.disabled=running;
       addBtn.disabled=running;
       addType.disabled=running;
       speedSelect.disabled=running;
@@ -1006,6 +1237,7 @@
     });
 
     renderOrder();
+    updateCorrectOrderModeUI();
     setControls();
   </script>
 </body>
