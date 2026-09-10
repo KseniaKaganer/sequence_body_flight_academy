@@ -409,15 +409,17 @@
         person(61,27,72,.73,'track',true);
 
       if (key === 'aff') body =
+        // Red student in the center.
         person(46,31,90,.82,'belly',true) +
-        person(20,31,90,.64,'belly') +
-        person(72,31,90,.64,'belly') +
-        `<path d="M29 26 L39 27 M29 35 L39 34 M63 26 L53 27 M63 35 L53 34"
+        // Instructors positioned in the upper-left / lower-left relation
+        // shown in the reference, with their heads facing toward the student.
+        person(30,18,145,.64,'belly') +
+        person(30,45,35,.64,'belly') +
+        // Hands/grips reaching to the student's side body.
+        `<path d="M35 22 L40 27 M35 41 L40 35"
           stroke="#111" stroke-width="3.6" stroke-linecap="round"/>
-         <circle cx="39" cy="27" r="2.1" fill="#111"/>
-         <circle cx="39" cy="34" r="2.1" fill="#111"/>
-         <circle cx="53" cy="27" r="2.1" fill="#111"/>
-         <circle cx="53" cy="34" r="2.1" fill="#111"/>`;
+         <circle cx="40" cy="27" r="2.0" fill="#111"/>
+         <circle cx="40" cy="35" r="2.0" fill="#111"/>`;
 
       if (key === 'tandem') body =
         person(40,30,90,.88,'belly') +
