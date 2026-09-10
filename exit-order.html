@@ -26,109 +26,145 @@
     .hero h1 { margin: 0; font-size: clamp(2rem,5vw,3.6rem); letter-spacing: -.04em; }
     .hero p { margin: 9px 0 0; color: #a8a8a8; max-width: 820px; line-height: 1.55; }
 
-    .game-card, .order-card, .info-card {
+    .order-card, .sim-card, .info-card {
       background: #0d0d0d; border: 1px solid #292929; border-radius: 24px; overflow: hidden;
     }
 
-    .game-stage {
-      position: relative; min-height: 560px; overflow: hidden;
-      background: linear-gradient(#75b9e4 0%, #79bee8 65%, #72b5de 100%);
-      border-bottom: 1px solid #292929;
-    }
-
-    .altitude-scale { position: absolute; right: 11px; top: 36px; bottom: 38px; width: 72px; color: #111; font-size: .78rem; pointer-events: none; z-index: 2; }
-    .alt-tick { position: absolute; right: 0; transform: translateY(-50%); display: flex; align-items: center; gap: 7px; }
-    .alt-tick::after { content: ''; width: 10px; height: 1px; background: #222; display: block; }
-    .alt-12 { top: 2%; } .alt-9 { top: 27%; } .alt-6 { top: 52%; } .alt-3 { top: 77%; }
-
-    .plane {
-      position: absolute; top: 24px; left: -150px; width: 138px; height: 64px;
-      z-index: 8; filter: drop-shadow(0 5px 7px rgba(0,0,0,.35));
-    }
-    .plane svg { width: 100%; height: 100%; display: block; }
-
-    .trajectory-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
-    .trajectory-layer path { fill: none; stroke: rgba(0,0,0,.72); stroke-width: 1.2; stroke-dasharray: 2 5; vector-effect: non-scaling-stroke; }
-
-    .exit-marker {
-      position: absolute; top: 92px; width: 8px; height: 8px; border-radius: 50%;
-      background: #111; transform: translate(-50%,-50%); z-index: 5; opacity: .9;
-    }
-
-    .jumper {
-      position: absolute; width: 80px; text-align: center; z-index: 6;
-      transform: translate(-50%,-50%); opacity: 0;
-    }
-    .jumper-art { width: 74px; height: 58px; margin: 0 auto; display: block; }
-    .jumper-art svg { width: 100%; height: 100%; overflow: visible; }
-    .jumper-label {
-      margin-top: 2px; display: inline-block; max-width: 120px;
-      background: rgba(255,255,255,.88); color: #111; border: 1px solid rgba(0,0,0,.2);
-      border-radius: 999px; padding: 3px 7px; font-size: .67rem; font-weight: 800; white-space: nowrap;
-    }
-
-    .stage-status {
-      position: absolute; left: 12px; bottom: 11px; right: 90px;
-      display: flex; justify-content: space-between; gap: 8px; align-items: end; z-index: 10;
-    }
-    .status-pill { background: rgba(255,255,255,.86); color: #111; border: 1px solid rgba(0,0,0,.16); border-radius: 999px; padding: 7px 10px; font-size: .78rem; }
-    #currentExit { font-weight: 900; }
-
-    .game-controls { padding: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .game-btn { border: 1px solid #353535; background: #171717; color: #fff; border-radius: 13px; padding: 11px 16px; font-weight: 900; cursor: pointer; }
-    .game-btn.primary { background: #ff1a13; border-color: #ff1a13; min-width: 92px; }
-    .game-btn:hover { transform: translateY(-1px); }
-    .game-btn:disabled { opacity: .42; cursor: not-allowed; transform: none; }
-    .speed-field { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #aaa; font-size: .85rem; }
-    .speed-field select { background: #151515; color: #fff; border: 1px solid #353535; border-radius: 10px; padding: 9px 10px; }
-
-    .layout { display: grid; grid-template-columns: 1.45fr .85fr; gap: 18px; align-items: start; margin-top: 18px; }
-    .order-card { padding: 18px; }
+    .order-card { padding: 18px; margin-bottom: 18px; }
     .order-head { display: flex; gap: 12px; align-items: start; justify-content: space-between; margin-bottom: 14px; }
     .order-head h2 { margin: 0; font-size: 1.35rem; }
     .order-head p { margin: 5px 0 0; color: #8f8f8f; font-size: .88rem; line-height: 1.45; }
     .count-badge { background: #171717; border: 1px solid #303030; padding: 7px 10px; border-radius: 999px; color: #aaa; font-size: .78rem; white-space: nowrap; }
 
-    .order-list { display: grid; gap: 9px; }
+    .order-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
     .exit-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; min-height: 66px; padding: 9px 10px; background: #131313; border: 1px solid #2a2a2a; border-radius: 15px; }
     .exit-row.active { border-color: #ff1a13; box-shadow: inset 0 0 0 1px #ff1a13; }
     .exit-num { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #202020; color: #aaa; font-weight: 900; font-size: .8rem; }
     .exit-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .exit-thumb { width: 56px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; }
-    .exit-thumb svg { width: 56px; height: 42px; overflow: visible; }
+    .exit-thumb { width: 62px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; }
+    .exit-thumb svg { width: 62px; height: 44px; overflow: visible; }
     .exit-name { font-weight: 900; }
     .exit-sub { color: #888; margin-top: 3px; font-size: .78rem; }
     .row-actions { display: flex; gap: 5px; }
     .mini-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #353535; background: #191919; color: #fff; cursor: pointer; font-weight: 900; }
     .mini-btn:hover { border-color: #666; }
+    .mini-btn:disabled { opacity: .35; cursor: not-allowed; }
 
-    .add-panel { margin-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .order-bottom { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+    .add-panel { display: grid; grid-template-columns: minmax(220px,1fr) auto; gap: 8px; flex: 1 1 480px; }
     .add-panel select { min-width: 0; background: #151515; color: #fff; border: 1px solid #343434; border-radius: 12px; padding: 10px; }
 
-    .info-card { padding: 18px; }
-    .info-card h2 { margin: 0 0 11px; font-size: 1.25rem; }
-    .type-list { display: grid; gap: 8px; }
-    .type-item { padding: 11px 12px; border-radius: 13px; background: #131313; border: 1px solid #272727; }
-    .type-item strong { display: block; font-size: .9rem; }
-    .type-item span { color: #848484; font-size: .78rem; }
-    .notice { margin-top: 13px; padding: 12px 13px; border-left: 3px solid #ff1a13; background: #121212; color: #aaa; font-size: .8rem; line-height: 1.5; border-radius: 0 10px 10px 0; }
+    .game-btn { border: 1px solid #353535; background: #171717; color: #fff; border-radius: 13px; padding: 11px 16px; font-weight: 900; cursor: pointer; }
+    .game-btn.primary { background: #ff1a13; border-color: #ff1a13; }
+    .game-btn:hover { transform: translateY(-1px); }
+    .game-btn:disabled { opacity: .42; cursor: not-allowed; transform: none; }
 
-    @media (max-width: 850px) { .layout { grid-template-columns: 1fr; } .game-stage { min-height: 500px; } }
+    .score-box {
+      margin-top: 12px; min-height: 48px; display: none; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 14px; border: 1px solid #303030; background: #131313;
+      font-weight: 800;
+    }
+    .score-box.show { display: flex; }
+    .score-box.pass { border-color: #2f9e44; }
+    .score-box.fail { border-color: #ff1a13; }
+    .score-big { font-size: 1.15rem; }
+
+    .sim-card { margin-top: 18px; }
+    .sim-title { padding: 18px 18px 0; }
+    .sim-title h2 { margin: 0; font-size: 1.4rem; }
+    .sim-title p { margin: 6px 0 14px; color: #8f8f8f; font-size: .88rem; }
+
+    .game-stage {
+      position: relative; min-height: 590px; overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,.72) 0 3%, transparent 7%),
+        radial-gradient(circle at 27% 20%, rgba(255,255,255,.52) 0 4%, transparent 9%),
+        radial-gradient(circle at 72% 14%, rgba(255,255,255,.68) 0 3%, transparent 8%),
+        radial-gradient(circle at 80% 16%, rgba(255,255,255,.45) 0 4%, transparent 10%),
+        linear-gradient(#62afe0 0%, #84c8ef 56%, #b9e1f7 100%);
+      border-top: 1px solid #292929;
+      border-bottom: 1px solid #292929;
+    }
+
+    .plane {
+      position: absolute; top: 28px; left: -150px; width: 138px; height: 64px;
+      z-index: 8; filter: drop-shadow(0 5px 7px rgba(0,0,0,.28));
+    }
+    .plane svg { width: 100%; height: 100%; display: block; }
+
+    .trajectory-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+    .trajectory-layer path { fill: none; stroke: rgba(0,0,0,.56); stroke-width: 1.1; stroke-dasharray: 2 5; vector-effect: non-scaling-stroke; }
+
+    .exit-marker {
+      position: absolute; top: 104px; width: 8px; height: 8px; border-radius: 50%;
+      background: #111; transform: translate(-50%,-50%); z-index: 5; opacity: .75;
+    }
+
+    .jumper {
+      position: absolute; width: 92px; text-align: center; z-index: 6;
+      transform: translate(-50%,-50%); opacity: 0;
+    }
+    .jumper-art { width: 82px; height: 62px; margin: 0 auto; display: block; }
+    .jumper-art svg { width: 100%; height: 100%; overflow: visible; }
+    .jumper-label {
+      margin-top: 2px; display: inline-block; max-width: 135px;
+      background: rgba(255,255,255,.86); color: #111; border: 1px solid rgba(0,0,0,.18);
+      border-radius: 999px; padding: 3px 7px; font-size: .67rem; font-weight: 800; white-space: nowrap;
+    }
+
+    .canopy {
+      position: absolute; width: 90px; height: 52px; z-index: 7;
+      transform: translate(-50%,-50%); opacity: 0; transition: opacity .25s ease;
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,.2));
+    }
+    .canopy svg { width: 100%; height: 100%; overflow: visible; }
+
+    .stage-status {
+      position: absolute; left: 12px; bottom: 11px; right: 12px;
+      display: flex; justify-content: space-between; gap: 8px; align-items: end; z-index: 10;
+    }
+    .status-pill { background: rgba(255,255,255,.87); color: #111; border: 1px solid rgba(0,0,0,.15); border-radius: 999px; padding: 7px 10px; font-size: .78rem; }
+    #currentExit { font-weight: 900; }
+
+    .player-controls {
+      padding: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .player-btn {
+      min-width: 92px; border: 1px solid #353535; background: #171717; color: #fff;
+      border-radius: 13px; padding: 11px 16px; font-weight: 900; cursor: pointer;
+    }
+    .player-btn.run { background: #ff1a13; border-color: #ff1a13; }
+    .player-btn:hover { transform: translateY(-1px); }
+    .player-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    .speed-field { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #aaa; font-size: .85rem; }
+    .speed-field select { background: #151515; color: #fff; border: 1px solid #353535; border-radius: 10px; padding: 9px 10px; }
+
+    .info-card { padding: 18px; margin-top: 18px; }
+    .info-card h2 { margin: 0 0 11px; font-size: 1.25rem; }
+    .notice { padding: 12px 13px; border-left: 3px solid #ff1a13; background: #121212; color: #aaa; font-size: .8rem; line-height: 1.5; border-radius: 0 10px 10px 0; }
+
+    @media (max-width: 850px) {
+      .order-list { grid-template-columns: 1fr; }
+      .game-stage { min-height: 520px; }
+    }
     @media (max-width: 620px) {
       .brand-name { display: none; }
       .page-shell { width: min(100% - 18px,1180px); padding-top: 18px; }
-      .game-card, .order-card, .info-card { border-radius: 18px; }
-      .game-stage { min-height: 460px; }
-      .plane { width: 108px; height: 52px; top: 26px; }
-      .game-controls { align-items: stretch; }
-      .game-btn { flex: 1 1 110px; }
+      .order-card, .sim-card, .info-card { border-radius: 18px; }
+      .game-stage { min-height: 470px; }
+      .plane { width: 108px; height: 52px; top: 28px; }
+      .player-controls { align-items: stretch; }
+      .player-btn { flex: 1 1 90px; }
       .speed-field { width: 100%; margin-left: 0; justify-content: space-between; }
       .exit-row { grid-template-columns: 30px 1fr; }
       .row-actions { grid-column: 2; }
-      .stage-status { right: 74px; flex-direction: column; align-items: flex-start; }
-      .jumper { width: 62px; }
-      .jumper-art { width: 58px; height: 48px; }
+      .stage-status { flex-direction: column; align-items: flex-start; }
+      .jumper { width: 70px; }
+      .jumper-art { width: 62px; height: 50px; }
       .jumper-label { display: none; }
+      .canopy { width: 70px; height: 44px; }
+      .add-panel { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -142,19 +178,50 @@
   <main class="page-shell">
     <section class="hero">
       <h1>Exit Order</h1>
-      <p>Build the load, arrange the groups, then run the jump. Each group exits at a different horizontal point and continues through a 40-second freefall.</p>
+      <p>Arrange the load in the order you think is correct, check your answer, then run the freefall simulator.</p>
     </section>
 
-    <section class="game-card">
-      <div class="game-stage" id="gameStage">
-        <svg class="trajectory-layer" id="trajectoryLayer" viewBox="0 0 1000 560" preserveAspectRatio="none" aria-hidden="true"></svg>
-
-        <div class="altitude-scale" aria-hidden="true">
-          <div class="alt-tick alt-12">12,000 ft</div>
-          <div class="alt-tick alt-9">9,000 ft</div>
-          <div class="alt-tick alt-6">6,000 ft</div>
-          <div class="alt-tick alt-3">3,000 ft</div>
+    <section class="order-card">
+      <div class="order-head">
+        <div>
+          <h2>Your exit sequence</h2>
+          <p>Use ↑ and ↓ to arrange the groups, then press <strong>Check Order</strong> to see your score.</p>
         </div>
+        <div class="count-badge" id="groupCount">10 groups</div>
+      </div>
+
+      <div class="order-list" id="orderList"></div>
+
+      <div class="order-bottom">
+        <div class="add-panel">
+          <select id="addType" aria-label="Add exit type">
+            <option value="tracking-group">Tracking · Group</option>
+            <option value="tracking-solo">Tracking · Solo</option>
+            <option value="belly-group">Belly Flyers · Group</option>
+            <option value="belly-solo">Belly Flyer · Solo</option>
+            <option value="freefly-group">Freefly Flyers (Sit Fly) · Group</option>
+            <option value="freefly-solo">Freefly Flyer (Sit Fly) · Solo</option>
+            <option value="aff">AFF Student + Instructors</option>
+            <option value="tandem">Tandem</option>
+            <option value="wingsuit">Wingsuit</option>
+            <option value="high-pull">High Pull</option>
+          </select>
+          <button class="game-btn" id="addBtn" type="button">+ Add</button>
+        </div>
+        <button class="game-btn primary" id="checkBtn" type="button">Check Order</button>
+      </div>
+
+      <div class="score-box" id="scoreBox" aria-live="polite"></div>
+    </section>
+
+    <section class="sim-card">
+      <div class="sim-title">
+        <h2>Freefall Simulator</h2>
+        <p>Each group exits from a different horizontal position, freefalls for 40 seconds, and opens a parachute at the bottom of the simulation.</p>
+      </div>
+
+      <div class="game-stage" id="gameStage">
+        <svg class="trajectory-layer" id="trajectoryLayer" viewBox="0 0 1000 590" preserveAspectRatio="none" aria-hidden="true"></svg>
 
         <div class="plane" id="plane" aria-hidden="true">
           <svg viewBox="0 0 230 96">
@@ -171,13 +238,15 @@
 
         <div class="stage-status">
           <div class="status-pill">Status: <span id="currentExit">Ready</span></div>
-          <div class="status-pill"><span id="exitCounter">0</span> / <span id="exitTotal">7</span> exits</div>
+          <div class="status-pill"><span id="exitCounter">0</span> / <span id="exitTotal">10</span> exits</div>
         </div>
       </div>
 
-      <div class="game-controls">
-        <button class="game-btn primary" id="startBtn" type="button">Run</button>
-        <button class="game-btn" id="shuffleBtn" type="button">Shuffle</button>
+      <div class="player-controls">
+        <button class="player-btn run" id="runBtn" type="button">▶ Run</button>
+        <button class="player-btn" id="pauseBtn" type="button" disabled>Ⅱ Pause</button>
+        <button class="player-btn" id="stopBtn" type="button" disabled>■ Stop</button>
+
         <div class="speed-field">
           <label for="speedSelect">Simulation speed</label>
           <select id="speedSelect">
@@ -189,70 +258,41 @@
       </div>
     </section>
 
-    <div class="layout">
-      <section class="order-card">
-        <div class="order-head">
-          <div>
-            <h2>Your exit sequence</h2>
-            <p>Use ↑ and ↓ to arrange the groups in the order you want them to leave.</p>
-          </div>
-          <div class="count-badge" id="groupCount">7 groups</div>
-        </div>
-        <div class="order-list" id="orderList"></div>
-        <div class="add-panel">
-          <select id="addType" aria-label="Add exit type">
-            <option value="belly-solo">Belly Flyer · Solo</option>
-            <option value="belly-group">Belly Flyers · Group</option>
-            <option value="freefly-solo">Freefly Flyer (Sit Fly) · Solo</option>
-            <option value="freefly-group">Freefly Flyers (Sit Fly) · Group</option>
-            <option value="tandem">Tandem</option>
-            <option value="aff">AFF Student + Instructor</option>
-            <option value="tracking-solo">Tracking · Solo</option>
-            <option value="tracking-group">Tracking · Group</option>
-            <option value="wingsuit">Wingsuit</option>
-            <option value="high-pull">High Pull</option>
-          </select>
-          <button class="game-btn" id="addBtn" type="button">+ Add</button>
-        </div>
-      </section>
-
-      <aside class="info-card">
-        <h2>Exit types</h2>
-        <div class="type-list">
-          <div class="type-item"><strong>Belly Flyer</strong><span>Solo or group</span></div>
-          <div class="type-item"><strong>Freefly / Sit Fly</strong><span>Solo or group</span></div>
-          <div class="type-item"><strong>Tandem</strong><span>Tandem pair</span></div>
-          <div class="type-item"><strong>AFF</strong><span>Student with instructor(s)</span></div>
-          <div class="type-item"><strong>Tracking</strong><span>Solo or group</span></div>
-          <div class="type-item"><strong>Wingsuit</strong><span>Wingsuit exit</span></div>
-          <div class="type-item"><strong>High Pull</strong><span>Planned high deployment</span></div>
-        </div>
-        <div class="notice">Training visualization only. Actual exit order and separation depend on the DZ, aircraft, winds, group sizes and local procedures.</div>
-      </aside>
-    </div>
+    <aside class="info-card">
+      <h2>Training note</h2>
+      <div class="notice">Training visualization only. Actual exit order and separation depend on the DZ, aircraft, winds, group sizes and local procedures.</div>
+    </aside>
   </main>
 
   <script>
     const TYPES = {
-      'belly-solo': { name:'Belly Flyer', sub:'Solo', short:'Belly · Solo' },
-      'belly-group': { name:'Belly Flyers', sub:'Group', short:'Belly · Group' },
-      'freefly-solo': { name:'Freefly Flyer', sub:'Sit Fly · Solo', short:'Freefly · Solo' },
-      'freefly-group': { name:'Freefly Flyers', sub:'Sit Fly · Group', short:'Freefly · Group' },
-      'tandem': { name:'Tandem', sub:'Tandem pair', short:'Tandem' },
-      'aff': { name:'AFF Student + Instructor', sub:'AFF training exit', short:'AFF' },
-      'tracking-solo': { name:'Tracking', sub:'Solo', short:'Tracking · Solo' },
       'tracking-group': { name:'Tracking', sub:'Group', short:'Tracking · Group' },
+      'tracking-solo': { name:'Tracking', sub:'Solo', short:'Tracking · Solo' },
+      'belly-group': { name:'Belly Flyers', sub:'Group', short:'Belly · Group' },
+      'belly-solo': { name:'Belly Flyer', sub:'Solo', short:'Belly · Solo' },
+      'freefly-group': { name:'Freefly Flyers', sub:'Sit Fly · Group', short:'Freefly · Group' },
+      'freefly-solo': { name:'Freefly Flyer', sub:'Sit Fly · Solo', short:'Freefly · Solo' },
+      'aff': { name:'AFF', sub:'Student + instructors', short:'AFF' },
+      'tandem': { name:'Tandem', sub:'Tandem pair', short:'Tandem' },
       'wingsuit': { name:'Wingsuit', sub:'Wingsuit flyer', short:'Wingsuit' },
       'high-pull': { name:'High Pull', sub:'Planned high deployment', short:'High Pull' }
     };
 
-    const defaultOrder = ['belly-group','freefly-group','aff','tandem','tracking-group','wingsuit','high-pull'];
+    const defaultOrder = [
+      'belly-group','freefly-solo','tracking-group','tandem','belly-solo',
+      'wingsuit','freefly-group','aff','tracking-solo','high-pull'
+    ];
+
     let order = [...defaultOrder];
     let running = false;
+    let paused = false;
     let activeIndex = -1;
-    let timers = [];
     let animationFrame = null;
     let liveJumpers = [];
+    let nextExitIndex = 0;
+    let simulationStart = 0;
+    let pauseStarted = 0;
+    let pausedAccumulated = 0;
 
     const orderList = document.getElementById('orderList');
     const plane = document.getElementById('plane');
@@ -262,9 +302,76 @@
     const exitCounter = document.getElementById('exitCounter');
     const exitTotal = document.getElementById('exitTotal');
     const groupCount = document.getElementById('groupCount');
-    const startBtn = document.getElementById('startBtn');
-    const shuffleBtn = document.getElementById('shuffleBtn');
+    const runBtn = document.getElementById('runBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
     const speedSelect = document.getElementById('speedSelect');
+    const checkBtn = document.getElementById('checkBtn');
+    const scoreBox = document.getElementById('scoreBox');
+
+    function exitArt(key) {
+      const black = '#111';
+      const red = '#ff1a13';
+
+      const person = (x,y,rot=0,scale=1,accent=false,pose='normal') => {
+        const c = accent ? red : black;
+        let limbs = 'M0 -4 L0 9 M0 0 L-10 4 M0 0 L10 4 M0 9 L-8 18 M0 9 L8 18';
+        if (pose === 'belly') limbs = 'M0 -4 L0 8 M0 1 L-14 7 M0 1 L14 7 M0 8 L-12 14 M0 8 L12 14';
+        if (pose === 'sit') limbs = 'M0 -4 L0 8 M0 0 L-10 5 M0 0 L10 5 M0 8 L-8 8 L-8 18 M0 8 L8 8 L8 18';
+        if (pose === 'track') limbs = 'M0 -4 L0 10 M0 0 L-13 1 M0 0 L13 1 M0 10 L-5 23 M0 10 L5 23';
+        return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale})" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <circle cx="0" cy="-10" r="4" fill="${c}" stroke="none"/><path d="${limbs}"/>
+        </g>`;
+      };
+
+      let body = '';
+      if (key === 'belly-solo') body = person(46,30,90,1,false,'belly');
+      if (key === 'belly-group') body = person(30,30,90,.78,false,'belly') + person(62,30,90,.78,true,'belly');
+
+      if (key === 'freefly-solo') body = person(46,29,0,1,false,'sit');
+      if (key === 'freefly-group') body = person(31,29,0,.8,false,'sit') + person(61,29,0,.8,true,'sit');
+
+      if (key === 'tandem') {
+        body =
+          person(40,29,90,.90,false,'belly') +
+          person(50,29,90,.84,true,'belly') +
+          `<path d="M32 24 L58 35 M32 35 L58 24" stroke="${red}" stroke-width="2.5"/>`;
+      }
+
+      if (key === 'aff') {
+        body =
+          person(46,30,90,.86,true,'belly') +
+          person(22,30,90,.68,false,'belly') +
+          person(70,30,90,.68,false,'belly') +
+          `<path d="M30 29 L38 29 M54 29 L62 29" stroke="${black}" stroke-width="3.2" stroke-linecap="round"/>`;
+      }
+
+      if (key === 'tracking-solo') body = person(46,29,74,1,false,'track');
+      if (key === 'tracking-group') body = person(31,31,74,.78,false,'track') + person(61,27,74,.78,true,'track');
+
+      if (key === 'wingsuit') {
+        body = `<g transform="translate(46 29) rotate(78)" fill="${black}" stroke="${black}" stroke-width="1.8">
+          <circle cx="0" cy="-14" r="4"/>
+          <path d="M0 -9 L0 14 L-17 4 L-8 -5 Z M0 -9 L0 14 L17 4 L8 -5 Z M0 14 L-8 23 L0 19 L8 23 Z"/>
+        </g>`;
+      }
+
+      if (key === 'high-pull') {
+        body = person(46,40,0,.65,false,'normal') +
+          `<path d="M18 15 Q46 -4 74 15" stroke="${red}" stroke-width="3" fill="none"/>
+           <path d="M18 15 L39 31 M74 15 L53 31" stroke="${black}" stroke-width="2"/>`;
+      }
+
+      return `<svg viewBox="0 0 92 62" aria-hidden="true">${body}</svg>`;
+    }
+
+    function canopyArt() {
+      return `<svg viewBox="0 0 100 58" aria-hidden="true">
+        <path d="M10 22 Q50 -4 90 22 Q50 14 10 22Z" fill="#ff1a13" stroke="#111" stroke-width="2"/>
+        <path d="M10 22 L42 47 M90 22 L58 47 M31 18 L47 47 M69 18 L53 47" fill="none" stroke="#111" stroke-width="1.6"/>
+        <circle cx="50" cy="51" r="3.5" fill="#111"/>
+      </svg>`;
+    }
 
     function renderOrder() {
       orderList.innerHTML = '';
@@ -285,11 +392,15 @@
           </div>`;
         orderList.appendChild(row);
       });
+
       exitTotal.textContent = order.length;
       groupCount.textContent = `${order.length} ${order.length === 1 ? 'group' : 'groups'}`;
-      startBtn.disabled = order.length === 0;
-      startBtn.textContent = running ? 'Stop' : 'Run';
-      shuffleBtn.disabled = running || order.length < 2;
+
+      const lock = running;
+      document.getElementById('addBtn').disabled = lock;
+      document.getElementById('addType').disabled = lock;
+      checkBtn.disabled = lock || order.length === 0;
+      speedSelect.disabled = lock;
     }
 
     orderList.addEventListener('click', e => {
@@ -298,88 +409,107 @@
       if (!btn) return;
       const i = Number(btn.dataset.index);
       const action = btn.dataset.action;
+
       if (action === 'up' && i > 0) [order[i-1], order[i]] = [order[i], order[i-1]];
       if (action === 'down' && i < order.length - 1) [order[i+1], order[i]] = [order[i], order[i+1]];
       if (action === 'remove') order.splice(i, 1);
+
+      hideScore();
       renderOrder();
     });
 
     document.getElementById('addBtn').addEventListener('click', () => {
       if (running) return;
       order.push(document.getElementById('addType').value);
+      hideScore();
       renderOrder();
     });
 
-    shuffleBtn.addEventListener('click', () => {
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
+    function canonicalOrderForCurrentLoad() {
+      const hasTrackingGroup = order.includes('tracking-group');
+
+      const rank = {
+        'tracking-group': 1,
+        'belly-group': 2,
+        'belly-solo': 3,
+        'freefly-group': 4,
+        'freefly-solo': 5,
+        'tracking-solo': hasTrackingGroup ? 6 : 1,
+        'aff': 7,
+        'tandem': 8,
+        'wingsuit': 9,
+        'high-pull': 10
+      };
+
+      return order
+        .map((key, originalIndex) => ({ key, originalIndex, rank: rank[key] ?? 999 }))
+        .sort((a,b) => a.rank - b.rank || a.originalIndex - b.originalIndex)
+        .map(x => x.key);
+    }
+
+    function scoreOrder() {
+      const expected = canonicalOrderForCurrentLoad();
+      if (!order.length) return { score: 0, pass: false, expected: [] };
+
+      let correctPositions = 0;
+      for (let i = 0; i < order.length; i++) {
+        if (order[i] === expected[i]) correctPositions++;
       }
-      renderOrder();
+
+      const score = Math.round(correctPositions / order.length * 100);
+      return { score, pass: score === 100, expected };
+    }
+
+    function hideScore() {
+      scoreBox.className = 'score-box';
+      scoreBox.innerHTML = '';
+    }
+
+    checkBtn.addEventListener('click', () => {
+      const result = scoreOrder();
+      scoreBox.className = `score-box show ${result.pass ? 'pass' : 'fail'}`;
+
+      if (result.pass) {
+        scoreBox.innerHTML = `<span class="score-big">PASS · ${result.score}%</span><span>Your exit order is correct.</span>`;
+      } else {
+        scoreBox.innerHTML = `<span class="score-big">NOT PASSED · ${result.score}%</span><span>Rearrange the exits and try again.</span>`;
+      }
     });
 
-    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+    function horizontalExitPercent(index, total) {
+      const left = 12, right = 88;
+      if (total <= 1) return 50;
+      return left + (right - left) * (index / (total - 1));
+    }
 
     function clearStage() {
-      liveJumpers.forEach(j => { j.el.remove(); j.marker.remove(); });
+      liveJumpers.forEach(j => {
+        j.el.remove();
+        j.marker.remove();
+        if (j.canopy) j.canopy.remove();
+      });
       liveJumpers = [];
       trajectoryLayer.innerHTML = '';
       if (animationFrame) cancelAnimationFrame(animationFrame);
       animationFrame = null;
     }
 
-    function stopRun(message='Stopped') {
-      clearTimers();
-      clearStage();
-      running = false;
-      activeIndex = -1;
-      plane.style.transition = 'none';
-      plane.style.left = '-150px';
-      currentExit.textContent = message;
-      renderOrder();
-    }
-
-    function exitArt(key) {
-      const black = '#111';
-      const red = '#ff1a13';
-      const person = (x,y,rot=0,scale=1,accent=false,pose='normal') => {
-        const c = accent ? red : black;
-        let limbs = 'M0 -4 L0 9 M0 0 L-10 4 M0 0 L10 4 M0 9 L-8 18 M0 9 L8 18';
-        if (pose === 'belly') limbs = 'M0 -4 L0 8 M0 1 L-13 7 M0 1 L13 7 M0 8 L-12 14 M0 8 L12 14';
-        if (pose === 'sit') limbs = 'M0 -4 L0 8 M0 0 L-10 5 M0 0 L10 5 M0 8 L-8 8 L-8 17 M0 8 L8 8 L8 17';
-        if (pose === 'track') limbs = 'M0 -4 L0 10 M0 0 L-12 1 M0 0 L12 1 M0 10 L-5 22 M0 10 L5 22';
-        return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${scale})" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="0" cy="-10" r="4" fill="${c}" stroke="none"/><path d="${limbs}"/></g>`;
-      };
-      let body = '';
-      if (key === 'belly-solo') body = person(46,30,90,1.0,false,'belly');
-      if (key === 'belly-group') body = person(31,30,90,.78,false,'belly') + person(61,30,90,.78,true,'belly');
-      if (key === 'freefly-solo') body = person(46,28,0,1.0,false,'sit');
-      if (key === 'freefly-group') body = person(32,29,0,.8,false,'sit') + person(60,29,0,.8,true,'sit');
-      if (key === 'tandem') body = person(42,28,0,.92,false,'sit') + person(49,31,0,.80,true,'sit') + `<path d="M37 20 L54 38" stroke="${red}" stroke-width="2.5"/>`;
-      if (key === 'aff') body = person(46,30,90,.88,true,'belly') + person(26,30,90,.67,false,'belly') + person(66,30,90,.67,false,'belly');
-      if (key === 'tracking-solo') body = person(46,29,74,1.0,false,'track');
-      if (key === 'tracking-group') body = person(32,31,74,.78,false,'track') + person(60,27,74,.78,true,'track');
-      if (key === 'wingsuit') body = `<g transform="translate(46 29) rotate(78)" fill="${black}" stroke="${black}" stroke-width="1.8"><circle cx="0" cy="-14" r="4"/><path d="M0 -9 L0 14 L-17 4 L-8 -5 Z M0 -9 L0 14 L17 4 L8 -5 Z M0 14 L-8 23 L0 19 L8 23 Z"/></g>`;
-      if (key === 'high-pull') body = person(46,40,0,.65,false,'normal') + `<path d="M18 15 Q46 -4 74 15" stroke="${red}" stroke-width="3" fill="none"/><path d="M18 15 L39 31 M74 15 L53 31" stroke="${black}" stroke-width="2"/>`;
-      return `<svg viewBox="0 0 92 62" aria-hidden="true">${body}</svg>`;
-    }
-
-    function horizontalExitPercent(index, total) {
-      const left = 15, right = 82;
-      if (total <= 1) return 50;
-      return left + (right - left) * (index / (total - 1));
-    }
-
-    function createJumper(key, index, total, speedMultiplier) {
+    function createJumper(key, index, total, simTime) {
       const t = TYPES[key];
       const stageRect = stage.getBoundingClientRect();
       const xPct = horizontalExitPercent(index, total);
       const startX = stageRect.width * (xPct / 100);
-      const startY = 96;
-      const endY = stageRect.height * .87;
-      const disciplineDrift = key.startsWith('tracking') ? 48 : key === 'wingsuit' ? 78 : key.startsWith('freefly') ? 15 : key === 'high-pull' ? 6 : 24;
+      const startY = 108;
+      const endY = stageRect.height * .84;
+
+      const disciplineDrift =
+        key.startsWith('tracking') ? 62 :
+        key === 'wingsuit' ? 96 :
+        key.startsWith('freefly') ? 18 :
+        key === 'high-pull' ? 5 : 30;
+
       const direction = index % 2 === 0 ? -1 : 1;
-      const endX = Math.max(45, Math.min(stageRect.width - 95, startX + disciplineDrift * direction));
+      const endX = Math.max(46, Math.min(stageRect.width - 46, startX + disciplineDrift * direction));
 
       const el = document.createElement('div');
       el.className = 'jumper';
@@ -396,95 +526,161 @@
       const path = document.createElementNS('http://www.w3.org/2000/svg','path');
       trajectoryLayer.appendChild(path);
 
-      const now = performance.now();
-      const freefallMs = 40000 / speedMultiplier;
-      liveJumpers.push({ el, marker, path, key, startX, startY, endX, endY, startTime: now, duration: freefallMs, done:false });
+      const canopy = document.createElement('div');
+      canopy.className = 'canopy';
+      canopy.innerHTML = canopyArt();
+      stage.appendChild(canopy);
+
+      liveJumpers.push({
+        el, marker, path, canopy, key,
+        startX, startY, endX, endY,
+        exitSimTime: simTime,
+        canopyOpen: false
+      });
     }
 
-    function updateAnimation(now) {
-      if (!running && !liveJumpers.length) return;
+    function setPlayerState() {
+      runBtn.disabled = running;
+      pauseBtn.disabled = !running;
+      stopBtn.disabled = !running;
+      pauseBtn.textContent = paused ? '▶ Continue' : 'Ⅱ Pause';
+    }
+
+    function stopRun(message='Stopped') {
+      running = false;
+      paused = false;
+      activeIndex = -1;
+      nextExitIndex = 0;
+      plane.style.left = '-150px';
+      currentExit.textContent = message;
+      exitCounter.textContent = '0';
+      clearStage();
+      setPlayerState();
+      renderOrder();
+    }
+
+    function currentSimTime(now) {
+      const speed = Number(speedSelect.value);
+      return ((now - simulationStart - pausedAccumulated) / 1000) * speed;
+    }
+
+    function updateSimulation(now) {
+      if (!running) return;
+
+      if (paused) {
+        animationFrame = requestAnimationFrame(updateSimulation);
+        return;
+      }
+
+      const simTime = currentSimTime(now);
+      const exitGap = 2.5;
+      const firstExitAt = 1.2;
+
+      while (nextExitIndex < order.length &&
+             simTime >= firstExitAt + nextExitIndex * exitGap) {
+        activeIndex = nextExitIndex;
+        const key = order[nextExitIndex];
+        exitCounter.textContent = String(nextExitIndex + 1);
+        currentExit.textContent = `${TYPES[key].short} · freefall`;
+        createJumper(key, nextExitIndex, order.length, simTime);
+        nextExitIndex++;
+        renderOrder();
+      }
+
       const stageRect = stage.getBoundingClientRect();
       const scaleX = 1000 / stageRect.width;
-      const scaleY = 560 / stageRect.height;
-      let allDone = true;
+      const scaleY = 590 / stageRect.height;
+
+      const finalExitAt = firstExitAt + Math.max(0, order.length - 1) * exitGap;
+      const planeProgress = Math.min(1, simTime / Math.max(2, finalExitAt + 1));
+      plane.style.left = `${-130 + planeProgress * (stageRect.width + 70)}px`;
 
       liveJumpers.forEach(j => {
-        const p = Math.min(1, Math.max(0, (now - j.startTime) / j.duration));
+        const freefallElapsed = Math.max(0, simTime - j.exitSimTime);
+        const p = Math.min(1, freefallElapsed / 40);
+
         const eased = p < .08 ? p/.08*.06 : .06 + ((p-.08)/.92)*.94;
         const x = j.startX + (j.endX - j.startX) * eased;
         const y = j.startY + (j.endY - j.startY) * eased;
+
         j.el.style.left = `${x}px`;
         j.el.style.top = `${y}px`;
-        j.el.style.opacity = p < .03 ? String(p/.03) : p > .96 ? String((1-p)/.04) : '1';
+        j.el.style.opacity = p < .03 ? String(p/.03) : (p < 1 ? '1' : '0');
+
         const cx = (j.startX + (j.endX-j.startX)*.45) * scaleX;
         const cy = (j.startY + (j.endY-j.startY)*.38) * scaleY;
         j.path.setAttribute('d', `M ${j.startX*scaleX} ${j.startY*scaleY} Q ${cx} ${cy} ${x*scaleX} ${y*scaleY}`);
-        if (p < 1) allDone = false;
-        else if (!j.done) { j.done = true; j.el.style.opacity = '0'; }
+
+        if (p >= 1 && !j.canopyOpen) {
+          j.canopyOpen = true;
+          j.canopy.style.left = `${x}px`;
+          j.canopy.style.top = `${Math.min(stageRect.height - 38, y)}px`;
+          j.canopy.style.opacity = '1';
+        }
       });
 
-      if (!allDone || running) animationFrame = requestAnimationFrame(updateAnimation);
+      const allExited = nextExitIndex >= order.length;
+      const allOpen = allExited && liveJumpers.length === order.length && liveJumpers.every(j => j.canopyOpen);
+
+      if (allOpen) {
+        activeIndex = -1;
+        currentExit.textContent = 'All parachutes open';
+        running = false;
+        paused = false;
+        plane.style.left = `${stageRect.width + 80}px`;
+        setPlayerState();
+        renderOrder();
+        return;
+      }
+
+      if (allExited && liveJumpers.some(j => !j.canopyOpen)) {
+        activeIndex = -1;
+        currentExit.textContent = 'All groups out · freefall';
+        renderOrder();
+      }
+
+      animationFrame = requestAnimationFrame(updateSimulation);
     }
 
-    function startRun() {
-      if (running) { stopRun('Stopped'); return; }
-      if (!order.length) return;
+    runBtn.addEventListener('click', () => {
+      if (running || !order.length) return;
 
-      clearTimers();
       clearStage();
       running = true;
+      paused = false;
       activeIndex = -1;
+      nextExitIndex = 0;
+      pausedAccumulated = 0;
+      pauseStarted = 0;
       exitCounter.textContent = '0';
       currentExit.textContent = 'Aircraft on jump run';
-      renderOrder();
-
-      const speedMultiplier = Number(speedSelect.value);
-      const exitGapMs = 2500 / speedMultiplier;
-      const firstExitMs = 1200 / speedMultiplier;
-      const lastExitAt = firstExitMs + (order.length - 1) * exitGapMs;
-      const totalPlaneMs = lastExitAt + 1000 / speedMultiplier;
-      const stageWidth = stage.getBoundingClientRect().width;
-
-      plane.style.transition = 'none';
       plane.style.left = '-150px';
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        plane.style.transition = `left ${totalPlaneMs}ms linear`;
-        plane.style.left = `${stageWidth - 130}px`;
-      }));
 
-      animationFrame = requestAnimationFrame(updateAnimation);
+      simulationStart = performance.now();
+      setPlayerState();
+      renderOrder();
+      animationFrame = requestAnimationFrame(updateSimulation);
+    });
 
-      order.forEach((key, i) => {
-        timers.push(setTimeout(() => {
-          if (!running) return;
-          activeIndex = i;
-          exitCounter.textContent = String(i + 1);
-          currentExit.textContent = `${TYPES[key].short} · freefall`;
-          renderOrder();
-          createJumper(key, i, order.length, speedMultiplier);
-        }, firstExitMs + i * exitGapMs));
-      });
+    pauseBtn.addEventListener('click', () => {
+      if (!running) return;
 
-      timers.push(setTimeout(() => {
-        if (!running) return;
-        activeIndex = -1;
-        currentExit.textContent = 'All groups out · 40 sec freefall';
-        renderOrder();
-      }, lastExitAt + 300 / speedMultiplier));
+      if (!paused) {
+        paused = true;
+        pauseStarted = performance.now();
+        currentExit.textContent = 'Paused';
+      } else {
+        paused = false;
+        pausedAccumulated += performance.now() - pauseStarted;
+        currentExit.textContent = activeIndex >= 0 ? `${TYPES[order[activeIndex]].short} · freefall` : 'Continuing';
+      }
 
-      timers.push(setTimeout(() => {
-        if (!running) return;
-        clearTimers();
-        running = false;
-        activeIndex = -1;
-        currentExit.textContent = 'Simulation complete';
-        plane.style.transition = 'none';
-        plane.style.left = '-150px';
-        renderOrder();
-      }, lastExitAt + 40000 / speedMultiplier + 500));
-    }
+      setPlayerState();
+    });
 
-    startBtn.addEventListener('click', startRun);
+    stopBtn.addEventListener('click', () => stopRun('Stopped'));
+
+    setPlayerState();
     renderOrder();
   </script>
 </body>
