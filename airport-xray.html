@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Airport X-ray · Sequence</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .xray-page {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+
+    .xray-intro {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .xray-intro h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      letter-spacing: -.04em;
+    }
+
+    .xray-intro p {
+      max-width: 700px;
+      margin: 0 auto;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .xray-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .xray-card {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
+    }
+
+    .xray-card h2 {
+      margin: 0 0 16px;
+      text-align: center;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+    }
+
+    .xray-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      background: #080808;
+    }
+
+    @media (max-width: 720px) {
+      .xray-page { padding-top: 24px; }
+      .xray-grid { grid-template-columns: 1fr; }
+      .xray-card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="inner-header">
+    <img src="assets/sequence-icon.png" alt="Sequence">
+    <div class="brand-name">SEQUENCE · BODY FLIGHT ACADEMY</div>
+    <a class="back-link" href="index.html">← Home</a>
+  </header>
+
+  <main class="xray-page">
+    <section class="xray-intro">
+      <h1>Airport X-ray</h1>
+      <p>Airport X-ray examples of common automatic activation devices.</p>
+    </section>
+
+    <section class="xray-grid" aria-label="AAD airport X-ray examples">
+      <article class="xray-card">
+        <h2>CYPRES</h2>
+        <img src="assets/cypres.png" alt="CYPRES automatic activation device in an airport X-ray image">
+      </article>
+
+      <article class="xray-card">
+        <h2>Vigil</h2>
+        <img src="assets/vigil.png" alt="Vigil automatic activation device in an airport X-ray image">
+      </article>
+    </section>
+  </main>
+
+  <footer>Sequence – Body Flight Academy</footer>
+</body>
+</html>
