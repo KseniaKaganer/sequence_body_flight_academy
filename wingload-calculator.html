@@ -275,13 +275,48 @@
     }
 
     .scale-numbers {
-      display: flex;
-      justify-content: space-between;
+      position: relative;
+      height: 28px;
       color: #f0f0f0;
       font-size: .92rem;
       font-weight: 800;
-      padding: 0 2px;
-      margin-top: 8px;
+      margin-top: 0;
+      border-top: 1px solid #747474;
+    }
+
+    .scale-number {
+      position: absolute;
+      top: 0;
+      left: var(--position);
+      transform: translateX(-50%);
+      padding-top: 8px;
+      line-height: 1;
+    }
+
+    .scale-number::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      width: 1px;
+      height: 6px;
+      background: #bdbdbd;
+    }
+
+    .scale-number:first-child {
+      transform: none;
+    }
+
+    .scale-number:first-child::before {
+      left: 0;
+    }
+
+    .scale-number:last-child {
+      transform: translateX(-100%);
+    }
+
+    .scale-number:last-child::before {
+      left: 100%;
     }
 
     .experience-note {
@@ -335,7 +370,7 @@
 
     .sim-table {
       width: 100%;
-      min-width: 0;
+      min-width: 818px;
       table-layout: fixed;
       border-collapse: collapse;
       background: #111;
@@ -360,7 +395,18 @@
     .sim-table thead tr:first-child th {
       background: #101010;
       color: #fff;
-      font-size: .95rem;
+      font-size: .78rem;
+      line-height: 1.1;
+      white-space: normal;
+      padding: 9px 3px;
+    }
+
+    .sim-table col.jumps-column {
+      width: 82px;
+    }
+
+    .sim-table col.weight-column {
+      width: 46px;
     }
 
     .sim-table .jumps {
@@ -386,8 +432,8 @@
       }
 
       .sim-table {
-        min-width: 810px;
-        table-layout: auto;
+        min-width: 818px;
+        table-layout: fixed;
       }
       .fields {
         grid-template-columns: 1fr;
@@ -441,7 +487,7 @@
           <div class="field">
             <label for="bodyWeight">Your weight</label>
             <div class="input-shell">
-              <input id="bodyWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="70">
+              <input id="bodyWeight" type="number" min="0" step="0.1" inputmode="decimal" value="70">
               <span class="input-unit weight-unit">kg</span>
             </div>
           </div>
@@ -449,7 +495,7 @@
           <div class="field">
             <label for="gearWeight">Gear weight</label>
             <div class="input-shell">
-              <input id="gearWeight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="12">
+              <input id="gearWeight" type="number" min="0" step="0.1" inputmode="decimal" value="12">
               <span class="input-unit weight-unit">kg</span>
             </div>
           </div>
@@ -457,7 +503,7 @@
           <div class="field">
             <label for="canopySize">Canopy size</label>
             <div class="input-shell">
-              <input id="canopySize" type="number" min="1" step="1" inputmode="numeric" placeholder="150">
+              <input id="canopySize" type="number" min="1" step="1" inputmode="numeric" value="150">
               <span class="input-unit">ft²</span>
             </div>
           </div>
@@ -474,7 +520,6 @@
         <div class="wingload-scale">
           <div class="scale-title">
             <span>Wingload scale</span>
-            <span>Result marker moves automatically</span>
           </div>
 
           <div class="scale-track" id="scaleTrack">
@@ -492,15 +537,15 @@
           </div>
 
           <div class="scale-numbers">
-            <span>0</span>
-            <span>0.5</span>
-            <span>1.0</span>
-            <span>1.4</span>
-            <span>1.7</span>
-            <span>2.0</span>
-            <span>2.5</span>
-            <span>3.0</span>
-            <span>3.5</span>
+            <span class="scale-number" style="--position:0%">0</span>
+            <span class="scale-number" style="--position:14.286%">0.5</span>
+            <span class="scale-number" style="--position:28.571%">1.0</span>
+            <span class="scale-number" style="--position:40%">1.4</span>
+            <span class="scale-number" style="--position:48.571%">1.7</span>
+            <span class="scale-number" style="--position:57.143%">2.0</span>
+            <span class="scale-number" style="--position:71.429%">2.5</span>
+            <span class="scale-number" style="--position:85.714%">3.0</span>
+            <span class="scale-number" style="--position:100%">3.5</span>
           </div>
 
           <div class="experience-note">
@@ -537,6 +582,10 @@
 
         <div class="table-scroll">
           <table class="sim-table">
+            <colgroup>
+              <col class="jumps-column">
+              <col class="weight-column" span="16">
+            </colgroup>
             <thead>
               <tr>
                 <th>NUMBER OF JUMPS</th>
