@@ -7,6 +7,7 @@
   let revision = 0;
   let verifiedAdmin = false;
   let participants = [];
+  let selectedParticipantId = null;
   let participantLoad = 0;
   let activePage = 'home';
   function setPage(page) {
@@ -21,37 +22,69 @@
     });
     if (page === 'participants') loadParticipants();
   }
+  function clearParticipantDetails() {
+    selectedParticipantId = null;
+    el('participantTitle').textContent = 'Participant details';
+    el('participantDetails').replaceChildren();
+    el('participantTable').hidden = true;
+    el('participantEmpty').hidden = false;
+  }
+  function renderParticipantDetails(person) {
+    el('participantTitle').textContent = [person.display_name, person.surname].filter(Boolean).join(' ');
+    el('participantDetails').replaceChildren();
+    el('participantEmpty').hidden = true;
+    el('participantTable').hidden = false;
+    for (const [label, value] of [
+      ['Name', person.display_name], ['Surname', person.surname],
+      ['Phone', person.phone], ['Email', person.email],
+      ['Passport number', person.passport_number], ['Notes', person.notes]
+    ]) {
+      const row = document.createElement('tr');
+      const term = document.createElement('th');
+      const detail = document.createElement('td');
+      term.scope = 'row';
+      term.textContent = label;
+      detail.textContent = value || '—';
+      row.append(term, detail);
+      el('participantDetails').append(row);
+    }
+  }
   function renderParticipants() {
     const query = el('participantSearch').value.trim().toLowerCase();
     const matches = participants.filter(person =>
       [person.display_name, person.surname, person.phone, person.email]
-        .some(value => String(value || '').toLowerCase().includes(query)));
+        .filter(Boolean).join(' ').toLowerCase().includes(query));
+    if (!matches.some(person => person.id === selectedParticipantId)) clearParticipantDetails();
     el('participantsList').replaceChildren();
     for (const person of matches) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'participant-card';
-      button.textContent = [person.display_name, person.surname].filter(Boolean).join(' ');
+      button.setAttribute('aria-pressed', String(person.id === selectedParticipantId));
+      const name = document.createElement('span');
+      name.className = 'participant-name';
+      name.textContent = [person.display_name, person.surname].filter(Boolean).join(' ') || 'Unnamed participant';
+      const contact = document.createElement('span');
+      contact.className = 'participant-contact';
+      contact.textContent = person.phone || person.email || 'No contact details';
+      button.append(name, contact);
       button.addEventListener('click', () => {
         if (!verifiedAdmin) return;
-        el('participantTitle').textContent = button.textContent;
-        el('participantDetails').replaceChildren();
-        for (const [label, value] of [
-          ['Name', person.display_name], ['Surname', person.surname],
-          ['Phone', person.phone], ['Email', person.email],
-          ['Passport number', person.passport_number], ['Notes', person.notes]
-        ]) {
-          const term = document.createElement('dt');
-          const detail = document.createElement('dd');
-          term.textContent = label;
-          detail.textContent = value || '—';
-          el('participantDetails').append(term, detail);
-        }
-        el('participantDialog').showModal();
+        selectedParticipantId = person.id;
+        // Update selection without replacing the focused list button.
+        for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
+        button.setAttribute('aria-pressed', 'true');
+        renderParticipantDetails(person);
       });
       el('participantsList').append(button);
     }
-    status('participantsStatus', matches.length ? `${matches.length} participants` : 'No participants found.');
+    status('participantsStatus', `${matches.length} of ${participants.length} participants`);
+    if (!matches.length) {
+      const empty = document.createElement('p');
+      empty.className = 'participant-list-empty';
+      empty.textContent = query ? 'No participants match your search.' : 'No participants found.';
+      el('participantsList').append(empty);
+    }
   }
   async function loadParticipants() {
     if (!verifiedAdmin) return;
@@ -71,9 +104,12 @@
       }
       participants = rows;
       renderParticipants();
+      const selected = participants.find(person => person.id === selectedParticipantId);
+      if (selected) renderParticipantDetails(selected);
     } catch (error) {
       if (!verifiedAdmin || request !== participantLoad) return;
       participants = [];
+      clearParticipantDetails();
       el('participantsList').replaceChildren();
       status('participantsStatus', 'Unable to load participants. Please refresh or log in again.');
     }
@@ -83,17 +119,14 @@
   });
   el('participantSearch').addEventListener('input', renderParticipants);
   el('refreshParticipants').addEventListener('click', loadParticipants);
-  el('closeParticipant').addEventListener('click', () => el('participantDialog').close());
   function showSignedOut() {
     verifiedAdmin = false;
     ++participantLoad;
     participants = [];
     el('participantsList').replaceChildren();
-    el('participantDetails').replaceChildren();
-    el('participantTitle').textContent = 'Participant details';
+    clearParticipantDetails();
     el('participantSearch').value = '';
     status('participantsStatus', '');
-    el('participantDialog').close();
     el('accountMenu').hidden = true;
     setPage('home');
     el('adminAccount').hidden = true;

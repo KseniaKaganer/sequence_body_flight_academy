@@ -79,17 +79,26 @@
       <input id="participantSearch" type="search" placeholder="Name, phone or email">
       <button id="refreshParticipants" type="button">Refresh</button>
       <p id="participantsStatus" role="status" aria-live="polite"></p>
-      <div id="participantsList" class="participants-list"></div>
+      <div class="participants-workspace">
+        <section class="participant-list-panel" aria-label="Participant list">
+          <h2>Participants</h2>
+          <div id="participantsList" class="participants-list"></div>
+        </section>
+        <section class="participant-detail-panel" aria-labelledby="participantTitle">
+          <h2 id="participantTitle">Participant details</h2>
+          <p id="participantEmpty">Select a participant to view their details.</p>
+          <table id="participantTable" class="participant-table" hidden>
+            <caption class="visually-hidden">Selected participant details</caption>
+            <tbody id="participantDetails"></tbody>
+          </table>
+        </section>
+      </div>
     </section>
     <section id="requestPage" hidden>
       <h1>New Request</h1>
       <p>The request form will be added in the next step.</p>
     </section>
-    <dialog id="participantDialog" class="login-dialog" aria-labelledby="participantTitle">
-      <button id="closeParticipant" class="close-login" type="button" aria-label="Close participant details">×</button>
-      <h2 id="participantTitle">Participant details</h2>
-      <dl id="participantDetails"></dl>
-    </dialog>
+
     <div id="homePage">
     <section class="hero">
       <h1>Train. Travel. Progress.</h1>
