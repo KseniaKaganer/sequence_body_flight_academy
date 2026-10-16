@@ -109,11 +109,10 @@
       past.sort((a, b) => (b.events.start_date || '').localeCompare(a.events.start_date || ''));
       const date = value => value ? value.split('-').reverse().join('/') : '—';
       const eventRow = row => [row.events.name, row.events.event_type,
-        `${date(row.events.start_date)} – ${date(row.events.end_date)}`,
-        row.participant_status === 'completed' ? 'Completed' : row.participant_status === 'invited' ? 'Invited' : 'Past event registration'];
+        `${date(row.events.start_date)} – ${date(row.events.end_date)}`];
       const host = el('skillHistory');
       host.append(historyTable(`SHAKSHUKA Travel history (${past.length})`,
-        ['Event', 'Type', 'Dates', 'Record'], past.map(eventRow)));
+        ['Event', 'Type', 'Dates'], past.map(eventRow)));
       const courseRows = [];
       let courseErrors = 0;
       // Reuse the same admin endpoints as Shakshuka, including custom courses.
@@ -135,18 +134,13 @@
         for (const level of levels) courseRows.push([level, row.events.name, date(row.events.end_date)]);
       }
       if (!current()) return;
-      const counts = new Map();
-      for (const [course] of courseRows) counts.set(course, (counts.get(course) || 0) + 1);
-      host.append(historyTable(`Canopy courses recorded at past events (${courseRows.length}${courseErrors ? ' loaded' : ''})`,
-        ['Course', 'Times recorded'], [...counts].map(([course, count]) => [course, String(count)])));
       const note = document.createElement('p');
-      note.textContent = 'Course counts reflect assignments at past events, not verified course completion. Past active registrations do not confirm attendance.';
+      note.textContent = 'Course history reflects assignments at past events, not verified course completion. Past active registrations do not confirm attendance.';
       host.append(note);
-      host.append(historyTable('Canopy course history', ['Course', 'Event', 'Event end'], courseRows));
+      host.append(historyTable(`Canopy Training history (${courseRows.length})`, ['Course', 'Event', 'Event end'], courseRows));
       if (other.length) host.append(historyTable('Upcoming, current or unconfirmed registrations',
-        ['Event', 'Type', 'Dates', 'Record'], other.map(row => [row.events.name, row.events.event_type,
-          `${date(row.events.start_date)} – ${date(row.events.end_date)}`, row.participant_status])));
-      status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; try Refresh history.' : 'History loaded from SHAKSHUKA Travel.');
+        ['Event', 'Type', 'Dates'], other.map(eventRow)));
+      status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; try Refresh history.' : '');
     } catch (error) {
       if (current()) {
         el('skillHistory').replaceChildren();
