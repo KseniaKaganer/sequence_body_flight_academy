@@ -126,12 +126,15 @@
         memberships.push(...data);
         if (data.length < 500) break;
       }
-      const today = new Intl.DateTimeFormat('en-CA', {
+      const dateParts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit'
-      }).format(new Date());
+      }).formatToParts(new Date());
+      const datePart = type => dateParts.find(part => part.type === type).value;
+      const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
       const valid = memberships.filter(row => row.events && row.participant_status !== 'cancelled' && row.events.status !== 'cancelled');
       const past = valid.filter(row => row.participant_status === 'completed' ||
-        (row.participant_status === 'active' && row.events.end_date && row.events.end_date < today));
+        row.events.status === 'completed' ||
+        (row.events.end_date && row.events.end_date < today));
       const other = valid.filter(row => !past.includes(row));
       past.sort((a, b) => (b.events.start_date || '').localeCompare(a.events.start_date || ''));
       const date = value => value ? value.split('-').reverse().join('/') : '—';
@@ -161,9 +164,6 @@
         for (const level of levels) courseRows.push([level, row.events.name, date(row.events.end_date)]);
       }
       if (!current()) return;
-      const note = document.createElement('p');
-      note.textContent = 'Course history reflects assignments at past events, not verified course completion. Past active registrations do not confirm attendance.';
-      host.append(note);
       host.append(historyTable(`Canopy Training history (${courseRows.length})`, ['Course', 'Event', 'Event end'], courseRows));
       if (other.length) host.append(historyTable('Upcoming, current or unconfirmed registrations',
         ['Event', 'Type', 'Dates'], other.map(eventRow)));
