@@ -72,3 +72,18 @@ footer { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 0 0 34p
   .inner-header .brand-name { font-size: .9rem; }
   .back-link { padding: 8px 11px; font-size: .85rem; }
 }
+
+.account-panel { text-align: right; }
+.account-panel button, .login-dialog button { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; cursor: pointer; font: inherit; }
+.account-panel button:hover, .login-dialog button:hover { border-color: var(--accent); }
+.account-panel button:disabled, .login-dialog button:disabled { opacity: .6; cursor: wait; }
+.account-role { color: var(--muted); margin: 0 12px; }
+.account-panel p, .login-dialog p { color: var(--muted); line-height: 1.5; }
+.account-panel p:empty, .login-dialog p:empty { display: none; }
+.login-dialog { width: min(420px, calc(100% - 32px)); background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+.login-dialog::backdrop { background: rgb(0 0 0 / 75%); }
+.login-dialog .close-login { float: right; padding: 4px 12px; font-size: 24px; }
+.login-dialog form { display: grid; gap: 12px; }
+.login-dialog input { min-width: 0; width: 100%; background: #080808; color: #fff; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
+.login-dialog input:focus-visible, .account-panel button:focus-visible, .login-dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.login-dialog #submitLogin { background: var(--accent); margin-top: 8px; }

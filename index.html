@@ -47,6 +47,27 @@
   </header>
 
   <main class="page-shell">
+    <section class="account-panel" aria-label="Admin account">
+      <button id="openLogin" type="button" disabled>Admin login</button>
+      <div id="adminAccount" hidden>
+        <span id="adminName"></span> <span class="account-role">Admin</span>
+        <button id="signOut" type="button">Log out</button>
+      </div>
+      <p id="accountStatus" role="status" aria-live="polite"></p>
+    </section>
+    <dialog id="loginDialog" class="login-dialog" aria-labelledby="loginTitle">
+      <button id="closeLogin" class="close-login" type="button" aria-label="Close login">×</button>
+      <h2 id="loginTitle">Admin login</h2>
+      <p>Use your SHAKSHUKA Travel admin account.</p>
+      <form id="loginForm">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="username" required>
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+        <button id="submitLogin" type="submit">Log in</button>
+        <p id="loginStatus" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
     <section class="hero">
       <h1>Train. Travel. Progress.</h1>
       <p>Welcome to Sequence – Body Flight Academy. Choose a tool, game or training area below.</p>
@@ -186,5 +207,8 @@
   </main>
 
   <footer>Sequence – Body Flight Academy</footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="auth.js" defer></script>
 </body>
 </html>
