@@ -10,7 +10,31 @@
   let selectedParticipantId = null;
   let participantLoad = 0;
   let activePage = 'home';
-  function setPage(page) {
+  let activeParticipantTab = 'skill';
+  function readRoute() {
+    let parts;
+    try { parts = window.location.hash.slice(1).split('/').map(decodeURIComponent); }
+    catch { return { page: 'home', participant: null, tab: 'skill' }; }
+    const page = ['participants', 'requests'].includes(parts[0]) ? parts[0] : 'home';
+    return { page: page === 'requests' ? 'request' : page,
+      participant: page === 'participants' ? parts[1] || null : null,
+      tab: parts[2] === 'info' ? 'info' : 'skill' };
+  }
+  function writeRoute() {
+    let hash = activePage === 'request' ? '#requests' : '#' + activePage;
+    if (activePage === 'participants' && selectedParticipantId) {
+      hash += '/' + encodeURIComponent(selectedParticipantId) + '/' + activeParticipantTab;
+    }
+    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+  }
+  function restoreRoute() {
+    const route = readRoute();
+    if (!verifiedAdmin) { setPage('home', false); return; }
+    setPage(route.page, false);
+  }
+  window.addEventListener('popstate', restoreRoute);
+  window.addEventListener('hashchange', restoreRoute);
+  function setPage(page, updateUrl = true) {
     if (!verifiedAdmin && page !== 'home') return;
     activePage = page;
     for (const name of ['home', 'participants', 'request']) {
@@ -20,9 +44,11 @@
       if (button.dataset.page === page) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     });
+    if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
   }
-  function setParticipantTab(tab, focus = false) {
+  function setParticipantTab(tab, focus = false, updateUrl = true) {
+    activeParticipantTab = tab;
     for (const name of ['Skill', 'Info']) {
       const selected = name.toLowerCase() === tab;
       const button = el('participant' + name + 'Tab');
@@ -31,6 +57,7 @@
       el('participant' + name + 'Panel').hidden = !selected;
       if (selected && focus) button.focus();
     }
+    if (updateUrl && selectedParticipantId) writeRoute();
   }
   for (const name of ['Skill', 'Info']) {
     const button = el('participant' + name + 'Tab');
@@ -288,7 +315,8 @@
         if (!verifiedAdmin) return;
         const changed = selectedParticipantId !== person.id;
         selectedParticipantId = person.id;
-        if (changed) { setParticipantTab('skill'); loadSkillHistory(person.id); }
+        if (changed) { setParticipantTab('skill', false, false); loadSkillHistory(person.id); }
+        writeRoute();
         // Update selection without replacing the focused list button.
         for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
         button.setAttribute('aria-pressed', 'true');
@@ -321,6 +349,12 @@
         if (data.length < 500) break;
       }
       participants = rows;
+      const route = readRoute();
+      if (activePage === 'participants' && route.page === 'participants') {
+        selectedParticipantId = participants.some(person => person.id === route.participant) ? route.participant : null;
+        el('participantSearch').value = '';
+        setParticipantTab(route.tab, false, false);
+      }
       renderParticipants();
       const selected = participants.find(person => person.id === selectedParticipantId);
       if (selected) { renderParticipantDetails(selected); loadSkillHistory(selected.id); }
@@ -350,7 +384,7 @@
     editingParticipant = null;
     el('editParticipantForm').reset();
     el('accountMenu').hidden = true;
-    setPage('home');
+    setPage('home', false);
     el('adminAccount').hidden = true;
     el('adminName').textContent = '';
     el('openLogin').hidden = false;
@@ -380,6 +414,7 @@
     el('accountMenu').hidden = false;
     el('openLogin').hidden = true;
     el('adminAccount').hidden = false;
+    restoreRoute();
     status('accountStatus', '');
     return true;
   }
@@ -412,6 +447,7 @@
       if (error) throw error;
       ++revision;
       showSignedOut();
+      window.history.replaceState(null, '', '#home');
       status('accountStatus', '');
     } catch (error) { status('accountStatus', error.message || 'Unable to log out.'); }
     finally { el('signOut').disabled = false; }
