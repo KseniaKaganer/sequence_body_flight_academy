@@ -109,6 +109,9 @@
           </table>
           </div>
           <div id="participantSkillPanel" class="participant-skill-panel" role="tabpanel" aria-labelledby="participantSkillTab" hidden>
+            <button id="addManualSkill" class="edit-participant-button" type="button">+ Add Skill</button>
+            <p id="manualSkillStatus" role="status" aria-live="polite"></p>
+            <div id="manualSkillHistory"></div>
             <button id="refreshSkills" type="button" class="edit-participant-button">Refresh history</button>
             <p id="skillStatus" role="status" aria-live="polite"></p>
             <div id="skillHistory"></div>
@@ -142,6 +145,22 @@
           <button id="saveParticipant" type="submit">Save changes</button>
         </div>
         <p id="editParticipantStatus" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
+    <dialog id="manualSkillDialog" class="login-dialog" aria-labelledby="manualSkillTitle">
+      <h2 id="manualSkillTitle">Add Skill</h2>
+      <form id="manualSkillForm">
+        <label for="manualSkillName">Skill / course name</label>
+        <input id="manualSkillName" required maxlength="150">
+        <label for="manualSkillDate">Date (optional)</label>
+        <input id="manualSkillDate" type="date">
+        <label for="manualSkillNotes">Notes (optional)</label>
+        <textarea id="manualSkillNotes" maxlength="5000" rows="3"></textarea>
+        <div class="edit-actions">
+          <button id="cancelManualSkill" type="button">Cancel</button>
+          <button id="saveManualSkill" type="submit">Save Skill</button>
+        </div>
+        <p id="manualSkillFormStatus" role="status" aria-live="polite"></p>
       </form>
     </dialog>
     <dialog id="requestDialog" class="login-dialog" aria-labelledby="requestTitle">

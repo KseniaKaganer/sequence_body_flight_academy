@@ -94,7 +94,94 @@
   el('closeRequest').addEventListener('click', () => el('requestDialog').close());
   let skillRequest = 0;
   el('refreshSkills').addEventListener('click', () => {
-    if (selectedParticipantId) loadSkillHistory(selectedParticipantId);
+    if (selectedParticipantId) { loadSkillHistory(selectedParticipantId); loadManualSkills(selectedParticipantId); }
+  });
+  let manualSkillRequest = 0;
+  let manualSkillParticipant = null;
+  let savingManualSkill = false;
+  async function loadManualSkills(participantId) {
+    if (!verifiedAdmin) return;
+    const request = ++manualSkillRequest;
+    const ids = participants.find(person => person.id === participantId)?.recordIds || [participantId];
+    el('manualSkillHistory').replaceChildren();
+    status('manualSkillStatus', 'Loading manual skills…');
+    try {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('participant_manual_skills')
+          .select('id,skill_name,skill_date,notes').in('participant_id', ids)
+          .order('skill_date', { ascending: false, nullsFirst: false }).order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== manualSkillRequest || selectedParticipantId !== participantId) return;
+        rows.push(...data);
+        if (data.length < 500) break;
+      }
+      status('manualSkillStatus', '');
+      if (rows.length) el('manualSkillHistory').append(historyTable(`Manual Skills (${rows.length})`,
+        ['Skill', 'Date', 'Notes'], rows.map(row => [row.skill_name,
+          row.skill_date ? row.skill_date.split('-').reverse().join('/') : '—', row.notes])));
+    } catch (error) {
+      if (verifiedAdmin && request === manualSkillRequest && selectedParticipantId === participantId) {
+        status('manualSkillStatus', error.code === 'PGRST205' || error.code === '42P01'
+          ? 'Manual skills need database setup: run database/participant-manual-skills.sql in Supabase.'
+          : 'Unable to load manual skills. Try Refresh history.');
+      }
+    }
+  }
+  el('addManualSkill').addEventListener('click', () => {
+    if (!verifiedAdmin || !selectedParticipantId) return;
+    manualSkillParticipant = selectedParticipantId;
+    el('manualSkillForm').reset();
+    status('manualSkillFormStatus', '');
+    el('manualSkillDialog').showModal();
+  });
+  el('cancelManualSkill').addEventListener('click', () => {
+    if (!savingManualSkill) el('manualSkillDialog').close();
+  });
+  el('manualSkillDialog').addEventListener('cancel', event => {
+    if (savingManualSkill) event.preventDefault();
+  });
+  el('manualSkillDialog').addEventListener('close', () => {
+    manualSkillParticipant = null;
+    el('manualSkillForm').reset();
+    status('manualSkillFormStatus', '');
+  });
+  el('manualSkillForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || !manualSkillParticipant || savingManualSkill) return;
+    if (!el('manualSkillForm').reportValidity()) return;
+    const skill = el('manualSkillName').value.trim();
+    const notes = el('manualSkillNotes').value.trim();
+    const date = el('manualSkillDate').value;
+    if (!skill || skill.length > 150 || notes.length > 5000) {
+      status('manualSkillFormStatus', 'Enter a skill name of up to 150 characters and notes of up to 5000 characters.');
+      return;
+    }
+    const participantId = manualSkillParticipant;
+    const accountRevision = revision;
+    savingManualSkill = true;
+    el('saveManualSkill').disabled = true;
+    el('cancelManualSkill').disabled = true;
+    status('manualSkillFormStatus', 'Saving…');
+    try {
+      const { data, error } = await client.from('participant_manual_skills').insert({
+        participant_id: participantId, skill_name: skill, skill_date: date || null, notes: notes || null
+      }).select('id').single();
+      if (error) throw error;
+      if (!data) throw new Error('Unable to verify that the skill was saved.');
+      if (!verifiedAdmin || revision !== accountRevision) return;
+      el('manualSkillDialog').close();
+      if (selectedParticipantId === participantId) await loadManualSkills(participantId);
+    } catch (error) {
+      if (verifiedAdmin && revision === accountRevision) status('manualSkillFormStatus',
+        error.code === 'PGRST205' || error.code === '42P01'
+          ? 'Run database/participant-manual-skills.sql in Supabase before saving skills.'
+          : error.message || 'Unable to save. Please try again.');
+    } finally {
+      savingManualSkill = false;
+      el('saveManualSkill').disabled = false;
+      el('cancelManualSkill').disabled = false;
+    }
   });
   function historyTable(title, headers, rows) {
     const section = document.createElement('section');
@@ -291,6 +378,9 @@
   });
   function clearParticipantDetails() {
     ++skillRequest;
+    ++manualSkillRequest;
+    el('manualSkillHistory').replaceChildren();
+    status('manualSkillStatus', '');
     el('skillHistory').replaceChildren();
     status('skillStatus', '');
     el('participantTabs').hidden = true;
@@ -347,7 +437,7 @@
         if (!verifiedAdmin) return;
         const changed = selectedParticipantId !== person.id;
         selectedParticipantId = person.id;
-        if (changed) { setParticipantTab('skill', false, false); loadSkillHistory(person.id); }
+        if (changed) { setParticipantTab('skill', false, false); loadSkillHistory(person.id); loadManualSkills(person.id); }
         writeRoute();
         // Update selection without replacing the focused list button.
         for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
@@ -390,7 +480,7 @@
       }
       renderParticipants();
       const selected = participants.find(person => person.id === selectedParticipantId);
-      if (selected) { renderParticipantDetails(selected); loadSkillHistory(selected.id); }
+      if (selected) { renderParticipantDetails(selected); loadSkillHistory(selected.id); loadManualSkills(selected.id); }
     } catch (error) {
       if (!verifiedAdmin || request !== participantLoad) return;
       participants = [];
@@ -416,6 +506,9 @@
     status('participantsStatus', '');
     el('requestDialog').close();
     el('editParticipantDialog').close();
+    el('manualSkillDialog').close();
+    manualSkillParticipant = null;
+    el('manualSkillForm').reset();
     editingParticipant = null;
     el('editParticipantForm').reset();
     el('accountMenu').hidden = true;
