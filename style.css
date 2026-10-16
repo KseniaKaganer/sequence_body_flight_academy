@@ -87,3 +87,14 @@ footer { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 0 0 34p
 .login-dialog input { min-width: 0; width: 100%; background: #080808; color: #fff; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
 .login-dialog input:focus-visible, .account-panel button:focus-visible, .login-dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .login-dialog #submitLogin { background: var(--accent); margin-top: 8px; }
+
+.account-menu { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+.account-menu[hidden] { display: none; }
+.account-menu button, #refreshParticipants, .participant-card { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: 12px 18px; border-radius: 10px; cursor: pointer; }
+.account-menu button[aria-current="page"], .participant-card:hover { border-color: var(--accent); }
+#participantSearch { font: inherit; color: var(--text); background: var(--panel); border: 1px solid #555; padding: 12px; border-radius: 10px; max-width: 100%; margin: 10px 0; }
+#participantsPage label { display: block; }
+.participants-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; margin: 20px 0; }
+.participant-card { text-align: left; overflow-wrap: anywhere; }
+#participantDetails dt { color: var(--muted); margin-top: 16px; }
+#participantDetails dd { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }

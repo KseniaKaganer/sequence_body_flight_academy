@@ -5,7 +5,97 @@
   const form = el('loginForm');
   let client;
   let revision = 0;
+  let verifiedAdmin = false;
+  let participants = [];
+  let participantLoad = 0;
+  let activePage = 'home';
+  function setPage(page) {
+    if (!verifiedAdmin && page !== 'home') return;
+    activePage = page;
+    for (const name of ['home', 'participants', 'request']) {
+      el(name + 'Page').hidden = name !== page;
+    }
+    document.querySelectorAll('[data-page]').forEach(button => {
+      if (button.dataset.page === page) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+    if (page === 'participants') loadParticipants();
+  }
+  function renderParticipants() {
+    const query = el('participantSearch').value.trim().toLowerCase();
+    const matches = participants.filter(person =>
+      [person.display_name, person.surname, person.phone, person.email]
+        .some(value => String(value || '').toLowerCase().includes(query)));
+    el('participantsList').replaceChildren();
+    for (const person of matches) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'participant-card';
+      button.textContent = [person.display_name, person.surname].filter(Boolean).join(' ');
+      button.addEventListener('click', () => {
+        if (!verifiedAdmin) return;
+        el('participantTitle').textContent = button.textContent;
+        el('participantDetails').replaceChildren();
+        for (const [label, value] of [
+          ['Name', person.display_name], ['Surname', person.surname],
+          ['Phone', person.phone], ['Email', person.email],
+          ['Passport number', person.passport_number], ['Notes', person.notes]
+        ]) {
+          const term = document.createElement('dt');
+          const detail = document.createElement('dd');
+          term.textContent = label;
+          detail.textContent = value || '—';
+          el('participantDetails').append(term, detail);
+        }
+        el('participantDialog').showModal();
+      });
+      el('participantsList').append(button);
+    }
+    status('participantsStatus', matches.length ? `${matches.length} participants` : 'No participants found.');
+  }
+  async function loadParticipants() {
+    if (!verifiedAdmin) return;
+    const request = ++participantLoad;
+    status('participantsStatus', 'Loading participants…');
+    try {
+      const rows = [];
+      // Page through all records instead of silently truncating at the API limit.
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('participants')
+          .select('id,display_name,surname,phone,email,passport_number,notes')
+          .order('display_name').order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== participantLoad) return;
+        rows.push(...data);
+        if (data.length < 500) break;
+      }
+      participants = rows;
+      renderParticipants();
+    } catch (error) {
+      if (!verifiedAdmin || request !== participantLoad) return;
+      participants = [];
+      el('participantsList').replaceChildren();
+      status('participantsStatus', 'Unable to load participants. Please refresh or log in again.');
+    }
+  }
+  document.querySelectorAll('[data-page]').forEach(button => {
+    button.addEventListener('click', () => setPage(button.dataset.page));
+  });
+  el('participantSearch').addEventListener('input', renderParticipants);
+  el('refreshParticipants').addEventListener('click', loadParticipants);
+  el('closeParticipant').addEventListener('click', () => el('participantDialog').close());
   function showSignedOut() {
+    verifiedAdmin = false;
+    ++participantLoad;
+    participants = [];
+    el('participantsList').replaceChildren();
+    el('participantDetails').replaceChildren();
+    el('participantTitle').textContent = 'Participant details';
+    el('participantSearch').value = '';
+    status('participantsStatus', '');
+    el('participantDialog').close();
+    el('accountMenu').hidden = true;
+    setPage('home');
     el('adminAccount').hidden = true;
     el('adminName').textContent = '';
     el('openLogin').hidden = false;
@@ -31,6 +121,8 @@
     if (current !== revision) return false;
     el('adminName').textContent = record?.display_name || user.user_metadata?.name
       || user.user_metadata?.full_name || user.user_metadata?.display_name || user.email;
+    verifiedAdmin = true;
+    el('accountMenu').hidden = false;
     el('openLogin').hidden = true;
     el('adminAccount').hidden = false;
     status('accountStatus', '');

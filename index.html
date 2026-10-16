@@ -48,7 +48,7 @@
 
   <main class="page-shell">
     <section class="account-panel" aria-label="Admin account">
-      <button id="openLogin" type="button" disabled>Admin login</button>
+      <button id="openLogin" type="button" disabled>Login</button>
       <div id="adminAccount" hidden>
         <span id="adminName"></span> <span class="account-role">Admin</span>
         <button id="signOut" type="button">Log out</button>
@@ -57,7 +57,7 @@
     </section>
     <dialog id="loginDialog" class="login-dialog" aria-labelledby="loginTitle">
       <button id="closeLogin" class="close-login" type="button" aria-label="Close login">×</button>
-      <h2 id="loginTitle">Admin login</h2>
+      <h2 id="loginTitle">Login</h2>
       <p>Use your SHAKSHUKA Travel admin account.</p>
       <form id="loginForm">
         <label for="loginEmail">Email</label>
@@ -68,6 +68,29 @@
         <p id="loginStatus" role="status" aria-live="polite"></p>
       </form>
     </dialog>
+    <nav id="accountMenu" class="account-menu" aria-label="Account pages" hidden>
+      <button type="button" data-page="home" aria-current="page">Home</button>
+      <button type="button" data-page="participants">Participants</button>
+      <button type="button" data-page="request">New Request</button>
+    </nav>
+    <section id="participantsPage" hidden aria-labelledby="participantsTitle">
+      <h1 id="participantsTitle">Participants</h1>
+      <label for="participantSearch">Search participants</label>
+      <input id="participantSearch" type="search" placeholder="Name, phone or email">
+      <button id="refreshParticipants" type="button">Refresh</button>
+      <p id="participantsStatus" role="status" aria-live="polite"></p>
+      <div id="participantsList" class="participants-list"></div>
+    </section>
+    <section id="requestPage" hidden>
+      <h1>New Request</h1>
+      <p>The request form will be added in the next step.</p>
+    </section>
+    <dialog id="participantDialog" class="login-dialog" aria-labelledby="participantTitle">
+      <button id="closeParticipant" class="close-login" type="button" aria-label="Close participant details">×</button>
+      <h2 id="participantTitle">Participant details</h2>
+      <dl id="participantDetails"></dl>
+    </dialog>
+    <div id="homePage">
     <section class="hero">
       <h1>Train. Travel. Progress.</h1>
       <p>Welcome to Sequence – Body Flight Academy. Choose a tool, game or training area below.</p>
@@ -204,6 +227,7 @@
       </a>
 
     </section>
+    </div>
   </main>
 
   <footer>Sequence – Body Flight Academy</footer>
