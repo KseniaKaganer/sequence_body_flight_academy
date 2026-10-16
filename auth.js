@@ -23,7 +23,7 @@
     if (page === 'participants') loadParticipants();
   }
   function setParticipantTab(tab, focus = false) {
-    for (const name of ['Info', 'Skill']) {
+    for (const name of ['Skill', 'Info']) {
       const selected = name.toLowerCase() === tab;
       const button = el('participant' + name + 'Tab');
       button.setAttribute('aria-selected', String(selected));
@@ -32,13 +32,13 @@
       if (selected && focus) button.focus();
     }
   }
-  for (const name of ['Info', 'Skill']) {
+  for (const name of ['Skill', 'Info']) {
     const button = el('participant' + name + 'Tab');
     button.addEventListener('click', () => setParticipantTab(name.toLowerCase()));
     button.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const tab = event.key === 'Home' ? 'info' : event.key === 'End' ? 'skill' : name === 'Info' ? 'skill' : 'info';
+      const tab = event.key === 'Home' ? 'skill' : event.key === 'End' ? 'info' : name === 'Info' ? 'skill' : 'info';
       setParticipantTab(tab, true);
     });
   }
@@ -46,6 +46,114 @@
     if (verifiedAdmin) el('requestDialog').showModal();
   });
   el('closeRequest').addEventListener('click', () => el('requestDialog').close());
+  let skillRequest = 0;
+  el('refreshSkills').addEventListener('click', () => {
+    if (selectedParticipantId) loadSkillHistory(selectedParticipantId);
+  });
+  function historyTable(title, headers, rows) {
+    const section = document.createElement('section');
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    section.append(heading);
+    if (!rows.length) {
+      const empty = document.createElement('p');
+      empty.textContent = 'No records found.';
+      section.append(empty);
+      return section;
+    }
+    const table = document.createElement('table');
+    table.className = 'skill-history-table';
+    const head = document.createElement('thead');
+    const header = document.createElement('tr');
+    for (const label of headers) {
+      const cell = document.createElement('th');
+      cell.scope = 'col'; cell.textContent = label; header.append(cell);
+    }
+    head.append(header); table.append(head);
+    const body = document.createElement('tbody');
+    for (const values of rows) {
+      const row = document.createElement('tr');
+      for (const value of values) {
+        const cell = document.createElement('td');
+        cell.textContent = value || '—'; row.append(cell);
+      }
+      body.append(row);
+    }
+    table.append(body); section.append(table);
+    return section;
+  }
+  async function loadSkillHistory(participantId) {
+    if (!verifiedAdmin) return;
+    const request = ++skillRequest;
+    const current = () => verifiedAdmin && selectedParticipantId === participantId && request === skillRequest;
+    el('skillHistory').replaceChildren();
+    status('skillStatus', 'Loading event and canopy history…');
+    try {
+      const memberships = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('event_participants')
+          .select('id,event_id,participant_status,events(id,name,start_date,end_date,status,event_type)')
+          .eq('participant_id', participantId).order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!current()) return;
+        memberships.push(...data);
+        if (data.length < 500) break;
+      }
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      const valid = memberships.filter(row => row.events && row.participant_status !== 'cancelled' && row.events.status !== 'cancelled');
+      const past = valid.filter(row => row.participant_status === 'completed' ||
+        (row.participant_status === 'active' && row.events.end_date && row.events.end_date < today));
+      const other = valid.filter(row => !past.includes(row));
+      past.sort((a, b) => (b.events.start_date || '').localeCompare(a.events.start_date || ''));
+      const date = value => value ? value.split('-').reverse().join('/') : '—';
+      const eventRow = row => [row.events.name, row.events.event_type,
+        `${date(row.events.start_date)} – ${date(row.events.end_date)}`,
+        row.participant_status === 'completed' ? 'Completed' : row.participant_status === 'invited' ? 'Invited' : 'Past event registration'];
+      const host = el('skillHistory');
+      host.append(historyTable(`SHAKSHUKA Travel history (${past.length})`,
+        ['Event', 'Type', 'Dates', 'Record'], past.map(eventRow)));
+      const courseRows = [];
+      let courseErrors = 0;
+      // Reuse the same admin endpoints as Shakshuka, including custom courses.
+      // Process one event at a time to keep requests bounded.
+      for (const row of past) {
+        if (String(row.events.event_type).toLowerCase() === 'tunnel') continue;
+        const results = await Promise.all([
+          client.rpc('admin_get_canopy_training_v100', { p_event_id: row.event_id }),
+          client.rpc('admin_get_custom_canopy_training_v149', { p_event_id: row.event_id })
+        ]);
+        if (!current()) return;
+        const levels = new Set();
+        for (const result of results) {
+          if (result.error) { ++courseErrors; continue; }
+          for (const assignment of result.data?.assignments || []) {
+            if (String(assignment.participant_id) === String(participantId)) levels.add(assignment.course_level);
+          }
+        }
+        for (const level of levels) courseRows.push([level, row.events.name, date(row.events.end_date)]);
+      }
+      if (!current()) return;
+      const counts = new Map();
+      for (const [course] of courseRows) counts.set(course, (counts.get(course) || 0) + 1);
+      host.append(historyTable(`Canopy courses recorded at past events (${courseRows.length}${courseErrors ? ' loaded' : ''})`,
+        ['Course', 'Times recorded'], [...counts].map(([course, count]) => [course, String(count)])));
+      const note = document.createElement('p');
+      note.textContent = 'Course counts reflect assignments at past events, not verified course completion. Past active registrations do not confirm attendance.';
+      host.append(note);
+      host.append(historyTable('Canopy course history', ['Course', 'Event', 'Event end'], courseRows));
+      if (other.length) host.append(historyTable('Upcoming, current or unconfirmed registrations',
+        ['Event', 'Type', 'Dates', 'Record'], other.map(row => [row.events.name, row.events.event_type,
+          `${date(row.events.start_date)} – ${date(row.events.end_date)}`, row.participant_status])));
+      status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; try Refresh history.' : 'History loaded from SHAKSHUKA Travel.');
+    } catch (error) {
+      if (current()) {
+        el('skillHistory').replaceChildren();
+        status('skillStatus', 'Unable to load history. Please try Refresh history.');
+      }
+    }
+  }
   const participantFields = {
     display_name: 'editName', surname: 'editSurname', phone: 'editPhone',
     email: 'editEmail', passport_number: 'editPassport', notes: 'editNotes'
@@ -130,6 +238,9 @@
     }
   });
   function clearParticipantDetails() {
+    ++skillRequest;
+    el('skillHistory').replaceChildren();
+    status('skillStatus', '');
     el('participantTabs').hidden = true;
     el('participantInfoPanel').hidden = true;
     el('participantSkillPanel').hidden = true;
@@ -183,7 +294,7 @@
         if (!verifiedAdmin) return;
         const changed = selectedParticipantId !== person.id;
         selectedParticipantId = person.id;
-        if (changed) setParticipantTab('info');
+        if (changed) { setParticipantTab('skill'); loadSkillHistory(person.id); }
         // Update selection without replacing the focused list button.
         for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
         button.setAttribute('aria-pressed', 'true');
@@ -218,7 +329,7 @@
       participants = rows;
       renderParticipants();
       const selected = participants.find(person => person.id === selectedParticipantId);
-      if (selected) renderParticipantDetails(selected);
+      if (selected) { renderParticipantDetails(selected); loadSkillHistory(selected.id); }
     } catch (error) {
       if (!verifiedAdmin || request !== participantLoad) return;
       participants = [];

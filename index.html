@@ -87,8 +87,8 @@
         <section class="participant-detail-panel" aria-labelledby="participantTitle">
           <h2 id="participantTitle">Participant details</h2>
           <div id="participantTabs" class="participant-tabs" role="tablist" aria-label="Participant details" hidden>
-            <button id="participantInfoTab" type="button" role="tab" aria-selected="true" aria-controls="participantInfoPanel">Info</button>
-            <button id="participantSkillTab" type="button" role="tab" aria-selected="false" aria-controls="participantSkillPanel" tabindex="-1">Skill</button>
+            <button id="participantSkillTab" type="button" role="tab" aria-selected="true" aria-controls="participantSkillPanel">Skill</button>
+            <button id="participantInfoTab" type="button" role="tab" aria-selected="false" aria-controls="participantInfoPanel" tabindex="-1">Info</button>
           </div>
           <p id="participantEmpty">Select a participant to view their details.</p>
           <div id="participantInfoPanel" role="tabpanel" aria-labelledby="participantInfoTab" hidden>
@@ -99,7 +99,9 @@
           </table>
           </div>
           <div id="participantSkillPanel" class="participant-skill-panel" role="tabpanel" aria-labelledby="participantSkillTab" hidden>
-            <p>No skill data has been added yet.</p>
+            <button id="refreshSkills" type="button" class="edit-participant-button">Refresh history</button>
+            <p id="skillStatus" role="status" aria-live="polite"></p>
+            <div id="skillHistory"></div>
           </div>
         </section>
       </div>

@@ -132,3 +132,9 @@ footer { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 0 0 34p
 .login-dialog textarea { width: 100%; resize: vertical; background: #080808; color: var(--text); border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
 .edit-actions { display: flex; justify-content: flex-end; gap: 10px; }
 #saveParticipant { background: var(--accent); }
+
+.skill-history-table { width: 100%; border-collapse: collapse; table-layout: fixed; color: var(--text); font-size: .9rem; }
+.skill-history-table th, .skill-history-table td { padding: 12px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.skill-history-table th { color: var(--muted); font-weight: 400; }
+.participant-skill-panel h3 { color: var(--text); margin-top: 24px; }
+.participant-skill-panel .edit-participant-button { margin-left: 0; }
