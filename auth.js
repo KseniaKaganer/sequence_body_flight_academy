@@ -46,6 +46,89 @@
     if (verifiedAdmin) el('requestDialog').showModal();
   });
   el('closeRequest').addEventListener('click', () => el('requestDialog').close());
+  const participantFields = {
+    display_name: 'editName', surname: 'editSurname', phone: 'editPhone',
+    email: 'editEmail', passport_number: 'editPassport', notes: 'editNotes'
+  };
+  let editingParticipant = null;
+  let savingParticipant = false;
+  el('editParticipant').addEventListener('click', () => {
+    const person = participants.find(person => person.id === selectedParticipantId);
+    if (!verifiedAdmin || !person) return;
+    editingParticipant = { ...person };
+    for (const [field, input] of Object.entries(participantFields)) el(input).value = person[field] || '';
+    status('editParticipantStatus', '');
+    el('editParticipantDialog').showModal();
+  });
+  el('cancelParticipantEdit').addEventListener('click', () => {
+    if (!savingParticipant) el('editParticipantDialog').close();
+  });
+  el('editParticipantDialog').addEventListener('cancel', event => {
+    if (savingParticipant) event.preventDefault();
+  });
+  el('editParticipantDialog').addEventListener('close', () => {
+    editingParticipant = null;
+    el('editParticipantForm').reset();
+    status('editParticipantStatus', '');
+  });
+  el('editParticipantForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || !editingParticipant || savingParticipant) return;
+    if (!el('editParticipantForm').reportValidity()) return;
+    const original = { ...editingParticipant };
+    const accountRevision = revision;
+    const payload = {};
+    const limits = { display_name: 150, surname: 150, phone: 40, email: 254, passport_number: 50, notes: 5000 };
+    for (const [field, input] of Object.entries(participantFields)) {
+      const value = el(input).value.trim();
+      if (value.length > limits[field]) {
+        status('editParticipantStatus', 'One of the fields is too long. Please shorten it.');
+        return;
+      }
+      payload[field] = value || null;
+    }
+    if (!payload.display_name) {
+      status('editParticipantStatus', 'Name is required.');
+      el('editName').focus();
+      return;
+    }
+    if (payload.phone && (!/^[+0-9().\s-]+$/.test(payload.phone) || !/\d/.test(payload.phone))) {
+      status('editParticipantStatus', 'Please enter a valid phone number.');
+      return;
+    }
+    savingParticipant = true;
+    el('saveParticipant').disabled = true;
+    el('cancelParticipantEdit').disabled = true;
+    status('editParticipantStatus', 'Saving…');
+    try {
+      // RLS enforces admin access. Match the original values to avoid overwriting
+      // changes saved from Shakshuka or another open browser tab.
+      let update = client.from('participants').update(payload).eq('id', original.id);
+      for (const field of Object.keys(participantFields)) {
+        update = original[field] == null ? update.is(field, null) : update.eq(field, original[field]);
+      }
+      const { data, error } = await update
+        .select('id,display_name,surname,phone,email,passport_number,notes').maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('The participant changed or is no longer available. Cancel, refresh the list, and try again.');
+      if (!verifiedAdmin || revision !== accountRevision) return;
+      ++participantLoad;
+      participants = participants.map(person => person.id === data.id ? data : person);
+      el('participantSearch').value = '';
+      renderParticipants();
+      if (selectedParticipantId === data.id) renderParticipantDetails(data);
+      el('editParticipantDialog').close();
+      status('participantsStatus', 'Participant details saved to the server.');
+    } catch (error) {
+      if (verifiedAdmin && revision === accountRevision) {
+        status('editParticipantStatus', error.message || 'Unable to save. Your changes are still here; please try again.');
+      }
+    } finally {
+      savingParticipant = false;
+      el('saveParticipant').disabled = false;
+      el('cancelParticipantEdit').disabled = false;
+    }
+  });
   function clearParticipantDetails() {
     el('participantTabs').hidden = true;
     el('participantInfoPanel').hidden = true;
@@ -158,6 +241,9 @@
     el('participantSearch').value = '';
     status('participantsStatus', '');
     el('requestDialog').close();
+    el('editParticipantDialog').close();
+    editingParticipant = null;
+    el('editParticipantForm').reset();
     el('accountMenu').hidden = true;
     setPage('home');
     el('adminAccount').hidden = true;

@@ -92,6 +92,7 @@
           </div>
           <p id="participantEmpty">Select a participant to view their details.</p>
           <div id="participantInfoPanel" role="tabpanel" aria-labelledby="participantInfoTab" hidden>
+          <button id="editParticipant" class="edit-participant-button" type="button">Edit details</button>
           <table id="participantTable" class="participant-table" hidden>
             <caption class="visually-hidden">Selected participant details</caption>
             <tbody id="participantDetails"></tbody>
@@ -109,6 +110,28 @@
       <p>The requests list will appear here once the request form is defined.</p>
     </section>
 
+    <dialog id="editParticipantDialog" class="login-dialog" aria-labelledby="editParticipantTitle">
+      <h2 id="editParticipantTitle">Edit participant</h2>
+      <form id="editParticipantForm">
+        <label for="editName">Name</label>
+        <input id="editName" required maxlength="150" autocomplete="given-name">
+        <label for="editSurname">Surname</label>
+        <input id="editSurname" maxlength="150" autocomplete="family-name">
+        <label for="editPhone">Phone</label>
+        <input id="editPhone" type="tel" maxlength="40" autocomplete="tel">
+        <label for="editEmail">Email</label>
+        <input id="editEmail" type="email" maxlength="254" autocomplete="email">
+        <label for="editPassport">Passport number</label>
+        <input id="editPassport" maxlength="50" autocomplete="off">
+        <label for="editNotes">Notes</label>
+        <textarea id="editNotes" maxlength="5000" rows="4"></textarea>
+        <div class="edit-actions">
+          <button id="cancelParticipantEdit" type="button">Cancel</button>
+          <button id="saveParticipant" type="submit">Save changes</button>
+        </div>
+        <p id="editParticipantStatus" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
     <dialog id="requestDialog" class="login-dialog" aria-labelledby="requestTitle">
       <button id="closeRequest" class="close-login" type="button" aria-label="Close new request">×</button>
       <h2 id="requestTitle">New Request</h2>

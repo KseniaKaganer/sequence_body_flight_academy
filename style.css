@@ -126,3 +126,9 @@ footer { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 0 0 34p
 .participant-tabs button:focus-visible, .new-request-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .participant-skill-panel { padding: 12px 20px; color: var(--muted); line-height: 1.5; }
 .new-request-button { background: var(--accent); }
+
+.edit-participant-button { margin: 16px 20px; padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); background: var(--panel); font: inherit; cursor: pointer; }
+.edit-participant-button:hover { border-color: var(--accent); }
+.login-dialog textarea { width: 100%; resize: vertical; background: #080808; color: var(--text); border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
+.edit-actions { display: flex; justify-content: flex-end; gap: 10px; }
+#saveParticipant { background: var(--accent); }
