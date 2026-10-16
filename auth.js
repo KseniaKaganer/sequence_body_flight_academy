@@ -93,9 +93,6 @@
   });
   el('closeRequest').addEventListener('click', () => el('requestDialog').close());
   let skillRequest = 0;
-  el('refreshSkills').addEventListener('click', () => {
-    if (selectedParticipantId) { loadSkillHistory(selectedParticipantId); loadManualSkills(selectedParticipantId); }
-  });
   let manualSkillRequest = 0;
   let manualSkillParticipant = null;
   let savingManualSkill = false;
@@ -124,7 +121,7 @@
       if (verifiedAdmin && request === manualSkillRequest && selectedParticipantId === participantId) {
         status('manualSkillStatus', error.code === 'PGRST205' || error.code === '42P01'
           ? 'Manual skills need database setup: run database/participant-manual-skills.sql in Supabase.'
-          : 'Unable to load manual skills. Try Refresh history.');
+          : 'Unable to load manual skills. Use Refresh above.');
       }
     }
   }
@@ -282,11 +279,11 @@
       host.append(historyTable(`Canopy Training history (${courseRows.length})`, ['Course', 'Event', 'Event end'], courseRows));
       if (other.length) host.append(historyTable('Upcoming, current or unconfirmed registrations',
         ['Event', 'Type', 'Dates'], other.map(eventRow)));
-      status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; try Refresh history.' : '');
+      status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; use Refresh above.' : '');
     } catch (error) {
       if (current()) {
         el('skillHistory').replaceChildren();
-        status('skillStatus', 'Unable to load history. Please try Refresh history.');
+        status('skillStatus', 'Unable to load history. Please use Refresh above.');
       }
     }
   }
