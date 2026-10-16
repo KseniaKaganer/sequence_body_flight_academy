@@ -7,6 +7,25 @@
   let revision = 0;
   let verifiedAdmin = false;
   let participants = [];
+  let participantRecords = [];
+  function normalizedParticipantPhone(value) {
+    return String(value || '').replace(/\D/g, '').replace(/^0+/, '');
+  }
+  function groupParticipantRecords(records) {
+    const groups = new Map();
+    for (const person of records) {
+      const phone = normalizedParticipantPhone(person.phone);
+      // Never combine unrelated records with no usable phone number.
+      const key = phone ? 'phone:' + phone : 'id:' + person.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(person);
+    }
+    return [...groups.values()].map(group => {
+      group.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      return { ...group[0], recordIds: group.map(person => person.id),
+        searchText: group.map(person => [person.display_name, person.surname, person.phone, person.email].filter(Boolean).join(' ')).join(' ') };
+    }).sort((a, b) => [a.display_name, a.surname].join(' ').localeCompare([b.display_name, b.surname].join(' '), undefined, { sensitivity: 'base' }));
+  }
   let selectedParticipantId = null;
   let participantLoad = 0;
   let activePage = 'home';
@@ -111,6 +130,7 @@
   }
   async function loadSkillHistory(participantId) {
     if (!verifiedAdmin) return;
+    const recordIds = participants.find(person => person.id === participantId)?.recordIds || [participantId];
     const request = ++skillRequest;
     const current = () => verifiedAdmin && selectedParticipantId === participantId && request === skillRequest;
     el('skillHistory').replaceChildren();
@@ -120,7 +140,7 @@
       for (let start = 0; ; start += 500) {
         const { data, error } = await client.from('event_participants')
           .select('id,event_id,participant_status,events(id,name,start_date,end_date,status,event_type)')
-          .eq('participant_id', participantId).order('id').range(start, start + 499);
+          .in('participant_id', recordIds).order('id').range(start, start + 499);
         if (error) throw error;
         if (!current()) return;
         memberships.push(...data);
@@ -131,7 +151,15 @@
       }).formatToParts(new Date());
       const datePart = type => dateParts.find(part => part.type === type).value;
       const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
-      const valid = memberships.filter(row => row.events && row.participant_status !== 'cancelled' && row.events.status !== 'cancelled');
+      const eventsById = new Map();
+      const rank = { invited: 1, active: 2, completed: 3 };
+      for (const row of memberships) {
+        if (!row.events || row.participant_status === 'cancelled' || row.events.status === 'cancelled') continue;
+        const eventId = row.event_id || row.events.id;
+        const existing = eventsById.get(eventId);
+        if (!existing || (rank[row.participant_status] || 0) > (rank[existing.participant_status] || 0)) eventsById.set(eventId, row);
+      }
+      const valid = [...eventsById.values()];
       const past = valid.filter(row => row.participant_status === 'completed' ||
         row.events.status === 'completed' ||
         (row.events.end_date && row.events.end_date < today));
@@ -158,7 +186,7 @@
         for (const result of results) {
           if (result.error) { ++courseErrors; continue; }
           for (const assignment of result.data?.assignments || []) {
-            if (String(assignment.participant_id) === String(participantId)) levels.add(assignment.course_level);
+            if (recordIds.some(id => String(id) === String(assignment.participant_id))) levels.add(assignment.course_level);
           }
         }
         for (const level of levels) courseRows.push([level, row.events.name, date(row.events.end_date)]);
@@ -242,10 +270,13 @@
       if (!data) throw new Error('The participant changed or is no longer available. Cancel, refresh the list, and try again.');
       if (!verifiedAdmin || revision !== accountRevision) return;
       ++participantLoad;
-      participants = participants.map(person => person.id === data.id ? data : person);
+      participantRecords = participantRecords.map(person => person.id === data.id ? data : person);
+      participants = groupParticipantRecords(participantRecords);
+      const savedGroup = participants.find(person => person.recordIds.includes(data.id));
+      if (savedGroup) selectedParticipantId = savedGroup.id;
       el('participantSearch').value = '';
       renderParticipants();
-      if (selectedParticipantId === data.id) renderParticipantDetails(data);
+      if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); }
       el('editParticipantDialog').close();
       status('participantsStatus', 'Participant details saved to the server.');
     } catch (error) {
@@ -295,8 +326,9 @@
   function renderParticipants() {
     const query = el('participantSearch').value.trim().toLowerCase();
     const matches = participants.filter(person =>
-      [person.display_name, person.surname, person.phone, person.email]
-        .filter(Boolean).join(' ').toLowerCase().includes(query));
+      (person.searchText || [person.display_name, person.surname, person.phone, person.email]
+        .filter(Boolean).join(' ')).toLowerCase().includes(query) ||
+      (normalizedParticipantPhone(query) && normalizedParticipantPhone(person.phone).includes(normalizedParticipantPhone(query))));
     if (!matches.some(person => person.id === selectedParticipantId)) clearParticipantDetails();
     el('participantsList').replaceChildren();
     for (const person of matches) {
@@ -348,10 +380,11 @@
         rows.push(...data);
         if (data.length < 500) break;
       }
-      participants = rows;
+      participantRecords = rows;
+      participants = groupParticipantRecords(participantRecords);
       const route = readRoute();
       if (activePage === 'participants' && route.page === 'participants') {
-        selectedParticipantId = participants.some(person => person.id === route.participant) ? route.participant : null;
+        selectedParticipantId = participants.find(person => person.recordIds.includes(route.participant))?.id || null;
         el('participantSearch').value = '';
         setParticipantTab(route.tab, false, false);
       }
@@ -361,6 +394,7 @@
     } catch (error) {
       if (!verifiedAdmin || request !== participantLoad) return;
       participants = [];
+      participantRecords = [];
       clearParticipantDetails();
       el('participantsList').replaceChildren();
       status('participantsStatus', 'Unable to load participants. Please refresh or log in again.');
@@ -375,6 +409,7 @@
     verifiedAdmin = false;
     ++participantLoad;
     participants = [];
+    participantRecords = [];
     el('participantsList').replaceChildren();
     clearParticipantDetails();
     el('participantSearch').value = '';
