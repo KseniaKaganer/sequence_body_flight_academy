@@ -22,7 +22,34 @@
     });
     if (page === 'participants') loadParticipants();
   }
+  function setParticipantTab(tab, focus = false) {
+    for (const name of ['Info', 'Skill']) {
+      const selected = name.toLowerCase() === tab;
+      const button = el('participant' + name + 'Tab');
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      el('participant' + name + 'Panel').hidden = !selected;
+      if (selected && focus) button.focus();
+    }
+  }
+  for (const name of ['Info', 'Skill']) {
+    const button = el('participant' + name + 'Tab');
+    button.addEventListener('click', () => setParticipantTab(name.toLowerCase()));
+    button.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const tab = event.key === 'Home' ? 'info' : event.key === 'End' ? 'skill' : name === 'Info' ? 'skill' : 'info';
+      setParticipantTab(tab, true);
+    });
+  }
+  el('newRequest').addEventListener('click', () => {
+    if (verifiedAdmin) el('requestDialog').showModal();
+  });
+  el('closeRequest').addEventListener('click', () => el('requestDialog').close());
   function clearParticipantDetails() {
+    el('participantTabs').hidden = true;
+    el('participantInfoPanel').hidden = true;
+    el('participantSkillPanel').hidden = true;
     selectedParticipantId = null;
     el('participantTitle').textContent = 'Participant details';
     el('participantDetails').replaceChildren();
@@ -33,6 +60,7 @@
     el('participantTitle').textContent = [person.display_name, person.surname].filter(Boolean).join(' ');
     el('participantDetails').replaceChildren();
     el('participantEmpty').hidden = true;
+    el('participantTabs').hidden = false;
     el('participantTable').hidden = false;
     for (const [label, value] of [
       ['Name', person.display_name], ['Surname', person.surname],
@@ -70,7 +98,9 @@
       button.append(name, contact);
       button.addEventListener('click', () => {
         if (!verifiedAdmin) return;
+        const changed = selectedParticipantId !== person.id;
         selectedParticipantId = person.id;
+        if (changed) setParticipantTab('info');
         // Update selection without replacing the focused list button.
         for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
         button.setAttribute('aria-pressed', 'true');
@@ -127,6 +157,7 @@
     clearParticipantDetails();
     el('participantSearch').value = '';
     status('participantsStatus', '');
+    el('requestDialog').close();
     el('accountMenu').hidden = true;
     setPage('home');
     el('adminAccount').hidden = true;
