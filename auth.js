@@ -364,6 +364,12 @@
       if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); }
       el('editParticipantDialog').close();
       status('participantsStatus', 'Participant details saved to the server.');
+      if (activePage === 'events') {
+        const selected = eventSelection.get(data.id);
+        if (selected) { selected.name = personName(data); selected.phone = data.phone || ''; selected.originalPhone = data.phone ?? null; }
+        renderEventSelection(); await loadEventParticipants();
+        status('basicEventStatus', 'Participant details saved.');
+      }
     } catch (error) {
       if (verifiedAdmin && revision === accountRevision) {
         status('editParticipantStatus', error.message || 'Unable to save. Your changes are still here; please try again.');
@@ -652,13 +658,61 @@
         if (savingBasicEvent) return;
         eventSelection.delete(key); renderEventSelection(); renderEventChoices();
       });
+      button.textContent = '×'; button.className = 'event-remove-icon';
+      button.title = `Remove ${person.name}`;
       const row = document.createElement('div'); row.className = 'event-selected-person';
-      const label = document.createElement('label'); label.textContent = person.id ? person.name : `${person.name} — phone (optional)`;
-      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
-      phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${person.name}`);
-      phone.addEventListener('input', () => { person.phone = phone.value; });
-      if (!person.id) label.append(phone);
-      row.append(label, button);
+      const name = document.createElement('span'); name.className = 'event-selected-name';
+      name.textContent = person.name + (person.id ? '' : ' (new)');
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit ${person.name}`); edit.title = `Edit ${person.name}`;
+      edit.addEventListener('click', async () => {
+        if (!verifiedAdmin || savingBasicEvent) return;
+        if (person.id) {
+          const accountRevision = revision; edit.disabled = true;
+          try {
+            const { data, error } = await client.from('participants')
+              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+            if (error) throw error;
+            if (!verifiedAdmin || revision !== accountRevision) return;
+            if (!data) throw new Error('Participant no longer exists. Refresh Events.');
+            editingParticipant = { ...data };
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
+          } catch (error) {
+            if (verifiedAdmin && revision === accountRevision) status('basicEventStatus', error.message || 'Unable to open participant details.');
+          } finally { edit.disabled = false; }
+        } else { editor.hidden = !editor.hidden; if (!editor.hidden) first.focus(); }
+      });
+      const editor = document.createElement('div'); editor.className = 'event-new-person-editor'; editor.hidden = true;
+      const first = document.createElement('input'); first.value = person.firstName || ''; first.maxLength = 150;
+      first.setAttribute('aria-label', 'Name'); first.placeholder = 'Name';
+      const last = document.createElement('input'); last.value = person.surname || ''; last.maxLength = 150;
+      last.setAttribute('aria-label', 'Surname'); last.placeholder = 'Surname';
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40; phone.value = person.phone || '';
+      phone.setAttribute('aria-label', 'Phone'); phone.placeholder = 'Phone (optional)';
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓'; save.setAttribute('aria-label', 'Apply participant edits');
+      save.addEventListener('click', () => {
+        if (savingBasicEvent) return;
+        const firstName = first.value.trim().replace(/\s+/g, ' '), surname = last.value.trim().replace(/\s+/g, ' ');
+        if (!firstName || firstName.length > 150 || surname.length > 150) {
+          status('basicEventStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return;
+        }
+        const full = [firstName, surname].filter(Boolean).join(' ');
+        if ([...eventSelection].some(([otherKey, other]) => otherKey !== key && nameKey(other.name) === nameKey(full)) ||
+            eventPeople.some(other => nameKey(personName(other)) === nameKey(full))) {
+          status('basicEventStatus', 'This participant is already listed. Select their existing record.'); return;
+        }
+        const phoneValue = phone.value.trim();
+        if (phoneValue && (phoneValue.length > 40 || !/^[+0-9().\s-]+$/.test(phoneValue) || !/\d/.test(phoneValue))) {
+          status('basicEventStatus', 'Enter a valid phone number.'); return;
+        }
+        person.firstName = firstName; person.surname = surname; person.name = full; person.phone = phoneValue;
+        const updatedKey = 'new:' + nameKey(full);
+        if (updatedKey !== key) { eventSelection.delete(key); eventSelection.set(updatedKey, person); }
+        status('basicEventStatus', ''); renderEventSelection();
+      });
+      editor.append(first, last, phone, save);
+      row.append(button, name, edit, editor);
       el('eventSelectedParticipants').append(row);
     }
   }

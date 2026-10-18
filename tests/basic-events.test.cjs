@@ -146,7 +146,7 @@ test('new participant name and surname are sent separately and displayed togethe
   await new Promise(resolve=>setImmediate(resolve));
   for(const [id,value] of Object.entries({basicEventName:'Names',basicEventType:'skydive',basicEventStart:'2026-01-01',basicEventEnd:'2026-01-02',newEventParticipant:'Anna Maria',newEventParticipantSurname:'De Silva'})) el(id).value=value;
   await el('queueEventParticipant').fire('click');
-  assert.match(el('eventSelectedParticipants').children[0].children[0].textContent,/Anna Maria De Silva/);
+  assert.match(el('eventSelectedParticipants').children[0].children[1].textContent,/Anna Maria De Silva/);
   assert.equal(el('newEventParticipantSurname').value,'');
   await el('basicEventForm').fire('submit');
   assert.deepEqual(calls[0].p_new_names,['Anna Maria']);
@@ -158,4 +158,20 @@ test('separate name and surname still match an existing full name', async()=>{
   el('newEventParticipant').value='Denis';
   await el('queueEventParticipant').fire('click');
   assert.doesNotMatch(el('eventSelectedParticipants').children[0].children[1].textContent,/new/);
+});
+
+test('selected participants have a left remove icon and an editable compact new-person row', async()=>{
+  const {nodes}=harness(); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  el('newEventParticipant').value='Anna'; el('newEventParticipantSurname').value='Smith';
+  await el('queueEventParticipant').fire('click');
+  let row=el('eventSelectedParticipants').children[0];
+  assert.equal(row.children[0].textContent,'×');
+  assert.equal(row.children[1].textContent,'Anna Smith (new)');
+  assert.equal(row.children[3].hidden,true);
+  await row.children[2].fire('click'); assert.equal(row.children[3].hidden,false);
+  row.children[3].children[1].value='Jones'; await row.children[3].children[3].fire('click');
+  row=el('eventSelectedParticipants').children[0];
+  assert.equal(row.children[1].textContent,'Anna Jones (new)');
+  await row.children[0].fire('click'); assert.equal(el('eventSelectedParticipants').children.length,0);
 });
