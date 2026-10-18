@@ -756,8 +756,10 @@
   el('eventParticipantSearch').addEventListener('input', renderEventChoices);
   el('queueEventParticipant').addEventListener('click', () => {
     if (!verifiedAdmin || !eventPeopleReady || savingBasicEvent) return;
-    const name = el('newEventParticipant').value.trim().replace(/\s+/g, ' ');
-    if (!name || name.length > 150) { status('basicEventStatus', 'Enter a participant name (up to 150 characters).'); return; }
+    const firstName = el('newEventParticipant').value.trim().replace(/\s+/g, ' ');
+    const surname = el('newEventParticipantSurname').value.trim().replace(/\s+/g, ' ');
+    const name = [firstName, surname].filter(Boolean).join(' ');
+    if (!firstName || firstName.length > 150 || surname.length > 150) { status('basicEventStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return; }
     const matches = eventPeople.filter(person => nameKey(personName(person)) === nameKey(name));
     if (matches.length > 1) {
       el('eventParticipantSearch').value = name; renderEventChoices();
@@ -773,8 +775,9 @@
       status('basicEventStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
     }
     const person = matches[0];
-    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, phone: enteredPhone });
+    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, firstName, surname, phone: enteredPhone });
     el('newEventParticipant').value = '';
+    el('newEventParticipantSurname').value = '';
     el('newEventParticipantPhone').value = '';
     status('basicEventStatus', ''); renderEventSelection(); renderEventChoices();
   });
@@ -785,7 +788,7 @@
     const start = el('basicEventStart').value, end = el('basicEventEnd').value;
     if (!name || end < start) { status('basicEventStatus', 'Enter a name and an end date on or after the start date.'); return; }
     if (!eventSelection.size) { status('basicEventStatus', 'Select at least one participant.'); return; }
-    if (el('newEventParticipant').value.trim()) { status('basicEventStatus', 'Click Add participant to include the name you entered.'); return; }
+    if (el('newEventParticipant').value.trim() || el('newEventParticipantSurname').value.trim() || el('newEventParticipantPhone').value.trim()) { status('basicEventStatus', 'Click Add participant to include the name you entered.'); return; }
     if ([...eventSelection.values()].some(person => person.phone && (person.phone.length > 40 || !/^[+0-9().\s-]+$/.test(person.phone) || !/\d/.test(person.phone)))) {
       status('basicEventStatus', 'Enter valid phone numbers of up to 40 characters.'); return;
     }
@@ -795,11 +798,12 @@
     status('basicEventStatus', 'Saving event and participants…');
     el('basicEventTravelLink').hidden = true;
     try {
-      const { data, error } = await client.rpc('admin_create_basic_event_v2', {
+      const { data, error } = await client.rpc('admin_create_basic_event_v3', {
         p_event_id: eventRequestId, p_name: name, p_event_type: el('basicEventType').value,
         p_start_date: start, p_end_date: end,
         p_participant_ids: [...eventSelection.values()].filter(person => person.id).map(person => person.id),
-        p_new_names: [...eventSelection.values()].filter(person => !person.id).map(person => person.name),
+        p_new_names: [...eventSelection.values()].filter(person => !person.id).map(person => person.firstName),
+        p_new_surnames: [...eventSelection.values()].filter(person => !person.id).map(person => person.surname || null),
         p_new_phones: [...eventSelection.values()].filter(person => !person.id).map(person => person.phone.trim() || null),
         p_participant_phones: [...eventSelection.values()].filter(person => person.id && (person.phone.trim() || null) !== person.originalPhone)
           .map(person => ({ id: person.id, phone: person.phone.trim() || null, original_phone: person.originalPhone }))

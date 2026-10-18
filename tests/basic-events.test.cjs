@@ -141,3 +141,21 @@ test('phone errors preserve the inline editor and cancel does not save', async()
   await row.children[2].children[2].fire('click');
   assert.equal(row.children[2].hidden,true); assert.equal(phoneCalls.length,1);
 });
+test('new participant name and surname are sent separately and displayed together', async()=>{
+  const {nodes,calls}=harness(); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  for(const [id,value] of Object.entries({basicEventName:'Names',basicEventType:'skydive',basicEventStart:'2026-01-01',basicEventEnd:'2026-01-02',newEventParticipant:'Anna Maria',newEventParticipantSurname:'De Silva'})) el(id).value=value;
+  await el('queueEventParticipant').fire('click');
+  assert.match(el('eventSelectedParticipants').children[0].children[0].textContent,/Anna Maria De Silva/);
+  assert.equal(el('newEventParticipantSurname').value,'');
+  await el('basicEventForm').fire('submit');
+  assert.deepEqual(calls[0].p_new_names,['Anna Maria']);
+  assert.deepEqual(calls[0].p_new_surnames,['De Silva']);
+});
+test('separate name and surname still match an existing full name', async()=>{
+  const {nodes}=harness(); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  el('newEventParticipant').value='Denis';
+  await el('queueEventParticipant').fire('click');
+  assert.doesNotMatch(el('eventSelectedParticipants').children[0].children[1].textContent,/new/);
+});
