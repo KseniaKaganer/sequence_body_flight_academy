@@ -34,7 +34,7 @@
     let parts;
     try { parts = window.location.hash.slice(1).split('/').map(decodeURIComponent); }
     catch { return { page: 'home', participant: null, tab: 'skill' }; }
-    const page = ['participants', 'requests'].includes(parts[0]) ? parts[0] : 'home';
+    const page = ['participants', 'requests', 'events'].includes(parts[0]) ? parts[0] : 'home';
     return { page: page === 'requests' ? 'request' : page,
       participant: page === 'participants' ? parts[1] || null : null,
       tab: parts[2] === 'info' ? 'info' : 'skill' };
@@ -56,7 +56,7 @@
   function setPage(page, updateUrl = true) {
     if (!verifiedAdmin && page !== 'home') return;
     activePage = page;
-    for (const name of ['home', 'participants', 'request']) {
+    for (const name of ['home', 'participants', 'request', 'events']) {
       el(name + 'Page').hidden = name !== page;
     }
     document.querySelectorAll('[data-page]').forEach(button => {
@@ -65,6 +65,7 @@
     });
     if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
+    if (page === 'events') loadEventParticipants();
   }
   function setParticipantTab(tab, focus = false, updateUrl = true) {
     activeParticipantTab = tab;
@@ -494,6 +495,10 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    resetBasicEvent();
+    ++eventPeopleLoad;
+    eventPeople = [];
+    el('eventParticipantChoices').replaceChildren();
     ++participantLoad;
     participants = [];
     participantRecords = [];
@@ -577,6 +582,131 @@
     } catch (error) { status('accountStatus', error.message || 'Unable to log out.'); }
     finally { el('signOut').disabled = false; }
   });
+  let eventPeople = [];
+  let eventPeopleLoad = 0;
+  let eventPeopleReady = false;
+  let savingBasicEvent = false;
+  let eventRequestId = null;
+  const eventSelection = new Map();
+  const personName = person => [person.display_name, person.surname].filter(Boolean).join(' ');
+  const nameKey = name => name.trim().replace(/\s+/g, ' ').toLowerCase();
+  function renderEventSelection() {
+    el('eventSelectionCount').textContent = `${eventSelection.size} participant(s) selected`;
+    el('eventSelectedParticipants').replaceChildren();
+    for (const [key, person] of eventSelection) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${person.name}${person.id ? '' : ' (new)'} ×`;
+      button.setAttribute('aria-label', `Remove ${person.name}`);
+      button.addEventListener('click', () => {
+        if (savingBasicEvent) return;
+        eventSelection.delete(key); renderEventSelection(); renderEventChoices();
+      });
+      el('eventSelectedParticipants').append(button);
+    }
+  }
+  function renderEventChoices() {
+    const query = el('eventParticipantSearch').value.trim().toLowerCase();
+    const host = el('eventParticipantChoices'); host.replaceChildren();
+    for (const person of eventPeople.filter(person => person.searchText.toLowerCase().includes(query))) {
+      const label = document.createElement('label');
+      const input = document.createElement('input'); input.type = 'checkbox';
+      input.checked = eventSelection.has(person.id);
+      input.addEventListener('change', () => {
+        if (savingBasicEvent) return;
+        if (input.checked) eventSelection.set(person.id, { id: person.id, name: personName(person) });
+        else eventSelection.delete(person.id);
+        renderEventSelection();
+      });
+      const text = document.createElement('span');
+      text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
+      label.append(input, text); host.append(label);
+    }
+    if (!host.children.length) host.textContent = eventPeopleReady ? 'No matching participants.' : 'Loading participants…';
+  }
+  async function loadEventParticipants() {
+    if (!verifiedAdmin) return;
+    const request = ++eventPeopleLoad;
+    eventPeopleReady = false;
+    el('saveBasicEvent').disabled = true;
+    status('eventParticipantsStatus', 'Loading participants…');
+    try {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('participants')
+          .select('id,display_name,surname,phone,email').order('display_name').order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== eventPeopleLoad) return;
+        rows.push(...data);
+        if (data.length < 500) break;
+      }
+      eventPeople = groupParticipantRecords(rows);
+      eventPeopleReady = true;
+      renderEventChoices();
+      status('eventParticipantsStatus', 'Select everyone who attended or will attend.');
+    } catch {
+      if (verifiedAdmin && request === eventPeopleLoad) status('eventParticipantsStatus', 'Unable to load participants. Open Events again to retry.');
+    } finally {
+      if (verifiedAdmin && request === eventPeopleLoad) el('saveBasicEvent').disabled = !eventPeopleReady || savingBasicEvent;
+    }
+  }
+  function resetBasicEvent() {
+    eventSelection.clear(); eventRequestId = null; eventPeopleReady = false;
+    el('basicEventForm').reset(); renderEventSelection();
+    status('basicEventStatus', ''); el('basicEventTravelLink').hidden = true;
+  }
+  el('eventParticipantSearch').addEventListener('input', renderEventChoices);
+  el('queueEventParticipant').addEventListener('click', () => {
+    if (!verifiedAdmin || !eventPeopleReady || savingBasicEvent) return;
+    const name = el('newEventParticipant').value.trim().replace(/\s+/g, ' ');
+    if (!name || name.length > 150) { status('basicEventStatus', 'Enter a participant name (up to 150 characters).'); return; }
+    const matches = eventPeople.filter(person => nameKey(personName(person)) === nameKey(name));
+    if (matches.length > 1) {
+      el('eventParticipantSearch').value = name; renderEventChoices();
+      status('basicEventStatus', 'Several participants have this name. Select the correct person from the list.'); return;
+    }
+    const person = matches[0];
+    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person) } : { name });
+    el('newEventParticipant').value = '';
+    status('basicEventStatus', ''); renderEventSelection(); renderEventChoices();
+  });
+  el('basicEventForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || !eventPeopleReady || savingBasicEvent || !el('basicEventForm').reportValidity()) return;
+    const name = el('basicEventName').value.trim();
+    const start = el('basicEventStart').value, end = el('basicEventEnd').value;
+    if (!name || end < start) { status('basicEventStatus', 'Enter a name and an end date on or after the start date.'); return; }
+    if (!eventSelection.size) { status('basicEventStatus', 'Select at least one participant.'); return; }
+    if (el('newEventParticipant').value.trim()) { status('basicEventStatus', 'Click Add participant to include the name you entered.'); return; }
+    const accountRevision = revision;
+    eventRequestId ||= crypto.randomUUID();
+    savingBasicEvent = true; el('basicEventFields').disabled = true;
+    status('basicEventStatus', 'Saving event and participants…');
+    el('basicEventTravelLink').hidden = true;
+    try {
+      const { data, error } = await client.rpc('admin_create_basic_event', {
+        p_event_id: eventRequestId, p_name: name, p_event_type: el('basicEventType').value,
+        p_start_date: start, p_end_date: end,
+        p_participant_ids: [...eventSelection.values()].filter(person => person.id).map(person => person.id),
+        p_new_names: [...eventSelection.values()].filter(person => !person.id).map(person => person.name)
+      });
+      if (error) throw error;
+      if (!data) throw new Error('Unable to verify the saved event. Retry with the same details.');
+      if (!verifiedAdmin || accountRevision !== revision) return;
+      resetBasicEvent();
+      status('basicEventStatus', 'Event saved. Attendance is available in participants’ Skills history.');
+      el('basicEventTravelLink').href = 'https://shakshuka-travel.pages.dev/admin.html?event=' + encodeURIComponent(data);
+      el('basicEventTravelLink').hidden = false;
+      await loadEventParticipants();
+    } catch (error) {
+      if (verifiedAdmin && accountRevision === revision) status('basicEventStatus',
+        error.code === 'PGRST202' ? 'Database setup is needed: run database/basic-events.sql in Supabase.' : error.message || 'Unable to save. Your entries are still here; try again.');
+    } finally {
+      savingBasicEvent = false; el('basicEventFields').disabled = false;
+      el('saveBasicEvent').disabled = !eventPeopleReady;
+    }
+  });
+
   async function init() {
     try {
       const config = window.SEQUENCE_CONFIG;

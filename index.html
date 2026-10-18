@@ -59,6 +59,7 @@
     <nav id="accountMenu" class="account-menu" aria-label="Account pages" hidden>
       <button type="button" data-page="home" aria-current="page">Home</button>
       <button type="button" data-page="participants">Participants</button>
+      <button type="button" data-page="events">Events</button>
       <button type="button" data-page="request">Requests</button>
     </nav>
   </header>
@@ -117,6 +118,34 @@
           </div>
         </section>
       </div>
+    </section>
+    <section id="eventsPage" hidden aria-labelledby="eventsTitle">
+      <h1 id="eventsTitle">Add Basic Event</h1>
+      <p>Create an event and record attendance. Add more details later in SHAKSHUKA Travel.</p>
+      <form id="basicEventForm" class="basic-event-form">
+        <fieldset id="basicEventFields">
+          <label for="basicEventName">Event name</label>
+          <input id="basicEventName" required maxlength="150" placeholder="Shakshuka Florida 26">
+          <label for="basicEventType">Type</label>
+          <select id="basicEventType" required><option value="skydive">Skydive</option><option value="tunnel">Tunnel</option></select>
+          <div class="event-dates">
+            <div><label for="basicEventStart">Start date</label><input id="basicEventStart" type="date" required></div>
+            <div><label for="basicEventEnd">End date</label><input id="basicEventEnd" type="date" required></div>
+          </div>
+          <h2>Participants</h2>
+          <label for="eventParticipantSearch">Find a participant</label>
+          <input id="eventParticipantSearch" type="search" placeholder="Name, phone or email" autocomplete="off">
+          <p id="eventParticipantsStatus" role="status"></p>
+          <div id="eventParticipantChoices" class="event-participant-choices"></div>
+          <label for="newEventParticipant">Participant not listed? Enter their name</label>
+          <div class="event-add-person"><input id="newEventParticipant" maxlength="150" placeholder="Full name"><button id="queueEventParticipant" type="button">Add participant</button></div>
+          <p id="eventSelectionCount" aria-live="polite"></p>
+          <div id="eventSelectedParticipants" class="event-selected-participants"></div>
+          <button id="saveBasicEvent" type="submit">Create event</button>
+        </fieldset>
+        <p id="basicEventStatus" role="status" aria-live="polite"></p>
+        <a id="basicEventTravelLink" hidden target="_blank" rel="noopener">Add details in SHAKSHUKA Travel ↗</a>
+      </form>
     </section>
     <section id="requestPage" hidden>
       <h1>Requests</h1>
