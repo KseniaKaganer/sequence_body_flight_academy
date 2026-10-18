@@ -435,3 +435,19 @@ test('Statistics restores its view and validates custom dates',async()=>{
  el('statisticsStart').value='2026-01-01';el('statisticsEnd').value='2026-12-31';await el('statisticsEnd').fire('change');
  assert.equal(el('statisticsContent').hidden,false);
 });
+
+test('Most active supports list limits and category filters while preserving the date scope',async()=>{
+ const {nodes}=harness({route:'#statistics',activities:[{id:'lesson',title:'Theory lesson',category:'theory',start_date:'2020-01-01',end_date:'2020-01-01'}],
+  travelMemberships:[{id:'t1',event_id:'future',participant_id:'denis',participant_status:'active'},{id:'t2',event_id:'completed',participant_id:'denis',participant_status:'active'}],
+  localMemberships:[{activity_id:'lesson',participant_id:'nadia'}]});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));
+ el('statisticsRange').value='all';el('statisticsScope').value='all';await el('statisticsRange').fire('change');
+ el('statisticsPeopleLimit').value='1';await el('statisticsPeopleLimit').fire('change');
+ assert.match(el('statisticsPeopleCount').textContent,/Showing 1 of 2/);
+ let row=el('statisticsOverviewPeople').children[0].children[0].children[2].children[0];assert.equal(row.children[1].textContent,'Denis');
+ el('statisticsPeopleCategory').value='theory';await el('statisticsPeopleCategory').fire('change');
+ assert.match(el('statisticsPeopleCount').textContent,/Showing 1 of 1/);
+ row=el('statisticsOverviewPeople').children[0].children[0].children[2].children[0];assert.equal(row.children[1].textContent,'Nadia');
+ el('statisticsPeopleCategory').value='';el('statisticsPeopleLimit').value='all';await el('statisticsPeopleLimit').fire('change');
+ assert.match(el('statisticsPeopleCount').textContent,/Showing 2 of 2/);
+});

@@ -1767,7 +1767,7 @@
     const state = activity => activity.completed || activity.end < today ? 'past' : activity.start > today ? 'upcoming' : 'current';
     const inRange = date => date && (!start || date >= start) && (!end || date <= end);
     const dated = [...all.values()].filter(activity => inRange(activity.start));
-    const selected = dated.filter(activity => scope === 'all' || state(activity) === scope);
+    const selected = dated.filter(activity => (scope === 'all' || state(activity) === scope) && (!options.category || activity.category === options.category));
     const firstEver = new Map();
     for (const activity of all.values()) for (const id of activity.people) {
       if (activity.start && (!firstEver.has(id) || activity.start < firstEver.get(id))) firstEver.set(id, activity.start);
@@ -1841,7 +1841,14 @@
         ['First-time participants',result.totals.people-result.returning],['Returning participants',result.returning]]);
       const peopleHeaders = ['Participant','Attendances','First activity in range','Last activity in range','Participation'];
       const peopleRows = result.people.map(row => [row.name,row.count,date(row.first),date(row.last),row.returning?'Returning':'First-time']);
-      statisticsTable('statisticsOverviewPeople','Most active participants',peopleHeaders,peopleRows.slice(0,5));
+      const category = el('statisticsPeopleCategory').value || '';
+      const ranked = category ? buildStatistics(statisticsData, { ...range, scope, today: activityToday(), category }).people : result.people;
+      const requestedLimit = el('statisticsPeopleLimit').value || '5';
+      const limit = requestedLimit === 'all' ? ranked.length : Math.max(1, Number(requestedLimit) || 5);
+      const shown = ranked.slice(0, limit);
+      el('statisticsPeopleCount').textContent = 'Showing ' + shown.length + ' of ' + ranked.length + ' participants · ' + (labels[category] || 'All activities') + ' · Ranked by attendances, using the date range and activity scope above.';
+      statisticsTable('statisticsOverviewPeople','Most active participants',['#', ...peopleHeaders],shown.map((row,index) =>
+        [index + 1,row.name,row.count,date(row.first),date(row.last),row.returning?'Returning':'First-time']));
       statisticsTable('statisticsTypes','Activity types',['Type','Activities','Unique participants','Attendances','Average group size'],result.types.map(row =>
         [labels[row.category] || row.category,row.count,row.people,row.attendances,row.count?(row.attendances/row.count).toFixed(1):'0']));
       el('statisticsParticipationNote').textContent = 'Returning participants had an activity before the selected date range. First-time participants have their earliest recorded activity within this range.';
@@ -1921,7 +1928,7 @@
     });
   }
   el('statisticsRange').addEventListener('change',()=>{el('statisticsCustomDates').hidden=el('statisticsRange').value!=='custom';renderStatistics();});
-  for(const id of ['statisticsScope','statisticsStart','statisticsEnd'])el(id).addEventListener('change',renderStatistics);
+  for(const id of ['statisticsScope','statisticsStart','statisticsEnd','statisticsPeopleCategory','statisticsPeopleLimit'])el(id).addEventListener('change',renderStatistics);
   el('refreshStatistics').addEventListener('click',loadStatistics);
 
   async function init() {

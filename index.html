@@ -243,7 +243,12 @@
         <p id="statisticsPeriod" class="statistics-note"></p>
         <p id="statisticsActivityStates" class="statistics-note"></p>
         <p class="statistics-note">Activities are counted by start date. Participants are grouped by shared profile/phone; admin participants are excluded from people and attendance totals.</p>
-        <div id="statisticsoverviewPanel" role="tabpanel" aria-labelledby="statisticsoverviewTab"><div id="statisticsCards" class="statistics-cards"></div><h3>Most active participants</h3><div id="statisticsOverviewPeople"></div></div>
+        <div id="statisticsoverviewPanel" role="tabpanel" aria-labelledby="statisticsoverviewTab"><div id="statisticsCards" class="statistics-cards"></div><h3>Most active participants</h3>
+          <div class="statistics-controls">
+            <div><label for="statisticsPeopleCategory">Activity category</label><select id="statisticsPeopleCategory"><option value="">All activities</option><option value="travel">Travel</option><option value="skydive">Skydive Coaching</option><option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option></select></div>
+            <div><label for="statisticsPeopleLimit">Show participants</label><select id="statisticsPeopleLimit"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option><option value="all">All</option></select></div>
+          </div>
+          <p id="statisticsPeopleCount" class="statistics-note" aria-live="polite"></p><div id="statisticsOverviewPeople"></div></div>
         <div id="statisticstypesPanel" role="tabpanel" aria-labelledby="statisticstypesTab" hidden><div id="statisticsTypes"></div></div>
         <div id="statisticsparticipationPanel" role="tabpanel" aria-labelledby="statisticsparticipationTab" hidden><p id="statisticsParticipationNote" class="statistics-note"></p><div id="statisticsPeople"></div></div>
         <div id="statisticscoachesPanel" role="tabpanel" aria-labelledby="statisticscoachesTab" hidden><p id="statisticsCoachesNote" class="statistics-note"></p><div id="statisticsCoaches"></div></div>

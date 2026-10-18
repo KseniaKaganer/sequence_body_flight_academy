@@ -73,3 +73,9 @@ test('empty ranges produce zero totals',()=>{
  const r=calculate({start:'2024-01-01',end:'2024-12-31'});
  assert.equal(r.totals.count,0);assert.equal(r.totals.people,0);assert.equal(r.people.length,0);
 });
+
+test('most active participants can be ranked within an activity category',()=>{
+ const travel=calculate({category:'travel'});assert.equal(travel.totals.count,1);assert.equal(travel.totals.attendances,2);
+ const tunnel=calculate({category:'flybox'});assert.equal(tunnel.people.length,1);assert.equal(tunnel.people[0].name,'Boris');assert.equal(tunnel.people[0].count,1);
+ assert.equal(calculate({category:'social'}).people.length,0);
+});
