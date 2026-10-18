@@ -76,6 +76,10 @@
 
   function setActivityTab(tab, focus = false, updateUrl = true) {
     if (!verifiedAdmin) return;
+    if (localActivityCategory && localActivityCategory !== tab) {
+      if (localActivitySaving) return;
+      closeLocalActivity(false);
+    }
     activeActivityTab = activityTabs.includes(tab) ? tab : 'travel';
     for (const name of activityTabs) {
       const title = name[0].toUpperCase() + name.slice(1);
@@ -542,7 +546,7 @@
   function showSignedOut() {
     verifiedAdmin = false;
     ++localActivityPeopleRequest;
-    el('localActivityDialog').close();
+    closeLocalActivity(); localActivityDrafts.clear();
     localActivityPeople = []; localActivitySelection.clear(); localActivityCategory = null;
     for (const category of Object.keys(localActivityLoads)) { ++localActivityLoads[category]; el(category + 'ActivitiesList').replaceChildren(); status(category + 'ActivitiesStatus', ''); }
     resetBasicEvent();
@@ -698,10 +702,9 @@
       }
       status('travelEventsStatus', '');
     } catch {
-      if (verifiedAdmin && request === travelEventsLoad) status('travelEventsStatus', 'Unable to load events. Use Refresh events to retry.');
+      if (verifiedAdmin && request === travelEventsLoad) status('travelEventsStatus', 'Unable to load events. Reopen Travel to retry.');
     }
   }
-  el('refreshTravelEvents').addEventListener('click', event => { event.preventDefault(); loadTravelEvents(); });
 
   let eventPeople = [];
   let eventPeopleLoad = 0;
@@ -952,6 +955,8 @@
   let localActivityPeople = [];
   let localActivityPeopleRequest = 0;
   const localActivitySelection = new Set();
+  const localActivityDrafts = new Map();
+  const localActivityFields = ['Name', 'Start', 'End', 'Location', 'Coach', 'Notes', 'Search'];
   const localActivityLoads = { skydive: 0, theory: 0, flybox: 0, social: 0 };
   function activityToday() {
     const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -974,19 +979,44 @@
     }
     if (!host.children.length) host.textContent = 'No matching participants.';
   }
+  function closeLocalActivity(discard = true) {
+    if (localActivityCategory) {
+      const category = localActivityCategory;
+      if (discard) localActivityDrafts.delete(category);
+      else localActivityDrafts.set(category, {
+        values: Object.fromEntries(localActivityFields.map(name => [name, el('localActivity' + name).value])),
+        ids: [...localActivitySelection], requestId: localActivityRequestId
+      });
+      const title = category[0].toUpperCase() + category.slice(1);
+      el('add' + title + 'Section').open = false;
+    }
+    ++localActivityPeopleRequest; localActivityCategory = null; localActivityPeople = [];
+    localActivitySelection.clear(); localActivityPeopleReady = false;
+    el('localActivityDialog').hidden = true;
+    el('localActivityPeople').replaceChildren(); el('localActivityForm').reset();
+  }
   async function openLocalActivity(category) {
     if (!verifiedAdmin || localActivitySaving || !localActivityLabels[category]) return;
-    localActivityCategory = category; localActivityRequestId = crypto.randomUUID();
-    localActivitySelection.clear(); localActivityPeople = []; localActivityPeopleReady = false;
+    if (localActivityCategory && localActivityCategory !== category) closeLocalActivity(false);
+    const title = category[0].toUpperCase() + category.slice(1);
+    el('add' + title + 'Section').open = true;
+    el(category + 'ActivityFormSlot').append(el('localActivityDialog'));
+    el('localActivityDialog').hidden = false;
+    if (localActivityCategory === category) return;
+    const draft = localActivityDrafts.get(category);
+    localActivityCategory = category; localActivityRequestId = draft?.requestId || crypto.randomUUID();
+    localActivitySelection.clear();
+    for (const id of draft?.ids || []) localActivitySelection.add(id);
+    localActivityPeople = []; localActivityPeopleReady = false;
     const request = ++localActivityPeopleRequest;
     el('localActivityForm').reset(); el('localActivityPeople').replaceChildren();
-    el('localActivityTitle').textContent = `Add Activity · ${localActivityLabels[category]}`;
+    el('localActivityTitle').textContent = 'Add Activity · ' + localActivityLabels[category];
     el('localActivityStart').value = activityToday();
     if (category === 'flybox') el('localActivityLocation').value = 'Flybox';
-    el('localActivitySelected').textContent = '0 selected';
+    if (draft) for (const name of localActivityFields) el('localActivity' + name).value = draft.values[name];
+    el('localActivitySelected').textContent = localActivitySelection.size + ' selected';
     el('saveLocalActivity').disabled = true; status('localActivityStatus', '');
     status('localActivityPeopleStatus', 'Loading participants…');
-    el('localActivityDialog').showModal();
     try {
       const rows = [];
       for (let start = 0; ; start += 500) {
@@ -1019,6 +1049,7 @@
       }
       const host = el(category + 'ActivitiesList'); host.replaceChildren();
       const today = activityToday();
+      el(category + 'ActivitiesCount').textContent = localActivityLabels[category] + ' (' + rows.length + ')';
       for (const past of [false, true]) {
         const items = rows.filter(row => (row.end_date < today) === past)
           .sort((a,b) => past ? b.start_date.localeCompare(a.start_date) : a.start_date.localeCompare(b.start_date));
@@ -1026,16 +1057,31 @@
         const summary = document.createElement('summary'); summary.textContent = `${past ? 'Past' : 'Upcoming'} (${items.length})`;
         section.append(summary);
         if (!items.length) { const empty = document.createElement('p'); empty.textContent = 'No activities yet.'; section.append(empty); }
-        for (const row of items) {
-          const card = document.createElement('article'); card.className = 'local-activity-card';
-          const title = document.createElement('h3'); title.textContent = row.title;
-          const date = value => value.split('-').reverse().join('/');
-          const details = document.createElement('p');
-          details.textContent = [row.start_date === row.end_date ? date(row.start_date) : `${date(row.start_date)} – ${date(row.end_date)}`,
-            row.location, row.coach, `${row.sequence_activity_participants?.[0]?.count || 0} participants`].filter(Boolean).join(' · ');
-          card.append(title, details);
-          if (row.notes) { const notes = document.createElement('p'); notes.textContent = row.notes; card.append(notes); }
-          section.append(card);
+        if (items.length) {
+          const table = document.createElement('table'); table.className = 'travel-events-table';
+          const caption = document.createElement('caption'); caption.className = 'visually-hidden';
+          caption.textContent = localActivityLabels[category] + (past ? ' past activities' : ' upcoming activities');
+          const head = document.createElement('thead'), header = document.createElement('tr');
+          for (const text of ['Name', 'Dates', 'Status', 'Participants']) {
+            const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; header.append(cell);
+          }
+          head.append(header); const body = document.createElement('tbody');
+          for (const row of items) {
+            const tr = document.createElement('tr');
+            const name = document.createElement('td'); const title = document.createElement('strong'); title.textContent = row.title; name.append(title);
+            const info = [row.location, row.coach, row.notes].filter(Boolean).join(' · ');
+            if (info) { const details = document.createElement('span'); details.className = 'local-activity-details'; details.textContent = info; name.append(details); }
+            const dates = document.createElement('td'); const date = value => value.split('-').reverse().join('/');
+            dates.textContent = row.start_date === row.end_date ? date(row.start_date) : date(row.start_date) + ' – ' + date(row.end_date);
+            const state = document.createElement('td'), badge = document.createElement('span'); badge.className = 'travel-event-status';
+            badge.textContent = past ? 'Past' : row.start_date <= today ? 'Current' : 'Upcoming'; state.append(badge);
+            const count = document.createElement('td'); count.textContent = String(row.sequence_activity_participants?.[0]?.count || 0);
+            tr.append(name, dates, state, count); body.append(tr);
+          }
+          table.append(caption, head, body);
+          const scroll = document.createElement('div'); scroll.className = 'travel-events-scroll'; scroll.tabIndex = 0;
+          scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', caption.textContent);
+          scroll.append(table); section.append(scroll);
         }
         host.append(section);
       }
@@ -1047,16 +1093,15 @@
   }
   for (const category of Object.keys(localActivityLabels)) {
     const title = category[0].toUpperCase() + category.slice(1);
-    el('add' + title + 'Activity').addEventListener('click', () => openLocalActivity(category));
+    el('add' + title + 'Activity').addEventListener('click', event => {
+      event.preventDefault();
+      if (localActivitySaving) return;
+      if (el('add' + title + 'Section').open) closeLocalActivity(false);
+      else return openLocalActivity(category);
+    });
   }
   el('localActivitySearch').addEventListener('input', renderLocalActivityPeople);
-  el('cancelLocalActivity').addEventListener('click', () => { if (!localActivitySaving) el('localActivityDialog').close(); });
-  el('localActivityDialog').addEventListener('cancel', event => { if (localActivitySaving) event.preventDefault(); });
-  el('localActivityDialog').addEventListener('close', () => {
-    ++localActivityPeopleRequest; localActivityCategory = null; localActivityPeople = [];
-    localActivitySelection.clear(); localActivityPeopleReady = false;
-    el('localActivityPeople').replaceChildren(); el('localActivityForm').reset();
-  });
+  el('cancelLocalActivity').addEventListener('click', () => { if (!localActivitySaving) closeLocalActivity(); });
   el('localActivityForm').addEventListener('submit', async event => {
     event.preventDefault();
     if (!verifiedAdmin || localActivitySaving || !localActivityCategory || !localActivityPeopleReady || !el('localActivityForm').reportValidity()) return;
@@ -1076,7 +1121,7 @@
       if (error) throw error;
       if (!data) throw new Error('Unable to verify the saved activity. Retry with the same details.');
       if (!verifiedAdmin || revision !== accountRevision) return;
-      el('localActivityDialog').close();
+      closeLocalActivity();
       await loadLocalActivities(category);
     } catch (error) {
       if (verifiedAdmin && revision === accountRevision) status('localActivityStatus',
@@ -1107,3 +1152,4 @@
   }
   init();
 })();
+

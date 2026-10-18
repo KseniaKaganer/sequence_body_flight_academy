@@ -274,3 +274,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .local-activity-dialog .event-dates { gap: 12px; }
 .local-activity-dialog #localActivityPeople { margin-top: 10px; }
 .local-activity-dialog #saveLocalActivity { background: var(--accent); }
+
+.local-activity-inline { margin-top: 16px; }
+.local-activity-inline[hidden] { display: none; }
+.local-activity-inline textarea { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #555; border-radius: 8px; color: var(--text); background: #080808; font: inherit; resize: vertical; }
+.local-activity-inline .edit-actions { margin-top: 20px; }
+.local-activity-details { display: block; font-weight: 400; font-size: .85rem; color: var(--muted); margin-top: 6px; white-space: pre-wrap; }

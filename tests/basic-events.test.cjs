@@ -241,3 +241,22 @@ test('local activity rejects reversed dates without writing', async()=>{
   await el('localActivityForm').fire('submit'); assert.equal(localCalls.length,0);
   assert.match(el('localActivityStatus').textContent,/valid dates/);
 });
+
+
+test('local sections use tables and retain drafts when the add form is collapsed', async()=>{
+  const {nodes}=harness({route:'#activities/theory'}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  await el('addTheoryActivity').fire('click');
+  assert.equal(el('addTheorySection').open,true);
+  assert.equal(el('localActivityDialog').hidden,false);
+  el('localActivityName').value='Packing draft';
+  await el('addTheoryActivity').fire('click');
+  assert.equal(el('addTheorySection').open,false);
+  await el('addTheoryActivity').fire('click');
+  assert.equal(el('localActivityName').value,'Packing draft');
+  await el('localActivityForm').fire('submit');
+  await el('localActivityForm').fire('submit');
+  assert.equal(el('theoryActivitiesCount').textContent,'Theory (1)');
+  const table=el('theoryActivitiesList').children[0].children[1].children[0];
+  assert.deepEqual(table.children[1].children[0].children.map(cell=>cell.textContent),['Name','Dates','Status','Participants']);
+});

@@ -129,7 +129,7 @@
       </div>
       <div id="activityTravelPanel" role="tabpanel" aria-labelledby="activityTravelTab">
       <details class="travel-events-section">
-        <summary class="travel-events-heading"><span id="travelEventsCount">Travel Events</span> <button id="refreshTravelEvents" type="button" class="travel-refresh-icon" aria-label="Refresh Travel Events" title="Refresh Travel Events">↻</button></summary>
+        <summary class="travel-events-heading"><span id="travelEventsCount">Travel Events</span></summary>
         <p id="travelEventsStatus" role="status" aria-live="polite"></p>
         <details open><summary id="upcomingEventsTitle">Upcoming</summary><div id="upcomingEventsList"></div></details>
         <details><summary id="pastEventsTitle">Past</summary><div id="pastEventsList"></div></details>
@@ -163,29 +163,49 @@
       </form>
       </details>
       </div>
-      <div id="activitySkydivePanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySkydiveTab" hidden>
-        <div class="activity-category-header"><h2>Skydive Coaching</h2><button id="addSkydiveActivity" type="button" class="new-request-button">+ Add Activity</button></div>
-        <p>Single coaching jumps, training days, and training over several days.</p>
-        <p id="skydiveActivitiesStatus" role="status" aria-live="polite"></p>
-        <div id="skydiveActivitiesList"></div>
+      <div id="activitySkydivePanel" role="tabpanel" aria-labelledby="activitySkydiveTab" hidden>
+        <details class="travel-events-section">
+          <summary id="skydiveActivitiesCount">Skydive Coaching</summary>
+          <p id="skydiveActivitiesStatus" role="status" aria-live="polite"></p>
+          <div id="skydiveActivitiesList"></div>
+        </details>
+        <details id="addSkydiveSection" class="travel-events-section">
+          <summary id="addSkydiveActivity">Add Activity</summary>
+          <div id="skydiveActivityFormSlot"></div>
+        </details>
       </div>
-      <div id="activityTheoryPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityTheoryTab" hidden>
-        <div class="activity-category-header"><h2>Theory</h2><button id="addTheoryActivity" type="button" class="new-request-button">+ Add Activity</button></div>
-        <p>Packing lessons, exam preparation, and theory workshops.</p>
-        <p id="theoryActivitiesStatus" role="status" aria-live="polite"></p>
-        <div id="theoryActivitiesList"></div>
+      <div id="activityTheoryPanel" role="tabpanel" aria-labelledby="activityTheoryTab" hidden>
+        <details class="travel-events-section">
+          <summary id="theoryActivitiesCount">Theory</summary>
+          <p id="theoryActivitiesStatus" role="status" aria-live="polite"></p>
+          <div id="theoryActivitiesList"></div>
+        </details>
+        <details id="addTheorySection" class="travel-events-section">
+          <summary id="addTheoryActivity">Add Activity</summary>
+          <div id="theoryActivityFormSlot"></div>
+        </details>
       </div>
-      <div id="activityFlyboxPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityFlyboxTab" hidden>
-        <div class="activity-category-header"><h2>Flybox</h2><button id="addFlyboxActivity" type="button" class="new-request-button">+ Add Activity</button></div>
-        <p>Tunnel coaching sessions and training days at Flybox.</p>
-        <p id="flyboxActivitiesStatus" role="status" aria-live="polite"></p>
-        <div id="flyboxActivitiesList"></div>
+      <div id="activityFlyboxPanel" role="tabpanel" aria-labelledby="activityFlyboxTab" hidden>
+        <details class="travel-events-section">
+          <summary id="flyboxActivitiesCount">Flybox</summary>
+          <p id="flyboxActivitiesStatus" role="status" aria-live="polite"></p>
+          <div id="flyboxActivitiesList"></div>
+        </details>
+        <details id="addFlyboxSection" class="travel-events-section">
+          <summary id="addFlyboxActivity">Add Activity</summary>
+          <div id="flyboxActivityFormSlot"></div>
+        </details>
       </div>
-      <div id="activitySocialPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySocialTab" hidden>
-        <div class="activity-category-header"><h2>Social</h2><button id="addSocialActivity" type="button" class="new-request-button">+ Add Activity</button></div>
-        <p>Sailing, community gatherings, and shared adventures.</p>
-        <p id="socialActivitiesStatus" role="status" aria-live="polite"></p>
-        <div id="socialActivitiesList"></div>
+      <div id="activitySocialPanel" role="tabpanel" aria-labelledby="activitySocialTab" hidden>
+        <details class="travel-events-section">
+          <summary id="socialActivitiesCount">Social</summary>
+          <p id="socialActivitiesStatus" role="status" aria-live="polite"></p>
+          <div id="socialActivitiesList"></div>
+        </details>
+        <details id="addSocialSection" class="travel-events-section">
+          <summary id="addSocialActivity">Add Activity</summary>
+          <div id="socialActivityFormSlot"></div>
+        </details>
       </div>
     </section>
     <section id="requestPage" hidden aria-label="Requests">
@@ -194,8 +214,8 @@
     </section>
 
 
-    <dialog id="localActivityDialog" class="login-dialog local-activity-dialog" aria-labelledby="localActivityTitle">
-      <h2 id="localActivityTitle">Add Activity</h2>
+    <div id="localActivityDialog" class="basic-event-form local-activity-inline" hidden>
+      <h2 id="localActivityTitle" class="visually-hidden">Add Activity</h2>
       <form id="localActivityForm">
         <fieldset id="localActivityFields">
           <label for="localActivityName">Title</label>
@@ -216,7 +236,7 @@
         </fieldset>
         <p id="localActivityStatus" role="status" aria-live="polite"></p>
       </form>
-    </dialog>
+    </div>
 
     <dialog id="editParticipantDialog" class="login-dialog" aria-labelledby="editParticipantTitle">
       <h2 id="editParticipantTitle">Edit participant</h2>
