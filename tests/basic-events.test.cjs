@@ -88,9 +88,11 @@ test('Travel events include drafts and split completed/past events from upcoming
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(nodes.get('upcomingEventsTitle').textContent,'Upcoming (1)');
   assert.equal(nodes.get('pastEventsTitle').textContent,'Past (2)');
-  const upcoming=nodes.get('upcomingEventsList').children[0];
-  assert.equal(upcoming.children[0].children[0].textContent,'Future Camp');
-  assert.equal(upcoming.children[1].href,'https://shakshuka-travel.pages.dev/admin.html?event=future');
+  const table=nodes.get('upcomingEventsList').children[0].children[0];
+  assert.deepEqual(table.children[1].children[0].children.map(cell=>cell.textContent),['Name','Dates','Status','Event Travel']);
+  const upcoming=table.children[2].children[0];
+  assert.equal(upcoming.children[0].textContent,'Future Camp');
+  assert.equal(upcoming.children[3].children[0].href,'https://shakshuka-travel.pages.dev/admin.html?event=future');
 });
 test('phones for existing and new participants are included in the atomic save', async()=>{
   const {nodes,calls}=harness(); const el=id=>nodes.get(id);

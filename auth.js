@@ -619,24 +619,42 @@
         const host = el(group + 'EventsList'); host.replaceChildren();
         el(group + 'EventsTitle').textContent = `${group === 'past' ? 'Past' : 'Upcoming'} (${events.length})`;
         if (!events.length) { const empty = document.createElement('p'); empty.textContent = 'No events.'; host.append(empty); }
-        for (const event of events) {
-          const row = document.createElement('div'); row.className = 'travel-event-row';
-          const info = document.createElement('div'); const title = document.createElement('strong'); title.textContent = event.name;
-          const meta = document.createElement('span');
-          const date = value => value ? value.split('-').reverse().join('/') : '—';
-          meta.textContent = `${event.event_type === 'tunnel' ? 'Tunnel' : 'Skydive'} · ${date(event.start_date)} – ${date(event.end_date)} · ${event.status}`;
-          info.append(title, meta);
-          const link = document.createElement('a'); link.textContent = 'Open in Travel ↗'; link.target = '_blank'; link.rel = 'noopener';
-          link.href = 'https://shakshuka-travel.pages.dev/admin.html?event=' + encodeURIComponent(event.id);
-          row.append(info, link); host.append(row);
+        if (!events.length) continue;
+        const table = document.createElement('table'); table.className = 'travel-events-table';
+        const caption = document.createElement('caption'); caption.className = 'visually-hidden';
+        caption.textContent = group === 'past' ? 'Past Travel Events' : 'Upcoming Travel Events';
+        const head = document.createElement('thead'); const header = document.createElement('tr');
+        for (const text of ['Name', 'Dates', 'Status', 'Event Travel']) {
+          const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; header.append(cell);
         }
+        head.append(header); const body = document.createElement('tbody');
+        for (const event of events) {
+          const row = document.createElement('tr');
+          const name = document.createElement('td'); name.textContent = event.name;
+          const dates = document.createElement('td');
+          const date = value => value ? value.split('-').reverse().join('/') : '—';
+          dates.textContent = `${date(event.start_date)} – ${date(event.end_date)}`;
+          const statusCell = document.createElement('td'); const badge = document.createElement('span');
+          badge.className = 'travel-event-status'; badge.textContent = event.status || '—'; statusCell.append(badge);
+          const action = document.createElement('td');
+          const link = document.createElement('a'); link.className = 'event-travel-button';
+          link.textContent = 'Event Travel ↗'; link.target = '_blank'; link.rel = 'noopener';
+          link.setAttribute('aria-label', `Open ${event.name} in Travel`);
+          link.href = 'https://shakshuka-travel.pages.dev/admin.html?event=' + encodeURIComponent(event.id);
+          action.append(link); row.append(name, dates, statusCell, action); body.append(row);
+        }
+        table.append(caption, head, body);
+        const scroll = document.createElement('div'); scroll.className = 'travel-events-scroll';
+        scroll.tabIndex = 0; scroll.setAttribute('role', 'region');
+        scroll.setAttribute('aria-label', group === 'past' ? 'Past events table' : 'Upcoming events table');
+        scroll.append(table); host.append(scroll);
       }
       status('travelEventsStatus', '');
     } catch {
       if (verifiedAdmin && request === travelEventsLoad) status('travelEventsStatus', 'Unable to load events. Use Refresh events to retry.');
     }
   }
-  el('refreshTravelEvents').addEventListener('click', loadTravelEvents);
+  el('refreshTravelEvents').addEventListener('click', event => { event.preventDefault(); loadTravelEvents(); });
 
   let eventPeople = [];
   let eventPeopleLoad = 0;
