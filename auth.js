@@ -71,6 +71,7 @@
     });
     if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
+    if (page === 'request') loadRequests();
     if (page === 'activities') setActivityTab(activeActivityTab, false, false);
   }
 
@@ -131,10 +132,6 @@
       setParticipantTab(tab, true);
     });
   }
-  el('newRequest').addEventListener('click', () => {
-    if (verifiedAdmin) el('requestDialog').showModal();
-  });
-  el('closeRequest').addEventListener('click', () => el('requestDialog').close());
   let skillRequest = 0;
   let manualSkillRequest = 0;
   let manualSkillParticipant = null;
@@ -406,6 +403,12 @@
       renderParticipants();
       if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); }
       el('editParticipantDialog').close();
+      if (activePage === 'request') {
+        const selectedRequest = requestParticipantSelection.get(data.id);
+        if (selectedRequest) { selectedRequest.name = personName(data); selectedRequest.phone = data.phone || ''; selectedRequest.originalPhone = data.phone ?? null; }
+        requestPeople = requestPeople.map(person => person.id === data.id ? { ...person, ...data, searchText: [data.display_name, data.surname, data.phone, data.email].filter(Boolean).join(' ') } : person);
+        renderRequestSelection(); renderRequestPeople();
+      }
       status('participantsStatus', 'Participant details saved to the server.');
       if (activePage === 'activities') {
         const selected = eventSelection.get(data.id);
@@ -560,6 +563,9 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    ++requestPeopleLoad; ++requestsLoad;
+    requestPeople = []; requestParticipantSelection.clear();
+    el('requestsList').replaceChildren(); status('requestsListStatus', ''); el('requestsListTitle').textContent = 'Requests';
     ++participantFilterRequest; participantActivityIndex.clear();
     el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = '';
     el('participantCategoryFilter').disabled = true; el('participantActivityFilter').disabled = true;
@@ -1419,6 +1425,267 @@
     el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = '';
     renderParticipantActivityOptions(); renderParticipants();
   });
+
+  const requestTypeLabels = {travel:'Travel',skydive:'Skydive Coaching',theory:'Theory',flybox:'Flybox',social:'Social',gear:'Gear',other:'Other'};
+  let savingRequest = false;
+  let requestPeopleReady = false;
+  let requestPeopleLoad = 0;
+  let requestsLoad = 0;
+  let requestPeople = [];
+  let newRequestId = null;
+  const requestParticipantSelection = new Map();
+  async function openNewRequest() {
+    if (!verifiedAdmin || savingRequest) return;
+    const load = ++requestPeopleLoad;
+    requestParticipantSelection.clear(); requestPeople = []; requestPeopleReady = false; newRequestId = crypto.randomUUID();
+    el('newRequestForm').reset(); el('requestPeople').replaceChildren(); renderRequestSelection();
+    status('newRequestStatus', ''); status('requestPeopleStatus', 'Loading participants…');
+    el('saveNewRequest').disabled = true; el('requestDialog').showModal();
+    try {
+      const rows = [];
+      for (let start=0; ; start+=500) {
+        const {data,error} = await client.from('participants').select('id,display_name,surname,phone,email')
+          .order('display_name').order('id').range(start,start+499);
+        if(error)throw error;
+        if(!verifiedAdmin || load!==requestPeopleLoad)return;
+        rows.push(...data);if(data.length<500)break;
+      }
+      requestPeople=groupParticipantRecords(rows);requestPeopleReady=true;
+      renderRequestPeople();status('requestPeopleStatus','Select participants or add someone new.');el('saveNewRequest').disabled=false;
+    } catch {
+      if(verifiedAdmin && load===requestPeopleLoad)status('requestPeopleStatus','Unable to load participants. Close and reopen New Request to retry.');
+    }
+  }
+  async function loadRequests() {
+    if(!verifiedAdmin)return;
+    const request=++requestsLoad;status('requestsListStatus','Loading requests…');
+    try {
+      const rows=[];
+      for(let start=0; ; start+=500) {
+        const {data,error}=await client.from('sequence_requests')
+          .select('id,request_type,notes,status,created_at,sequence_request_participants(participant_id,participants(display_name,surname))')
+          .order('created_at',{ascending:false}).order('id').range(start,start+499);
+        if(error)throw error;
+        if(!verifiedAdmin || request!==requestsLoad)return;
+        rows.push(...data);if(data.length<500)break;
+      }
+      const host=el('requestsList');host.replaceChildren();el('requestsListTitle').textContent=`Requests (${rows.length})`;
+      if(!rows.length){const p=document.createElement('p');p.textContent='No requests yet.';host.append(p);}
+      else {
+        const table=document.createElement('table');table.className='travel-events-table';
+        const caption=document.createElement('caption');caption.className='visually-hidden';caption.textContent='Requests';
+        const head=document.createElement('thead'),headers=document.createElement('tr');
+        for(const label of ['Type','Participants','Notes','Date','Status']){const th=document.createElement('th');th.scope='col';th.textContent=label;headers.append(th);}
+        head.append(headers);const body=document.createElement('tbody');
+        for(const row of rows){
+          const tr=document.createElement('tr');
+          const names=(row.sequence_request_participants||[]).map(link=>link.participants?personName(link.participants):'').filter(Boolean).join(', ');
+          const date=row.created_at?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem'}).format(new Date(row.created_at)):'—';
+          for(const value of [requestTypeLabels[row.request_type]||row.request_type,names,row.notes,date,row.status]){
+            const td=document.createElement('td');td.textContent=value||'—';tr.append(td);
+          }
+          body.append(tr);
+        }
+        table.append(caption,head,body);const scroll=document.createElement('div');scroll.className='travel-events-scroll';scroll.tabIndex=0;
+        scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Requests table');scroll.append(table);host.append(scroll);
+      }
+      status('requestsListStatus','');
+    }catch(error){if(verifiedAdmin && request===requestsLoad)status('requestsListStatus',
+      ['PGRST205','42P01'].includes(error.code)?'Run database/requests.sql in Supabase to enable requests.':'Unable to load requests. Reopen Requests to retry.');}
+  }
+  el('newRequest').addEventListener('click',openNewRequest);
+  for(const id of ['closeRequest','cancelNewRequest'])el(id).addEventListener('click',()=>{if(!savingRequest)el('requestDialog').close();});
+  el('requestDialog').addEventListener('cancel',event=>{if(savingRequest)event.preventDefault();});
+  el('requestDialog').addEventListener('close',()=>{
+    ++requestPeopleLoad;requestPeopleReady=false;requestPeople=[];newRequestId=null;requestParticipantSelection.clear();
+    el('newRequestForm').reset();el('requestPeople').replaceChildren();renderRequestSelection();status('newRequestStatus','');
+  });
+  el('requestParticipantSearch').addEventListener('input',renderRequestPeople);
+  el('newRequestForm').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!verifiedAdmin || savingRequest || !requestPeopleReady || !el('newRequestForm').reportValidity())return;
+    const type=el('newRequestType').value,notes=el('newRequestNotes').value.trim();
+    if(!requestTypeLabels[type] || notes.length>5000){status('newRequestStatus','Choose a request type and keep notes under 5000 characters.');return;}
+    if(!requestParticipantSelection.size){status('newRequestStatus','Select a participant or add someone new.');return;}
+    if(['requestNewParticipant','requestNewParticipantSurname','requestNewParticipantPhone'].some(id=>el(id).value.trim())){
+      status('newRequestStatus','Click Add participant to include the person you entered.');return;
+    }
+    const accountRevision=revision;
+    savingRequest=true;el('newRequestFields').disabled=true;el('closeRequest').disabled=true;status('newRequestStatus','Saving…');
+    try{
+      const {data,error}=await client.rpc('admin_create_sequence_request',{
+        p_request_id:newRequestId,p_type:type,p_notes:notes||null,
+        p_participant_ids:[...requestParticipantSelection.values()].filter(person=>person.id).map(person=>person.id),
+        p_new_participants:[...requestParticipantSelection.values()].filter(person=>!person.id)
+          .map(person=>({name:person.firstName,surname:person.surname||null,phone:person.phone.trim()||null}))
+      });
+      if(error)throw error;if(!data)throw new Error('Unable to verify the saved request. Retry with the same details.');
+      if(!verifiedAdmin || revision!==accountRevision)return;
+      el('requestDialog').close();await loadRequests();
+    }catch(error){if(verifiedAdmin && revision===accountRevision)status('newRequestStatus',
+      error.code==='PGRST202'?'Run database/requests.sql in Supabase before saving requests.':error.message||'Unable to save. Your entries are still here.');
+    }finally{savingRequest=false;el('newRequestFields').disabled=false;el('closeRequest').disabled=false;}
+  });
+
+  function renderRequestSelection() {
+    el('requestParticipantCount').textContent = `${requestParticipantSelection.size} participant(s) selected`;
+    el('requestSelectedParticipants').replaceChildren();
+    for (const [key, person] of requestParticipantSelection) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Remove ${person.name}${person.id ? '' : ' (new)'}`;
+      button.setAttribute('aria-label', `Remove ${person.name}`);
+      button.addEventListener('click', () => {
+        if (savingRequest) return;
+        requestParticipantSelection.delete(key); renderRequestSelection(); renderRequestPeople();
+      });
+      button.textContent = '×'; button.className = 'event-remove-icon';
+      button.title = `Remove ${person.name}`;
+      const row = document.createElement('div'); row.className = 'event-selected-person';
+      const name = document.createElement('span'); name.className = 'event-selected-name';
+      name.textContent = person.name + (person.id ? '' : ' (new)');
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit ${person.name}`); edit.title = `Edit ${person.name}`;
+      edit.addEventListener('click', async () => {
+        if (!verifiedAdmin || savingRequest) return;
+        if (person.id) {
+          const accountRevision = revision; edit.disabled = true;
+          try {
+            const { data, error } = await client.from('participants')
+              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+            if (error) throw error;
+            if (!verifiedAdmin || revision !== accountRevision) return;
+            if (!data) throw new Error('Participant no longer exists. Refresh Events.');
+            editingParticipant = { ...data };
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
+          } catch (error) {
+            if (verifiedAdmin && revision === accountRevision) status('newRequestStatus', error.message || 'Unable to open participant details.');
+          } finally { edit.disabled = false; }
+        } else { editor.hidden = !editor.hidden; if (!editor.hidden) first.focus(); }
+      });
+      const editor = document.createElement('div'); editor.className = 'event-new-person-editor'; editor.hidden = true;
+      const first = document.createElement('input'); first.value = person.firstName || ''; first.maxLength = 150;
+      first.setAttribute('aria-label', 'Name'); first.placeholder = 'Name';
+      const last = document.createElement('input'); last.value = person.surname || ''; last.maxLength = 150;
+      last.setAttribute('aria-label', 'Surname'); last.placeholder = 'Surname';
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40; phone.value = person.phone || '';
+      phone.setAttribute('aria-label', 'Phone'); phone.placeholder = 'Phone (optional)';
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓'; save.setAttribute('aria-label', 'Apply participant edits');
+      save.addEventListener('click', () => {
+        if (savingRequest) return;
+        const firstName = first.value.trim().replace(/\s+/g, ' '), surname = last.value.trim().replace(/\s+/g, ' ');
+        if (!firstName || firstName.length > 150 || surname.length > 150) {
+          status('newRequestStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return;
+        }
+        const full = [firstName, surname].filter(Boolean).join(' ');
+        if ([...requestParticipantSelection].some(([otherKey, other]) => otherKey !== key && nameKey(other.name) === nameKey(full)) ||
+            requestPeople.some(other => nameKey(personName(other)) === nameKey(full))) {
+          status('newRequestStatus', 'This participant is already listed. Select their existing record.'); return;
+        }
+        const phoneValue = phone.value.trim();
+        if (phoneValue && (phoneValue.length > 40 || !/^[+0-9().\s-]+$/.test(phoneValue) || !/\d/.test(phoneValue))) {
+          status('newRequestStatus', 'Enter a valid phone number.'); return;
+        }
+        person.firstName = firstName; person.surname = surname; person.name = full; person.phone = phoneValue;
+        const updatedKey = 'new:' + nameKey(full);
+        if (updatedKey !== key) { requestParticipantSelection.delete(key); requestParticipantSelection.set(updatedKey, person); }
+        status('newRequestStatus', ''); renderRequestSelection();
+      });
+      editor.append(first, last, phone, save);
+      row.append(button, name, edit, editor);
+      el('requestSelectedParticipants').append(row);
+    }
+  }
+  function renderRequestPeople() {
+    const query = el('requestParticipantSearch').value.trim().toLowerCase();
+    const host = el('requestPeople'); host.replaceChildren();
+    for (const person of requestPeople.filter(person => person.searchText.toLowerCase().includes(query))) {
+      const label = document.createElement('label');
+      const input = document.createElement('input'); input.type = 'checkbox';
+      input.checked = requestParticipantSelection.has(person.id);
+      input.addEventListener('change', () => {
+        if (savingRequest) return;
+        if (input.checked) requestParticipantSelection.set(person.id, { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null });
+        else requestParticipantSelection.delete(person.id);
+        renderRequestSelection();
+      });
+      const text = document.createElement('span');
+      text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
+      label.append(input, text);
+      const row = document.createElement('div'); row.className = 'event-search-person';
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit phone for ${personName(person)}`);
+      const editor = document.createElement('div'); editor.className = 'event-phone-editor'; editor.hidden = true;
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
+      phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${personName(person)}`);
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓';
+      save.setAttribute('aria-label', `Save phone for ${personName(person)}`);
+      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '×'; cancel.setAttribute('aria-label', 'Cancel phone edit');
+      const message = document.createElement('span'); message.setAttribute('role', 'status');
+      edit.addEventListener('click', () => { editor.hidden = false; edit.hidden = true; phone.focus(); });
+      cancel.addEventListener('click', () => { editor.hidden = true; edit.hidden = false; phone.value = person.phone || ''; message.textContent = ''; });
+      let saving = false;
+      save.addEventListener('click', async () => {
+        if (!verifiedAdmin || saving || savingRequest) return;
+        const value = phone.value.trim();
+        if (value && (value.length > 40 || !/^[+0-9().\s-]+$/.test(value) || !/\d/.test(value))) {
+          message.textContent = 'Enter a valid phone number.'; return;
+        }
+        const accountRevision = revision;
+        saving = true; save.disabled = true; cancel.disabled = true; phone.disabled = true;
+        message.textContent = 'Saving…';
+        try {
+          const { error } = await client.rpc('admin_update_participant_phone', {
+            p_participant_id: person.id, p_original_phone: person.phone ?? null, p_phone: value || null
+          });
+          if (error) throw error;
+          if (!verifiedAdmin || revision !== accountRevision) return;
+          person.phone = value || null;
+          person.searchText = [personName(person), person.phone, person.email].filter(Boolean).join(' ');
+          const selected = requestParticipantSelection.get(person.id);
+          if (selected) { selected.phone = value; selected.originalPhone = value || null; }
+          text.textContent = personName(person) + (value ? ` · ${value}` : '');
+          editor.hidden = true; edit.hidden = false; message.textContent = 'Saved';
+          renderRequestSelection();
+        } catch (error) {
+          if (verifiedAdmin && revision === accountRevision) message.textContent = error.code === 'PGRST202'
+            ? 'Run the updated database/basic-events.sql in Supabase.' : error.message || 'Unable to save. Try again.';
+        } finally { saving = false; save.disabled = false; cancel.disabled = false; phone.disabled = false; }
+      });
+      editor.append(phone, save, cancel); row.append(label, edit, editor, message); host.append(row);
+    }
+    if (!host.children.length) host.textContent = requestPeopleReady ? 'No matching participants.' : 'Loading participants…';
+  }
+
+  el('queueRequestParticipant').addEventListener('click', () => {
+    if (!verifiedAdmin || !requestPeopleReady || savingRequest) return;
+    const firstName = el('requestNewParticipant').value.trim().replace(/\s+/g, ' ');
+    const surname = el('requestNewParticipantSurname').value.trim().replace(/\s+/g, ' ');
+    const name = [firstName, surname].filter(Boolean).join(' ');
+    if (!firstName || firstName.length > 150 || surname.length > 150) { status('newRequestStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return; }
+    const matches = requestPeople.filter(person => nameKey(personName(person)) === nameKey(name));
+    if (matches.length > 1) {
+      el('requestParticipantSearch').value = name; renderRequestPeople();
+      status('newRequestStatus', 'Several participants have this name. Select the correct person from the list.'); return;
+    }
+    const enteredPhone = el('requestNewParticipantPhone').value.trim();
+    if (enteredPhone && (!/^[+0-9().\s-]+$/.test(enteredPhone) || !/\d/.test(enteredPhone))) {
+      status('newRequestStatus', 'Enter a valid phone number.'); return;
+    }
+    const phoneMatches = enteredPhone ? requestPeople.filter(person => normalizedParticipantPhone(person.phone) === normalizedParticipantPhone(enteredPhone)) : [];
+    if (phoneMatches.length && (!matches[0] || matches[0].id !== phoneMatches[0].id)) {
+      el('requestParticipantSearch').value = enteredPhone; renderRequestPeople();
+      status('newRequestStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
+    }
+    const person = matches[0];
+    requestParticipantSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, firstName, surname, phone: enteredPhone });
+    el('requestNewParticipant').value = '';
+    el('requestNewParticipantSurname').value = '';
+    el('requestNewParticipantPhone').value = '';
+    status('newRequestStatus', ''); renderRequestSelection(); renderRequestPeople();
+  });
+
 
   async function init() {
     try {

@@ -21,7 +21,7 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
+  const requestCalls=[];const requestRows=[];const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
   let failSave=true;
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
@@ -35,6 +35,14 @@ function harness(options = {}) {
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
       if(name==='admin_list_sequence_coaches')return {data:[{user_id:'admin-ilya',display_name:'Ilya'},{user_id:'admin-ksenia',display_name:'Ksenia'}]};
+      if(name==='admin_create_sequence_request') {
+        requestCalls.push(JSON.parse(JSON.stringify(args)));
+        if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
+        const members=args.p_participant_ids.map(id=>({participant_id:id,participants:people.find(person=>person.id===id)}));
+        for(const person of args.p_new_participants)members.push({participant_id:'new-request-person',participants:{display_name:person.name,surname:person.surname}});
+        requestRows.push({id:args.p_request_id,request_type:args.p_type,notes:args.p_notes,status:'new',created_at:'2026-10-18T19:00:00Z',sequence_request_participants:members});
+        return {data:args.p_request_id};
+      }
       if(name==='admin_create_sequence_activity_v2') {
         localCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
@@ -52,7 +60,7 @@ function harness(options = {}) {
       const query={select:()=>query,eq:()=>query,order:()=>query,
         in:(field,values)=>{filter={field,values};return query;},
         range:async(start,end)=>{
-          const rows = table === 'events' ? events : table === 'sequence_activities' ? localRows
+          const rows = table === 'sequence_requests' ? requestRows : table === 'events' ? events : table === 'sequence_activities' ? localRows
             : table === 'sequence_activity_participants' ? localMemberships
             : table === 'event_participants' ? travelMemberships : table === 'participant_manual_skills' ? [] : people;
           return {data:rows.filter(row=>!filter || filter.values.includes(row[filter.field])).slice(start,end+1)};
@@ -63,7 +71,7 @@ function harness(options = {}) {
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
+  return {nodes,calls,phoneCalls,localCalls,requestCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -348,4 +356,40 @@ test('local participant search reuses existing people and offers immediate phone
   assert.equal(phoneCalls.length,1);assert.equal(phoneCalls[0].p_phone,'052-555');
   el('localActivityName').value='Coaching';await el('localActivityForm').fire('submit');
   assert.deepEqual(localCalls[0].p_participant_ids,['denis']);assert.deepEqual(localCalls[0].p_new_participants,[]);
+});
+
+
+test('a simple Gear request supports existing and new participants and safe retries',async()=>{
+  const {nodes,requestCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+  el('newRequestType').value='gear';el('newRequestNotes').value='T-shirt size S';
+  el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
+  el('requestNewParticipant').value='Anna';el('requestNewParticipantSurname').value='Smith';el('requestNewParticipantPhone').value='0521234567';
+  await el('queueRequestParticipant').fire('click');
+  assert.equal(el('requestSelectedParticipants').children.length,2);
+  await el('newRequestForm').fire('submit');
+  assert.equal(el('newRequestStatus').textContent,'Temporary network failure');assert.equal(el('newRequestNotes').value,'T-shirt size S');
+  await el('newRequestForm').fire('submit');
+  assert.deepEqual(requestCalls[0],requestCalls[1]);assert.equal(requestCalls[1].p_type,'gear');
+  assert.deepEqual(requestCalls[1].p_participant_ids,['denis']);
+  assert.deepEqual(requestCalls[1].p_new_participants,[{name:'Anna',surname:'Smith',phone:'0521234567'}]);
+  assert.equal(el('requestsListTitle').textContent,'Requests (1)');
+  const row=el('requestsList').children[0].children[0].children[2].children[0];
+  assert.equal(row.children[0].textContent,'Gear');assert.equal(row.children[1].textContent,'Denis, Anna Smith');
+});
+test('requests need a type and a participant and reject unqueued new names',async()=>{
+  const {nodes,requestCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+  await el('newRequestForm').fire('submit');assert.equal(requestCalls.length,0);assert.match(el('newRequestStatus').textContent,/Choose a request type/);
+  el('newRequestType').value='other';await el('newRequestForm').fire('submit');assert.match(el('newRequestStatus').textContent,/Select a participant/);
+  el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
+  el('requestNewParticipant').value='Pending Person';await el('newRequestForm').fire('submit');assert.match(el('newRequestStatus').textContent,/Click Add participant/);assert.equal(requestCalls.length,0);
+});
+test('request participant search has quick phone editing and selection removal',async()=>{
+  const {nodes,phoneCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+  const row=el('requestPeople').children[0];await row.children[1].fire('click');row.children[2].children[0].value='052123';await row.children[2].children[1].fire('click');
+  assert.equal(phoneCalls[0].p_phone,'052123');
+  el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
+  await el('requestSelectedParticipants').children[0].children[0].fire('click');assert.equal(el('requestSelectedParticipants').children.length,0);
 });

@@ -224,7 +224,8 @@
     </section>
     <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
-      <p>The requests list will appear here once the request form is defined.</p>
+      <p id="requestsListStatus" role="status" aria-live="polite"></p>
+      <details class="travel-events-section" open><summary id="requestsListTitle">Requests</summary><div id="requestsList"></div></details>
     </section>
 
 
@@ -293,10 +294,28 @@
         <p id="manualSkillFormStatus" role="status" aria-live="polite"></p>
       </form>
     </dialog>
-    <dialog id="requestDialog" class="login-dialog" aria-labelledby="requestTitle">
+    <dialog id="requestDialog" class="login-dialog basic-event-form request-dialog" aria-labelledby="requestTitle">
       <button id="closeRequest" class="close-login" type="button" aria-label="Close new request">×</button>
       <h2 id="requestTitle">New Request</h2>
-      <p>The request form will be added in the next step.</p>
+      <form id="newRequestForm">
+        <fieldset id="newRequestFields">
+          <label for="newRequestType">Type</label>
+          <select id="newRequestType" required>
+            <option value="">Choose type</option>
+            <option value="travel">Travel</option><option value="skydive">Skydive Coaching</option>
+            <option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option>
+            <option value="gear">Gear</option><option value="other">Other</option>
+          </select>
+          <label for="newRequestNotes">Notes (optional)</label><textarea id="newRequestNotes" maxlength="5000" rows="3" placeholder="What is needed?"></textarea>
+          <label for="requestParticipantSearch">Participants</label><input id="requestParticipantSearch" type="search" placeholder="Search name, phone or email" autocomplete="off">
+          <p id="requestPeopleStatus" role="status"></p><div id="requestPeople" class="event-participant-choices"></div>
+          <label for="requestNewParticipant">Participant not listed? Add a new participant</label>
+          <div class="event-add-person"><input id="requestNewParticipant" maxlength="150" placeholder="Name" aria-label="New participant name"><input id="requestNewParticipantSurname" maxlength="150" placeholder="Surname" aria-label="New participant surname"><input id="requestNewParticipantPhone" type="tel" maxlength="40" placeholder="Phone (optional)" aria-label="New participant phone"><button id="queueRequestParticipant" type="button">Add participant</button></div>
+          <p id="requestParticipantCount" aria-live="polite">0 selected</p><div id="requestSelectedParticipants" class="event-selected-participants"></div>
+          <div class="edit-actions"><button id="cancelNewRequest" type="button">Cancel</button><button id="saveNewRequest" type="submit">Save Request</button></div>
+        </fieldset>
+        <p id="newRequestStatus" role="status" aria-live="polite"></p>
+      </form>
     </dialog>
     <div id="homePage">
     <section class="menu-grid" aria-label="Main menu">
