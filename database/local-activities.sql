@@ -36,7 +36,7 @@ create policy "Admins manage local activity participants" on public.sequence_act
 create or replace function public.admin_create_sequence_activity(
   p_activity_id uuid, p_category text, p_title text, p_start_date date, p_end_date date,
   p_location text, p_coach text, p_notes text, p_participant_ids uuid[]
-) returns uuid language plpgsql security invoker set search_path = public as $$
+) returns uuid language plpgsql security invoker set search_path = public as $function$
 declare
   v_payload jsonb;
   v_previous jsonb;
@@ -70,7 +70,7 @@ begin
   insert into public.sequence_activity_participants(activity_id, participant_id) select p_activity_id, id from unnest(v_ids) ids(id);
   return p_activity_id;
 end;
-$$;
+$function$;
 revoke all on function public.admin_create_sequence_activity(uuid,text,text,date,date,text,text,text,uuid[]) from public, anon;
 grant execute on function public.admin_create_sequence_activity(uuid,text,text,date,date,text,text,text,uuid[]) to authenticated;
 alter table public.sequence_activities add column if not exists coach_user_id uuid references public.admin_users(user_id) on delete set null;
@@ -151,9 +151,7 @@ begin
     if v_name is null or char_length(v_name) not between 1 and 150 or char_length(v_surname) > 150 then
       raise exception 'Enter a participant name; name and surname can each contain up to 150 characters.';
     end if;
-    if v_phone is not null and (char_length(v_phone) > 40 or v_phone !~ '^[+0-9().[:space:]-]+
-commit;
- or v_phone !~ '[0-9]') then
+    if v_phone is not null and (char_length(v_phone) > 40 or v_phone !~ '^[+0-9().[:space:]-]+$' or v_phone !~ '[0-9]') then
       raise exception 'Enter a valid phone number (up to 40 characters).';
     end if;
     v_full := concat_ws(' ', v_name, v_surname);
