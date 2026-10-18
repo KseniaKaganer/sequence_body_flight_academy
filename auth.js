@@ -30,17 +30,22 @@
   let participantLoad = 0;
   let activePage = 'home';
   let activeParticipantTab = 'skill';
+  const activityTabs = ['travel', 'skydive', 'theory', 'flybox', 'social'];
+  let activeActivityTab = 'travel';
   function readRoute() {
     let parts;
     try { parts = window.location.hash.slice(1).split('/').map(decodeURIComponent); }
     catch { return { page: 'home', participant: null, tab: 'skill' }; }
-    const page = ['participants', 'requests', 'events'].includes(parts[0]) ? parts[0] : 'home';
+    const requestedPage = parts[0] === 'events' ? 'activities' : parts[0];
+    const page = ['participants', 'requests', 'activities'].includes(requestedPage) ? requestedPage : 'home';
     return { page: page === 'requests' ? 'request' : page,
+      activity: activityTabs.includes(parts[1]) ? parts[1] : 'travel',
       participant: page === 'participants' ? parts[1] || null : null,
       tab: parts[2] === 'info' ? 'info' : 'skill' };
   }
   function writeRoute() {
     let hash = activePage === 'request' ? '#requests' : '#' + activePage;
+    if (activePage === 'activities') hash += '/' + activeActivityTab;
     if (activePage === 'participants' && selectedParticipantId) {
       hash += '/' + encodeURIComponent(selectedParticipantId) + '/' + activeParticipantTab;
     }
@@ -49,6 +54,7 @@
   function restoreRoute() {
     const route = readRoute();
     if (!verifiedAdmin) { setPage('home', false); return; }
+    activeActivityTab = route.activity || 'travel';
     setPage(route.page, false);
   }
   window.addEventListener('popstate', restoreRoute);
@@ -56,7 +62,7 @@
   function setPage(page, updateUrl = true) {
     if (!verifiedAdmin && page !== 'home') return;
     activePage = page;
-    for (const name of ['home', 'participants', 'request', 'events']) {
+    for (const name of ['home', 'participants', 'request', 'activities']) {
       el(name + 'Page').hidden = name !== page;
     }
     document.querySelectorAll('[data-page]').forEach(button => {
@@ -65,8 +71,39 @@
     });
     if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
-    if (page === 'events') { loadEventParticipants(); loadTravelEvents(); }
+    if (page === 'activities') setActivityTab(activeActivityTab, false, false);
   }
+
+  function setActivityTab(tab, focus = false, updateUrl = true) {
+    if (!verifiedAdmin) return;
+    activeActivityTab = activityTabs.includes(tab) ? tab : 'travel';
+    for (const name of activityTabs) {
+      const title = name[0].toUpperCase() + name.slice(1);
+      const selected = name === activeActivityTab;
+      const button = el('activity' + title + 'Tab');
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      el('activity' + title + 'Panel').hidden = !selected;
+      if (selected && focus) button.focus();
+    }
+    if (activePage === 'activities') {
+      if (updateUrl) writeRoute();
+      if (activeActivityTab === 'travel') { loadEventParticipants(); loadTravelEvents(); }
+    }
+  }
+  for (const [index, tab] of activityTabs.entries()) {
+    const title = tab[0].toUpperCase() + tab.slice(1);
+    const button = el('activity' + title + 'Tab');
+    button.addEventListener('click', () => setActivityTab(tab));
+    button.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? activityTabs.length - 1
+        : (index + (event.key === 'ArrowRight' ? 1 : -1) + activityTabs.length) % activityTabs.length;
+      setActivityTab(activityTabs[next], true);
+    });
+  }
+
   function setParticipantTab(tab, focus = false, updateUrl = true) {
     activeParticipantTab = tab;
     for (const name of ['Skill', 'Info']) {
@@ -364,7 +401,7 @@
       if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); }
       el('editParticipantDialog').close();
       status('participantsStatus', 'Participant details saved to the server.');
-      if (activePage === 'events') {
+      if (activePage === 'activities') {
         const selected = eventSelection.get(data.id);
         if (selected) { selected.name = personName(data); selected.phone = data.phone || ''; selected.originalPhone = data.phone ?? null; }
         renderEventSelection(); await loadEventParticipants();

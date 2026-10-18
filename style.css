@@ -253,3 +253,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .participant-list-panel #participantSearch::placeholder { color: #a0a0a0; font-size: .82rem; }
 .participant-list-panel #refreshParticipants { min-height: 42px; padding: 10px; border-radius: 10px; font-size: .82rem; flex-shrink: 0; }
 #participantsStatus:empty { display: none; }
+
+.activity-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.activity-tabs button { padding: 11px 16px; min-height: 44px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); color: var(--muted); font: inherit; cursor: pointer; }
+.activity-tabs button[aria-selected="true"] { color: #fff; border-color: #64302c; background: #28110f; }
+.activity-category-panel { padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
+.activity-category-panel h2 { margin-top: 0; font-size: 1.3rem; }
+.activity-category-panel p { color: var(--muted); line-height: 1.6; margin-bottom: 0; }
+@media(max-width: 600px) { .activity-tabs { gap: 6px; } .activity-tabs button { padding: 10px 12px; flex: 1 1 auto; } }

@@ -43,7 +43,7 @@ function harness(options = {}) {
         range:async()=>({data:table === 'events' ? events : people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
       return query;
     }};
-  const window={location:{hash:'#events'},history:{pushState(){}},addEventListener(){},
+  const window={location:{hash:options.route || '#events'},history:{pushState(_state,_title,hash){window.location.hash=hash;}},addEventListener(){},
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
@@ -176,4 +176,24 @@ test('selected participants have a left remove icon and an editable compact new-
   row=el('eventSelectedParticipants').children[0];
   assert.equal(row.children[1].textContent,'Anna Jones (new)');
   await row.children[0].fire('click'); assert.equal(el('eventSelectedParticipants').children.length,0);
+});
+
+test('Activities restores the selected subtab and switches back to existing Travel tools', async()=>{
+  const {nodes}=harness({route:'#activities/flybox'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(nodes.get('activitiesPage').hidden,false);
+  assert.equal(nodes.get('activityFlyboxPanel').hidden,false);
+  assert.equal(nodes.get('activityTravelPanel').hidden,true);
+  assert.equal(nodes.get('activityFlyboxTab')['aria-selected'],'true');
+  await nodes.get('activityTravelTab').fire('click');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(nodes.get('activityFlyboxPanel').hidden,true);
+  assert.equal(nodes.get('activityTravelPanel').hidden,false);
+  assert.equal(nodes.get('upcomingEventsTitle').textContent,'Upcoming (1)');
+});
+test('invalid category falls back to Travel', async()=>{
+  const {nodes}=harness({route:'#activities/unknown'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(nodes.get('activityTravelPanel').hidden,false);
+  assert.equal(nodes.get('activitySocialPanel').hidden,true);
 });

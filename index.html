@@ -59,7 +59,7 @@
     <nav id="accountMenu" class="account-menu" aria-label="Account pages" hidden>
       <button type="button" data-page="home" aria-current="page">Home</button>
       <button type="button" data-page="participants">Participants</button>
-      <button type="button" data-page="events">Events</button>
+      <button type="button" data-page="activities">Activities</button>
       <button type="button" data-page="request">Requests</button>
     </nav>
   </header>
@@ -119,7 +119,15 @@
         </section>
       </div>
     </section>
-    <section id="eventsPage" hidden aria-label="Events">
+    <section id="activitiesPage" hidden aria-label="Activities">
+      <div class="activity-tabs" role="tablist" aria-label="Activity categories">
+        <button id="activityTravelTab" type="button" role="tab" aria-selected="true" aria-controls="activityTravelPanel">Travel</button>
+        <button id="activitySkydiveTab" type="button" role="tab" aria-selected="false" aria-controls="activitySkydivePanel" tabindex="-1">Skydive Coaching</button>
+        <button id="activityTheoryTab" type="button" role="tab" aria-selected="false" aria-controls="activityTheoryPanel" tabindex="-1">Theory</button>
+        <button id="activityFlyboxTab" type="button" role="tab" aria-selected="false" aria-controls="activityFlyboxPanel" tabindex="-1">Flybox</button>
+        <button id="activitySocialTab" type="button" role="tab" aria-selected="false" aria-controls="activitySocialPanel" tabindex="-1">Social</button>
+      </div>
+      <div id="activityTravelPanel" role="tabpanel" aria-labelledby="activityTravelTab">
       <details class="travel-events-section">
         <summary class="travel-events-heading"><span id="travelEventsCount">Travel Events</span> <button id="refreshTravelEvents" type="button" class="travel-refresh-icon" aria-label="Refresh Travel Events" title="Refresh Travel Events">↻</button></summary>
         <p id="travelEventsStatus" role="status" aria-live="polite"></p>
@@ -154,6 +162,11 @@
         <a id="basicEventTravelLink" hidden target="_blank" rel="noopener">Add details in SHAKSHUKA Travel ↗</a>
       </form>
       </details>
+      </div>
+      <div id="activitySkydivePanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySkydiveTab" hidden><h2>Skydive Coaching</h2><p>Single coaching jumps, training days, and training over several days.</p></div>
+      <div id="activityTheoryPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityTheoryTab" hidden><h2>Theory</h2><p>Packing lessons, exam preparation, and theory workshops.</p></div>
+      <div id="activityFlyboxPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityFlyboxTab" hidden><h2>Flybox</h2><p>Tunnel coaching sessions and training days at Flybox.</p></div>
+      <div id="activitySocialPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySocialTab" hidden><h2>Social</h2><p>Sailing, community gatherings, and shared adventures.</p></div>
     </section>
     <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
