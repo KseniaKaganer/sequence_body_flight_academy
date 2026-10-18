@@ -80,19 +80,19 @@
       </form>
     </dialog>
 
-    <section id="participantsPage" hidden aria-labelledby="participantsTitle">
-      <h1 id="participantsTitle">Participants</h1>
-      <div class="participant-toolbar">
-        <div class="participant-search-field">
-          <label for="participantSearch">Search participants</label>
-          <input id="participantSearch" type="search" placeholder="Name, phone or email">
-        </div>
-        <button id="refreshParticipants" type="button">Refresh</button>
-      </div>
+    <section id="participantsPage" hidden aria-label="Participants">
       <p id="participantsStatus" role="status" aria-live="polite"></p>
       <div class="participants-workspace">
         <section class="participant-list-panel" aria-label="Participant list">
-          <h2>Participants</h2>
+          <h2 id="participantsListTitle">Participants</h2>
+      <div class="participant-toolbar">
+        <div class="participant-search-field">
+          <label for="participantSearch" class="visually-hidden">Search participants</label>
+          <input id="participantSearch" type="search" placeholder="Search name, phone or email…">
+        </div>
+        <button id="refreshParticipants" type="button">Refresh</button>
+      </div>
+
           <div id="participantsList" class="participants-list"></div>
         </section>
         <section class="participant-detail-panel" aria-labelledby="participantTitle">
@@ -119,8 +119,7 @@
         </section>
       </div>
     </section>
-    <section id="eventsPage" hidden aria-labelledby="eventsTitle">
-      <h1 id="eventsTitle">Events</h1>
+    <section id="eventsPage" hidden aria-label="Events">
       <details class="travel-events-section">
         <summary class="travel-events-heading"><span id="travelEventsCount">Travel Events</span> <button id="refreshTravelEvents" type="button" class="travel-refresh-icon" aria-label="Refresh Travel Events" title="Refresh Travel Events">↻</button></summary>
         <p id="travelEventsStatus" role="status" aria-live="polite"></p>
@@ -156,8 +155,7 @@
       </form>
       </details>
     </section>
-    <section id="requestPage" hidden>
-      <h1>Requests</h1>
+    <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
       <p>The requests list will appear here once the request form is defined.</p>
     </section>

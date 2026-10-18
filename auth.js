@@ -450,7 +450,9 @@
       });
       el('participantsList').append(button);
     }
-    status('participantsStatus', `${matches.length} of ${participants.length} participants`);
+    el('participantsListTitle').textContent = query
+      ? `Participants (${matches.length} / ${participants.length})` : `Participants (${participants.length})`;
+    status('participantsStatus', '');
     if (!matches.length) {
       const empty = document.createElement('p');
       empty.className = 'participant-list-empty';
@@ -513,6 +515,7 @@
     ++participantLoad;
     participants = [];
     participantRecords = [];
+    el('participantsListTitle').textContent = 'Participants';
     el('participantsList').replaceChildren();
     clearParticipantDetails();
     el('participantSearch').value = '';

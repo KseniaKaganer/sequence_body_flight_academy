@@ -243,3 +243,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .travel-event-status { display: inline-block; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: .8rem; text-transform: capitalize; }
 .event-travel-button { display: inline-block; padding: 9px 12px; white-space: nowrap; border: 1px solid #64302c; border-radius: 8px; background: #28110f; color: var(--text); text-decoration: none; }
 .event-travel-button:hover { background: #401915; }
+
+/* Keep participant search together with its list. */
+#participantsPage .participants-workspace { margin-top: 0; }
+.participant-list-panel .participant-toolbar { padding: 14px; gap: 8px; border-bottom: 1px solid var(--border); align-items: center; }
+.participant-list-panel .participant-search-field { max-width: none; }
+.participant-list-panel #participantSearch { min-height: 42px; padding: 10px 12px; border: 1px solid #414141; border-radius: 10px; color: var(--text); background: #0b0b0b; font: inherit; box-sizing: border-box; }
+.participant-list-panel #participantSearch:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.participant-list-panel #participantSearch::placeholder { color: #a0a0a0; font-size: .82rem; }
+.participant-list-panel #refreshParticipants { min-height: 42px; padding: 10px; border-radius: 10px; font-size: .82rem; flex-shrink: 0; }
+#participantsStatus:empty { display: none; }
