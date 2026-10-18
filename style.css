@@ -216,3 +216,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .event-add-person { flex-wrap: wrap; }
 .event-add-person input { flex: 1 1 180px; }
 @media(max-width: 500px) { .travel-event-row, .event-selected-person { flex-direction: column; align-items: stretch; } }
+
+.event-search-person { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 0; }
+.event-search-person > label { flex: 1; min-width: 140px; }
+.event-search-person > button, .event-phone-editor button { padding: 6px 10px; min-width: 36px; min-height: 36px; }
+.event-phone-editor { display: flex; align-items: center; gap: 6px; flex: 1 1 220px; }
+.event-phone-editor[hidden] { display: none; }
+.event-phone-editor input[type=tel] { min-width: 0; flex: 1; }
+.event-search-person > span { font-size: .8rem; color: var(--muted); }

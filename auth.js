@@ -653,11 +653,12 @@
         eventSelection.delete(key); renderEventSelection(); renderEventChoices();
       });
       const row = document.createElement('div'); row.className = 'event-selected-person';
-      const label = document.createElement('label'); label.textContent = `${person.name} — phone (optional)`;
+      const label = document.createElement('label'); label.textContent = person.id ? person.name : `${person.name} — phone (optional)`;
       const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
       phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${person.name}`);
       phone.addEventListener('input', () => { person.phone = phone.value; });
-      label.append(phone); row.append(label, button);
+      if (!person.id) label.append(phone);
+      row.append(label, button);
       el('eventSelectedParticipants').append(row);
     }
   }
@@ -676,7 +677,48 @@
       });
       const text = document.createElement('span');
       text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
-      label.append(input, text); host.append(label);
+      label.append(input, text);
+      const row = document.createElement('div'); row.className = 'event-search-person';
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit phone for ${personName(person)}`);
+      const editor = document.createElement('div'); editor.className = 'event-phone-editor'; editor.hidden = true;
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
+      phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${personName(person)}`);
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓';
+      save.setAttribute('aria-label', `Save phone for ${personName(person)}`);
+      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '×'; cancel.setAttribute('aria-label', 'Cancel phone edit');
+      const message = document.createElement('span'); message.setAttribute('role', 'status');
+      edit.addEventListener('click', () => { editor.hidden = false; edit.hidden = true; phone.focus(); });
+      cancel.addEventListener('click', () => { editor.hidden = true; edit.hidden = false; phone.value = person.phone || ''; message.textContent = ''; });
+      let saving = false;
+      save.addEventListener('click', async () => {
+        if (!verifiedAdmin || saving || savingBasicEvent) return;
+        const value = phone.value.trim();
+        if (value && (value.length > 40 || !/^[+0-9().\s-]+$/.test(value) || !/\d/.test(value))) {
+          message.textContent = 'Enter a valid phone number.'; return;
+        }
+        const accountRevision = revision;
+        saving = true; save.disabled = true; cancel.disabled = true; phone.disabled = true;
+        message.textContent = 'Saving…';
+        try {
+          const { error } = await client.rpc('admin_update_participant_phone', {
+            p_participant_id: person.id, p_original_phone: person.phone ?? null, p_phone: value || null
+          });
+          if (error) throw error;
+          if (!verifiedAdmin || revision !== accountRevision) return;
+          person.phone = value || null;
+          person.searchText = [personName(person), person.phone, person.email].filter(Boolean).join(' ');
+          const selected = eventSelection.get(person.id);
+          if (selected) { selected.phone = value; selected.originalPhone = value || null; }
+          text.textContent = personName(person) + (value ? ` · ${value}` : '');
+          editor.hidden = true; edit.hidden = false; message.textContent = 'Saved';
+          renderEventSelection();
+        } catch (error) {
+          if (verifiedAdmin && revision === accountRevision) message.textContent = error.code === 'PGRST202'
+            ? 'Run the updated database/basic-events.sql in Supabase.' : error.message || 'Unable to save. Try again.';
+        } finally { saving = false; save.disabled = false; cancel.disabled = false; phone.disabled = false; }
+      });
+      editor.append(phone, save, cancel); row.append(label, edit, editor, message); host.append(row);
     }
     if (!host.children.length) host.textContent = eventPeopleReady ? 'No matching participants.' : 'Loading participants…';
   }
@@ -731,7 +773,7 @@
       status('basicEventStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
     }
     const person = matches[0];
-    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: enteredPhone || person.phone || '', originalPhone: person.phone ?? null } : { name, phone: enteredPhone });
+    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, phone: enteredPhone });
     el('newEventParticipant').value = '';
     el('newEventParticipantPhone').value = '';
     status('basicEventStatus', ''); renderEventSelection(); renderEventChoices();

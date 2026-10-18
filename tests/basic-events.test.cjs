@@ -21,7 +21,7 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const calls=[];
+  const calls=[]; const phoneCalls=[];
   let failSave=true;
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
@@ -34,6 +34,7 @@ function harness(options = {}) {
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
+      if(name==='admin_update_participant_phone') { phoneCalls.push(JSON.parse(JSON.stringify(args))); return options.phoneError ? {error:{message:'Phone save failed'}} : {data:null}; }
       calls.push(JSON.parse(JSON.stringify(args)));
       if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
       return {data:args.p_event_id};
@@ -46,7 +47,7 @@ function harness(options = {}) {
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls};
+  return {nodes,calls,phoneCalls};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -57,7 +58,7 @@ test('basic events reuse existing people, group phones and retry the same atomic
   el('newEventParticipant').value='Denis'; await el('queueEventParticipant').fire('click');
   el('newEventParticipant').value='New Person'; await el('queueEventParticipant').fire('click');
   el('eventParticipantSearch').value='Nadia'; await el('eventParticipantSearch').fire('input');
-  const checkbox=el('eventParticipantChoices').children[0].children[0]; checkbox.checked=true; await checkbox.fire('change');
+  const checkbox=el('eventParticipantChoices').children[0].children[0].children[0]; checkbox.checked=true; await checkbox.fire('change');
   await el('basicEventForm').fire('submit');
   assert.equal(el('basicEventStatus').textContent,'Temporary network failure');
   assert.equal(el('basicEventName').value,'Florida 26');
@@ -96,11 +97,13 @@ test('phones for existing and new participants are included in the atomic save',
   await new Promise(resolve=>setImmediate(resolve));
   for(const [id,value] of Object.entries({basicEventName:'Phones',basicEventType:'tunnel',basicEventStart:'2026-01-01',basicEventEnd:'2026-01-02'}))el(id).value=value;
   el('newEventParticipant').value='Denis'; await el('queueEventParticipant').fire('click');
-  let phone=el('eventSelectedParticipants').children[0].children[0].children[0];
-  phone.value='050-999'; await phone.fire('input');
+  const result=el('eventParticipantChoices').children[0];
+  await result.children[1].fire('click');
+  const phone=result.children[2].children[0]; phone.value='050-999';
+  await result.children[2].children[1].fire('click');
   el('newEventParticipant').value='New Person'; el('newEventParticipantPhone').value='052-777'; await el('queueEventParticipant').fire('click');
   await el('basicEventForm').fire('submit');
-  assert.deepEqual(calls[0].p_participant_phones,[{id:'denis',phone:'050-999',original_phone:'050-123'}]);
+  assert.deepEqual(calls[0].p_participant_phones,[], 'existing phone was already saved separately');
   assert.deepEqual(calls[0].p_new_phones,['052-777']);
 });
 test('a queued new name cannot reuse another participant phone', async()=>{
@@ -111,4 +114,30 @@ test('a queued new name cannot reuse another participant phone', async()=>{
   assert.match(el('basicEventStatus').textContent,/phone belongs to an existing/);
   assert.equal(el('eventSelectedParticipants').children.length,0);
   assert.equal(calls.length,0);
+});
+
+test('pencil and checkmark save an existing phone immediately without selecting or creating an event', async()=>{
+  const {nodes,calls,phoneCalls}=harness();
+  await new Promise(resolve=>setImmediate(resolve));
+  const row=nodes.get('eventParticipantChoices').children[0];
+  const [label,edit,editor,message]=row.children;
+  assert.equal(editor.hidden,true);
+  await edit.fire('click'); assert.equal(editor.hidden,false);
+  editor.children[0].value='052-1234567';
+  await editor.children[1].fire('click');
+  assert.deepEqual(phoneCalls,[{p_participant_id:'denis',p_original_phone:'050-123',p_phone:'052-1234567'}]);
+  assert.equal(calls.length,0); assert.equal(editor.hidden,true); assert.equal(message.textContent,'Saved');
+  assert.match(label.children[1].textContent,/052-1234567/);
+});
+test('phone errors preserve the inline editor and cancel does not save', async()=>{
+  const {nodes,phoneCalls}=harness({phoneError:true});
+  await new Promise(resolve=>setImmediate(resolve));
+  const row=nodes.get('eventParticipantChoices').children[0];
+  await row.children[1].fire('click');
+  row.children[2].children[0].value='052-1234567';
+  await row.children[2].children[1].fire('click');
+  assert.equal(row.children[2].hidden,false);
+  assert.equal(row.children[3].textContent,'Phone save failed');
+  await row.children[2].children[2].fire('click');
+  assert.equal(row.children[2].hidden,true); assert.equal(phoneCalls.length,1);
 });

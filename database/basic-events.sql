@@ -199,5 +199,42 @@ end;
 $$;
 revoke all on function public.admin_create_basic_event_v2(uuid,text,text,date,date,uuid[],text[],text[],jsonb) from public, anon;
 grant execute on function public.admin_create_basic_event_v2(uuid,text,text,date,date,uuid[],text[],text[],jsonb) to authenticated;
+-- Immediate phone editing from participant search results, independent of event creation.
+create or replace function public.admin_update_participant_phone(
+  p_participant_id uuid, p_original_phone text, p_phone text
+) returns void
+language plpgsql security invoker set search_path = public as $$
+declare
+  v_original text;
+  v_phone text := nullif(trim(p_phone), '');
+  v_key text;
+begin
+  if not coalesce(public.is_admin(), false) then
+    raise exception 'Administrator access required.' using errcode = '42501';
+  end if;
+  if v_phone is not null and (char_length(v_phone) > 40 or v_phone !~ '^[+0-9().[:space:]-]+$' or v_phone !~ '[0-9]') then
+    raise exception 'Enter a valid phone number (up to 40 characters).';
+  end if;
+  perform pg_advisory_xact_lock(1862026, 1);
+  select phone into v_original from public.participants where id = p_participant_id for update;
+  if not found then raise exception 'Participant no longer exists. Refresh Events.'; end if;
+  -- Retrying a successful save is harmless.
+  if v_original is not distinct from v_phone then return; end if;
+  if v_original is distinct from p_original_phone then
+    raise exception 'Phone changed elsewhere. Refresh Events and try again.';
+  end if;
+  v_key := nullif(ltrim(regexp_replace(v_original, '[^0-9]', '', 'g'), '0'), '');
+  if v_phone is not null and exists (select 1 from public.participants p
+    where ltrim(regexp_replace(p.phone, '[^0-9]', '', 'g'), '0') = ltrim(regexp_replace(v_phone, '[^0-9]', '', 'g'), '0')
+    and p.id <> p_participant_id and (v_key is null or ltrim(regexp_replace(p.phone, '[^0-9]', '', 'g'), '0') <> v_key)) then
+    raise exception 'This phone belongs to another participant. Select their existing record.';
+  end if;
+  update public.participants set phone = v_phone where id = p_participant_id
+    or (v_key is not null and ltrim(regexp_replace(phone, '[^0-9]', '', 'g'), '0') = v_key);
+end;
+$$;
+revoke all on function public.admin_update_participant_phone(uuid,text,text) from public, anon;
+grant execute on function public.admin_update_participant_phone(uuid,text,text) to authenticated;
+
 notify pgrst, 'reload schema';
 commit;
