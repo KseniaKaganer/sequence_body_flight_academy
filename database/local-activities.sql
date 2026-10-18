@@ -79,7 +79,7 @@ alter table public.sequence_activities add column if not exists coach_user_id uu
 -- dropdown through this admin-checked function, without exposing emails.
 create or replace function public.admin_list_sequence_coaches()
 returns table(user_id uuid, display_name text)
-language plpgsql stable security definer set search_path = public as $
+language plpgsql stable security definer set search_path = public as $function$
 begin
   if not coalesce(public.is_admin(), false) then
     raise exception 'Administrator access required.' using errcode = '42501';
@@ -87,14 +87,14 @@ begin
   return query select a.user_id, left(coalesce(nullif(trim(a.display_name), ''), nullif(trim(a.email), ''), 'Admin'), 150)
     from public.admin_users a order by lower(coalesce(nullif(trim(a.display_name), ''), a.email, 'Admin')), a.user_id;
 end;
-$;
+$function$;
 revoke all on function public.admin_list_sequence_coaches() from public, anon;
 grant execute on function public.admin_list_sequence_coaches() to authenticated;
 
 create or replace function public.admin_create_sequence_activity_v2(
   p_activity_id uuid, p_category text, p_title text, p_start_date date, p_end_date date,
   p_location text, p_coach_user_id uuid, p_notes text, p_participant_ids uuid[], p_new_participants jsonb
-) returns uuid language plpgsql security invoker set search_path = public as $
+) returns uuid language plpgsql security invoker set search_path = public as $function$
 declare
   v_payload jsonb;
   v_previous jsonb;
@@ -181,7 +181,7 @@ commit;
   insert into public.sequence_activity_participants(activity_id, participant_id) select p_activity_id, id from unnest(v_ids) ids(id);
   return p_activity_id;
 end;
-$;
+$function$;
 revoke all on function public.admin_create_sequence_activity_v2(uuid,text,text,date,date,text,uuid,text,uuid[],jsonb) from public, anon;
 grant execute on function public.admin_create_sequence_activity_v2(uuid,text,text,date,date,text,uuid,text,uuid[],jsonb) to authenticated;
 
