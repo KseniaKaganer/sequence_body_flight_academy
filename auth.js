@@ -29,6 +29,8 @@
   let selectedParticipantId = null;
   let participantLoad = 0;
   let activePage = 'home';
+  const statisticsViews = ['overview','types','participation','coaches','months','requests'];
+  let activeStatisticsView = 'overview';
   let activeParticipantTab = 'skill';
   const activityTabs = ['travel', 'skydive', 'theory', 'flybox', 'social'];
   let activeActivityTab = 'travel';
@@ -37,14 +39,16 @@
     try { parts = window.location.hash.slice(1).split('/').map(decodeURIComponent); }
     catch { return { page: 'home', participant: null, tab: 'skill' }; }
     const requestedPage = parts[0] === 'events' ? 'activities' : parts[0];
-    const page = ['participants', 'requests', 'activities'].includes(requestedPage) ? requestedPage : 'home';
+    const page = ['participants', 'requests', 'activities', 'statistics'].includes(requestedPage) ? requestedPage : 'home';
     return { page: page === 'requests' ? 'request' : page,
+      statisticsView: statisticsViews.includes(parts[1]) ? parts[1] : 'overview',
       activity: activityTabs.includes(parts[1]) ? parts[1] : 'travel',
       participant: page === 'participants' ? parts[1] || null : null,
       tab: parts[2] === 'info' ? 'info' : 'skill' };
   }
   function writeRoute() {
     let hash = activePage === 'request' ? '#requests' : '#' + activePage;
+    if (activePage === 'statistics') hash += '/' + activeStatisticsView;
     if (activePage === 'activities') hash += '/' + activeActivityTab;
     if (activePage === 'participants' && selectedParticipantId) {
       hash += '/' + encodeURIComponent(selectedParticipantId) + '/' + activeParticipantTab;
@@ -55,6 +59,7 @@
     const route = readRoute();
     if (!verifiedAdmin) { setPage('home', false); return; }
     activeActivityTab = route.activity || 'travel';
+    activeStatisticsView = route.statisticsView || 'overview';
     setPage(route.page, false);
   }
   window.addEventListener('popstate', restoreRoute);
@@ -62,7 +67,7 @@
   function setPage(page, updateUrl = true) {
     if (!verifiedAdmin && page !== 'home') return;
     activePage = page;
-    for (const name of ['home', 'participants', 'request', 'activities']) {
+    for (const name of ['home', 'participants', 'request', 'activities', 'statistics']) {
       el(name + 'Page').hidden = name !== page;
     }
     document.querySelectorAll('[data-page]').forEach(button => {
@@ -72,6 +77,7 @@
     if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
     if (page === 'request') loadRequests();
+    if (page === 'statistics') { setStatisticsView(activeStatisticsView, false, false); loadStatistics(); }
     if (page === 'activities') setActivityTab(activeActivityTab, false, false);
   }
 
@@ -563,6 +569,8 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    ++statisticsLoad; statisticsData = null; el('statisticsContent').hidden = true; status('statisticsStatus', '');
+    for (const id of ['statisticsCards','statisticsOverviewPeople','statisticsTypes','statisticsPeople','statisticsCoaches','statisticsMonths','statisticsRequestCards','statisticsRequests']) el(id).replaceChildren();
     ++requestPeopleLoad; ++requestsLoad;
     requestPeople = []; requestParticipantSelection.clear();
     el('requestsList').replaceChildren(); status('requestsListStatus', ''); el('requestsListTitle').textContent = 'Requests';
@@ -1707,6 +1715,214 @@
     status('newRequestStatus', ''); renderRequestSelection(); renderRequestPeople();
   });
 
+
+  let statisticsLoad = 0;
+  let statisticsData = null;
+  function statisticsRange() {
+    const today = activityToday(), preset = el('statisticsRange').value || 'year';
+    if (preset === 'all') return { start: null, end: null, label: 'All time' };
+    if (preset === 'custom') {
+      const start = el('statisticsStart').value, end = el('statisticsEnd').value;
+      if (!start || !end || end < start) throw new Error('Choose valid From and To dates.');
+      return { start, end, label: start.split('-').reverse().join('/') + ' – ' + end.split('-').reverse().join('/') };
+    }
+    const year = Number(today.slice(0, 4)), month = Number(today.slice(5, 7));
+    if (preset === 'month') {
+      const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      return { start: today.slice(0, 7) + '-01', end: today.slice(0, 7) + '-' + last, label: 'This month' };
+    }
+    return { start: year + '-01-01', end: year + '-12-31', label: 'This year' };
+  }
+  // Every activity/person pair contributes at most one attendance, even when
+  // several legacy participant records share the same normalized phone.
+  function buildStatistics(data, options) {
+    const { start, end, scope, today } = options;
+    const groups = groupParticipantRecords(data.participants);
+    const identity = new Map(), people = new Map();
+    for (const group of groups) {
+      const records = data.participants.filter(person => group.recordIds.includes(person.id));
+      if (records.some(person => person.is_admin_participant)) continue;
+      people.set(group.id, { id: group.id, name: personName(group) || 'Unnamed participant' });
+      for (const id of group.recordIds) identity.set(id, group.id);
+    }
+    const all = new Map();
+    for (const row of data.events) {
+      if (row.status === 'cancelled') continue;
+      all.set('travel:' + row.id, { key: 'travel:' + row.id, category: 'travel', name: row.name,
+        start: row.start_date, end: row.end_date || row.start_date, completed: row.status === 'completed', people: new Set() });
+    }
+    for (const row of data.activities) {
+      all.set('local:' + row.id, { key: 'local:' + row.id, category: row.category, name: row.title,
+        start: row.start_date, end: row.end_date || row.start_date, coach: row.coach, coachId: row.coach_user_id, people: new Set() });
+    }
+    for (const row of data.travelMemberships) {
+      if (row.participant_status === 'cancelled') continue;
+      const person = identity.get(row.participant_id), activity = all.get('travel:' + row.event_id);
+      if (person && activity) activity.people.add(person);
+    }
+    for (const row of data.localMemberships) {
+      const person = identity.get(row.participant_id), activity = all.get('local:' + row.activity_id);
+      if (person && activity) activity.people.add(person);
+    }
+    const state = activity => activity.completed || activity.end < today ? 'past' : activity.start > today ? 'upcoming' : 'current';
+    const inRange = date => date && (!start || date >= start) && (!end || date <= end);
+    const dated = [...all.values()].filter(activity => inRange(activity.start));
+    const selected = dated.filter(activity => scope === 'all' || state(activity) === scope);
+    const firstEver = new Map();
+    for (const activity of all.values()) for (const id of activity.people) {
+      if (activity.start && (!firstEver.has(id) || activity.start < firstEver.get(id))) firstEver.set(id, activity.start);
+    }
+    const peopleRows = new Map();
+    for (const activity of selected) for (const id of activity.people) {
+      if (!peopleRows.has(id)) peopleRows.set(id, { ...people.get(id), count: 0, first: activity.start, last: activity.start,
+        returning: Boolean(start && firstEver.get(id) < start) });
+      const row = peopleRows.get(id); ++row.count;
+      if (activity.start < row.first) row.first = activity.start;
+      if (activity.start > row.last) row.last = activity.start;
+    }
+    const aggregate = list => ({ count: list.length, people: new Set(list.flatMap(activity => [...activity.people])).size,
+      attendances: list.reduce((sum, activity) => sum + activity.people.size, 0) });
+    const totals = aggregate(selected);
+    const types = ['travel', 'skydive', 'theory', 'flybox', 'social'].map(category => ({ category, ...aggregate(selected.filter(activity => activity.category === category)) }));
+    const coaches = new Map(); let unassigned = 0;
+    for (const activity of selected.filter(activity => activity.category !== 'travel')) {
+      if (!activity.coachId && !activity.coach) { ++unassigned; continue; }
+      const key = activity.coachId || 'name:' + activity.coach.trim().toLowerCase();
+      if (!coaches.has(key)) coaches.set(key, { name: activity.coach || 'Admin', activities: [] });
+      coaches.get(key).activities.push(activity);
+    }
+    const months = new Map();
+    for (const activity of selected) { const key = activity.start.slice(0, 7); if (!months.has(key)) months.set(key, []); months.get(key).push(activity); }
+    const requestDate = row => {
+      if (!row.created_at) return null;
+      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(row.created_at));
+      const part = type => parts.find(p => p.type === type).value;
+      return part('year') + '-' + part('month') + '-' + part('day');
+    };
+    const requests = (data.requests || []).filter(row => inRange(requestDate(row)));
+    return { totals, states: { past: dated.filter(a => state(a) === 'past').length, current: dated.filter(a => state(a) === 'current').length,
+      upcoming: dated.filter(a => state(a) === 'upcoming').length },
+      types, people: [...peopleRows.values()].sort((a,b) => b.count - a.count || a.name.localeCompare(b.name)),
+      returning: [...peopleRows.values()].filter(row => row.returning).length,
+      coaches: [...coaches.values()].map(row => ({ name: row.name, ...aggregate(row.activities) })).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name)),
+      unassigned, months: [...months].sort((a,b) => a[0].localeCompare(b[0])).map(([month, rows]) => ({ month, ...aggregate(rows) })), requests };
+  }
+  function statisticsTable(hostId, captionText, headers, rows) {
+    const host = el(hostId); host.replaceChildren();
+    if (!rows.length) { const p = document.createElement('p'); p.textContent = 'No records for these filters.'; host.append(p); return; }
+    const table = document.createElement('table'); table.className = 'travel-events-table';
+    const caption = document.createElement('caption'); caption.className = 'visually-hidden'; caption.textContent = captionText;
+    const head = document.createElement('thead'), header = document.createElement('tr');
+    for (const text of headers) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; header.append(th); }
+    head.append(header); const body = document.createElement('tbody');
+    for (const values of rows) { const row = document.createElement('tr'); for (const value of values) { const td = document.createElement('td'); td.textContent = String(value ?? '—'); row.append(td); } body.append(row); }
+    table.append(caption, head, body); const scroll = document.createElement('div'); scroll.className = 'travel-events-scroll'; scroll.tabIndex = 0;
+    scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', captionText); scroll.append(table); host.append(scroll);
+  }
+  function statisticsCards(hostId, cards) {
+    el(hostId).replaceChildren();
+    for (const [label, value] of cards) {
+      const card = document.createElement('div'); card.className = 'statistics-card';
+      const number = document.createElement('strong'); number.textContent = String(value);
+      const title = document.createElement('span'); title.textContent = label; card.append(number, title); el(hostId).append(card);
+    }
+  }
+  function renderStatistics() {
+    if (!verifiedAdmin || !statisticsData) return;
+    try {
+      const range = statisticsRange(), scope = el('statisticsScope').value || 'past';
+      const result = buildStatistics(statisticsData, { ...range, scope, today: activityToday() });
+      const labels = { travel: 'Travel', ...localActivityLabels };
+      const date = value => value ? value.split('-').reverse().join('/') : '—';
+      el('statisticsPeriod').textContent = range.label + ' · ' + ({past:'Past activities',current:'Current activities',upcoming:'Upcoming activities',all:'All activities'}[scope]);
+      el('statisticsActivityStates').textContent = `In this date range: ${result.states.past} past · ${result.states.current} current · ${result.states.upcoming} upcoming activities`;
+      statisticsCards('statisticsCards', [['Activities',result.totals.count],['Unique participants',result.totals.people],['Attendances',result.totals.attendances],
+        ['Average group size',result.totals.count ? (result.totals.attendances/result.totals.count).toFixed(1) : '0'],
+        ['First-time participants',result.totals.people-result.returning],['Returning participants',result.returning]]);
+      const peopleHeaders = ['Participant','Attendances','First activity in range','Last activity in range','Participation'];
+      const peopleRows = result.people.map(row => [row.name,row.count,date(row.first),date(row.last),row.returning?'Returning':'First-time']);
+      statisticsTable('statisticsOverviewPeople','Most active participants',peopleHeaders,peopleRows.slice(0,5));
+      statisticsTable('statisticsTypes','Activity types',['Type','Activities','Unique participants','Attendances','Average group size'],result.types.map(row =>
+        [labels[row.category] || row.category,row.count,row.people,row.attendances,row.count?(row.attendances/row.count).toFixed(1):'0']));
+      el('statisticsParticipationNote').textContent = 'Returning participants had an activity before the selected date range. First-time participants have their earliest recorded activity within this range.';
+      statisticsTable('statisticsPeople','Participant activity statistics',peopleHeaders,peopleRows);
+      el('statisticsCoachesNote').textContent = 'Coach figures cover local activities; Travel coach assignments are not included. Unassigned local activities: ' + result.unassigned + '.';
+      statisticsTable('statisticsCoaches','Coach statistics',['Coach / organizer','Activities','Unique participants','Attendances'],result.coaches.map(row=>[row.name,row.count,row.people,row.attendances]));
+      statisticsTable('statisticsMonths','Monthly activity statistics',['Month','Activities','Unique participants','Attendances'],result.months.map(row=>[row.month,row.count,row.people,row.attendances]));
+      if (statisticsData.requestsError) {
+        el('statisticsRequestCards').replaceChildren(); el('statisticsRequests').replaceChildren();
+        el('statisticsRequestsNote').textContent = 'Request statistics could not be loaded. Apply database/requests.sql if Requests has not been set up, then refresh statistics.';
+      } else {
+        el('statisticsRequestsNote').textContent = 'Requests use their creation date and the same date range. The activity scope does not filter requests.';
+        const statuses=['new','in_progress','done','cancelled'];
+        statisticsCards('statisticsRequestCards',[['Total requests',result.requests.length],...statuses.map(status=>
+          [{new:'New',in_progress:'In progress',done:'Done',cancelled:'Cancelled'}[status],result.requests.filter(row=>row.status===status).length])]);
+        statisticsTable('statisticsRequests','Requests by type',['Type','Total','New','In progress','Done','Cancelled'],Object.keys(requestTypeLabels).map(type=>{
+          const rows=result.requests.filter(row=>row.request_type===type);
+          return [requestTypeLabels[type],rows.length,...statuses.map(status=>rows.filter(row=>row.status===status).length)];
+        }));
+      }
+      el('statisticsContent').hidden = false; status('statisticsStatus','');
+    } catch(error) { el('statisticsContent').hidden = true; status('statisticsStatus',error.message || 'Unable to display statistics.'); }
+  }
+  function setStatisticsView(view, focus = false, updateUrl = true) {
+    if (!verifiedAdmin) return;
+    activeStatisticsView = statisticsViews.includes(view) ? view : 'overview';
+    for (const name of statisticsViews) {
+      const selected = name === activeStatisticsView, button = el('statistics'+name+'Tab');
+      button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;
+      el('statistics'+name+'Panel').hidden=!selected;if(selected&&focus)button.focus();
+    }
+    if(updateUrl && activePage==='statistics')writeRoute();
+  }
+  async function loadStatistics() {
+    if(!verifiedAdmin)return;
+    const request=++statisticsLoad;statisticsData=null;el('statisticsContent').hidden=true;
+    status('statisticsStatus','Loading statistics…');el('refreshStatistics').disabled=true;
+    const specs=[
+      ['participants','participants','id,display_name,surname,phone,email,is_admin_participant',['id']],
+      ['events','events','id,name,start_date,end_date,status,event_type',['id']],
+      ['activities','sequence_activities','id,title,category,start_date,end_date,coach,coach_user_id',['id']],
+      ['travelMemberships','event_participants','id,event_id,participant_id,participant_status',['id']],
+      ['localMemberships','sequence_activity_participants','activity_id,participant_id',['activity_id','participant_id']],
+      ['requests','sequence_requests','id,request_type,status,created_at',['id']]
+    ];
+    const results=await Promise.allSettled(specs.map(async([,table,columns,order])=>{
+      const rows=[];
+      for(let start=0; ; start+=500){
+        let query=client.from(table).select(columns);for(const column of order)query=query.order(column);
+        const {data,error}=await query.range(start,start+499);if(error)throw error;
+        if(!verifiedAdmin || request!==statisticsLoad)return null;
+        rows.push(...data);if(data.length<500)return rows;
+      }
+    }));
+    if(!verifiedAdmin || request!==statisticsLoad)return;
+    try{
+      const data={};let coreError=null;
+      results.forEach((result,index)=>{
+        const key=specs[index][0];
+        if(result.status==='fulfilled')data[key]=result.value;
+        else if(key==='requests'){data.requests=[];data.requestsError=true;}
+        else coreError=result.reason;
+      });
+      if(coreError)throw coreError;
+      statisticsData=data;renderStatistics();
+    }catch(error){status('statisticsStatus',['PGRST205','42P01','42703'].includes(error.code)
+      ?'Activity statistics need the updated database/local-activities.sql. Run it in Supabase, then refresh.'
+      :'Unable to load statistics. Refresh to retry.');}
+    finally{el('refreshStatistics').disabled=false;}
+  }
+  for(const [index,view] of statisticsViews.entries()){
+    const button=el('statistics'+view+'Tab');button.addEventListener('click',()=>setStatisticsView(view));
+    button.addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();
+      const next=event.key==='Home'?0:event.key==='End'?statisticsViews.length-1:(index+(event.key==='ArrowRight'?1:-1)+statisticsViews.length)%statisticsViews.length;
+      setStatisticsView(statisticsViews[next],true);
+    });
+  }
+  el('statisticsRange').addEventListener('change',()=>{el('statisticsCustomDates').hidden=el('statisticsRange').value!=='custom';renderStatistics();});
+  for(const id of ['statisticsScope','statisticsStart','statisticsEnd'])el(id).addEventListener('change',renderStatistics);
+  el('refreshStatistics').addEventListener('click',loadStatistics);
 
   async function init() {
     try {

@@ -61,6 +61,7 @@
       <button type="button" data-page="participants">Participants</button>
       <button type="button" data-page="activities">Activities</button>
       <button type="button" data-page="request">Requests</button>
+      <button type="button" data-page="statistics">Statistics</button>
     </nav>
   </header>
 
@@ -222,6 +223,35 @@
         </details>
       </div>
     </section>
+    <section id="statisticsPage" hidden aria-label="Statistics">
+      <div class="statistics-controls">
+        <div><label for="statisticsRange">Date range</label><select id="statisticsRange"><option value="month">This month</option><option value="year" selected>This year</option><option value="all">All time</option><option value="custom">Custom dates</option></select></div>
+        <div><label for="statisticsScope">Activities to count</label><select id="statisticsScope"><option value="past">Past activities</option><option value="current">Current activities</option><option value="upcoming">Upcoming activities</option><option value="all">All activities</option></select></div>
+        <button id="refreshStatistics" type="button" class="statistics-refresh" aria-label="Refresh statistics" title="Refresh statistics">↻</button>
+      </div>
+      <div id="statisticsCustomDates" class="statistics-controls" hidden><div><label for="statisticsStart">From</label><input id="statisticsStart" type="date"></div><div><label for="statisticsEnd">To</label><input id="statisticsEnd" type="date"></div></div>
+      <div class="activity-tabs" role="tablist" aria-label="Statistics views">
+        <button id="statisticsoverviewTab" type="button" role="tab" aria-selected="true" aria-controls="statisticsoverviewPanel">Overview</button>
+        <button id="statisticstypesTab" type="button" role="tab" aria-selected="false" aria-controls="statisticstypesPanel" tabindex="-1">Activity types</button>
+        <button id="statisticsparticipationTab" type="button" role="tab" aria-selected="false" aria-controls="statisticsparticipationPanel" tabindex="-1">Participation</button>
+        <button id="statisticscoachesTab" type="button" role="tab" aria-selected="false" aria-controls="statisticscoachesPanel" tabindex="-1">Coaches</button>
+        <button id="statisticsmonthsTab" type="button" role="tab" aria-selected="false" aria-controls="statisticsmonthsPanel" tabindex="-1">Over time</button>
+        <button id="statisticsrequestsTab" type="button" role="tab" aria-selected="false" aria-controls="statisticsrequestsPanel" tabindex="-1">Requests</button>
+      </div>
+      <p id="statisticsStatus" role="status" aria-live="polite"></p>
+      <div id="statisticsContent" hidden>
+        <p id="statisticsPeriod" class="statistics-note"></p>
+        <p id="statisticsActivityStates" class="statistics-note"></p>
+        <p class="statistics-note">Activities are counted by start date. Participants are grouped by shared profile/phone; admin participants are excluded from people and attendance totals.</p>
+        <div id="statisticsoverviewPanel" role="tabpanel" aria-labelledby="statisticsoverviewTab"><div id="statisticsCards" class="statistics-cards"></div><h3>Most active participants</h3><div id="statisticsOverviewPeople"></div></div>
+        <div id="statisticstypesPanel" role="tabpanel" aria-labelledby="statisticstypesTab" hidden><div id="statisticsTypes"></div></div>
+        <div id="statisticsparticipationPanel" role="tabpanel" aria-labelledby="statisticsparticipationTab" hidden><p id="statisticsParticipationNote" class="statistics-note"></p><div id="statisticsPeople"></div></div>
+        <div id="statisticscoachesPanel" role="tabpanel" aria-labelledby="statisticscoachesTab" hidden><p id="statisticsCoachesNote" class="statistics-note"></p><div id="statisticsCoaches"></div></div>
+        <div id="statisticsmonthsPanel" role="tabpanel" aria-labelledby="statisticsmonthsTab" hidden><div id="statisticsMonths"></div></div>
+        <div id="statisticsrequestsPanel" role="tabpanel" aria-labelledby="statisticsrequestsTab" hidden><p id="statisticsRequestsNote" class="statistics-note"></p><div id="statisticsRequestCards" class="statistics-cards"></div><div id="statisticsRequests"></div></div>
+      </div>
+    </section>
+
     <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
       <p id="requestsListStatus" role="status" aria-live="polite"></p>

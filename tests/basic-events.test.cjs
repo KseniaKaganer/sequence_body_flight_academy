@@ -424,3 +424,14 @@ test('save a request with no participants, then append people without creating a
   await row.children[5].children[0].fire('click');
   assert.equal(el('requestPeople').children[0].children[0].children[0].disabled,true);
 });
+
+test('Statistics restores its view and validates custom dates',async()=>{
+ const {nodes}=harness({route:'#statistics/types'});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(el('statisticsPage').hidden,false);assert.equal(el('statisticstypesPanel').hidden,false);
+ assert.equal(el('statisticsoverviewPanel').hidden,true);assert.equal(el('statisticsContent').hidden,false);
+ el('statisticsRange').value='custom';await el('statisticsRange').fire('change');
+ assert.equal(el('statisticsCustomDates').hidden,false);assert.match(el('statisticsStatus').textContent,/valid From and To/);
+ el('statisticsStart').value='2026-01-01';el('statisticsEnd').value='2026-12-31';await el('statisticsEnd').fire('change');
+ assert.equal(el('statisticsContent').hidden,false);
+});
