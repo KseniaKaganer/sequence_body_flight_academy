@@ -261,3 +261,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .activity-category-panel h2 { margin-top: 0; font-size: 1.3rem; }
 .activity-category-panel p { color: var(--muted); line-height: 1.6; margin-bottom: 0; }
 @media(max-width: 600px) { .activity-tabs { gap: 6px; } .activity-tabs button { padding: 10px 12px; flex: 1 1 auto; } }
+
+.activity-category-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.activity-category-header h2 { margin: 0; }
+.activity-category-panel details { margin-top: 22px; }
+.activity-category-panel summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.local-activity-card { border-top: 1px solid var(--border); padding: 16px 0; }
+.local-activity-card h3 { margin: 0 0 8px; overflow-wrap: anywhere; }
+.local-activity-card p { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 8px; }
+.local-activity-dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.local-activity-dialog fieldset { border: 0; padding: 0; min-width: 0; }
+.local-activity-dialog .event-dates { gap: 12px; }
+.local-activity-dialog #localActivityPeople { margin-top: 10px; }
+.local-activity-dialog #saveLocalActivity { background: var(--accent); }

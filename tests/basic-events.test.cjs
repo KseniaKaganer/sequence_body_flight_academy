@@ -21,7 +21,7 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const calls=[]; const phoneCalls=[];
+  const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=[];
   let failSave=true;
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
@@ -34,20 +34,27 @@ function harness(options = {}) {
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
+      if(name==='admin_create_sequence_activity') {
+        localCalls.push(JSON.parse(JSON.stringify(args)));
+        if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
+        localRows.push({id:args.p_activity_id,title:args.p_title,start_date:args.p_start_date,end_date:args.p_end_date,
+          location:args.p_location,coach:args.p_coach,notes:args.p_notes,sequence_activity_participants:[{count:args.p_participant_ids.length}]});
+        return {data:args.p_activity_id};
+      }
       if(name==='admin_update_participant_phone') { phoneCalls.push(JSON.parse(JSON.stringify(args))); return options.phoneError ? {error:{message:'Phone save failed'}} : {data:null}; }
       calls.push(JSON.parse(JSON.stringify(args)));
       if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
       return {data:args.p_event_id};
     },from(table){
       const query={select:()=>query,eq:()=>query,order:()=>query,
-        range:async()=>({data:table === 'events' ? events : people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
+        range:async()=>({data:table === 'events' ? events : table === 'sequence_activities' ? localRows : people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
       return query;
     }};
   const window={location:{hash:options.route || '#events'},history:{pushState(_state,_title,hash){window.location.hash=hash;}},addEventListener(){},
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls};
+  return {nodes,calls,phoneCalls,localCalls};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -196,4 +203,41 @@ test('invalid category falls back to Travel', async()=>{
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(nodes.get('activityTravelPanel').hidden,false);
   assert.equal(nodes.get('activitySocialPanel').hidden,true);
+});
+
+
+for (const category of ['Skydive','Theory','Flybox','Social']) {
+  test(`Add Activity opens the basic form for ${category}`, async()=>{
+    const {nodes}=harness({route:'#activities/'+category.toLowerCase()});
+    await new Promise(resolve=>setImmediate(resolve));
+    await nodes.get('add'+category+'Activity').fire('click');
+    assert.match(nodes.get('localActivityTitle').textContent,new RegExp(category==='Skydive'?'Skydive Coaching':category));
+    assert.match(nodes.get('localActivityStart').value,/^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(nodes.get('localActivityPeople').children.length,2);
+    assert.equal(nodes.get('saveLocalActivity').disabled,false);
+  });
+}
+test('local activity save keeps the category, selected people and retry ID, then reloads its list', async()=>{
+  const {nodes,localCalls}=harness({route:'#activities/theory'}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  await el('addTheoryActivity').fire('click');
+  el('localActivityName').value='Packing lesson'; el('localActivityNotes').value='Bring a rig';
+  el('localActivityCoach').value='Ilya';
+  const check=el('localActivityPeople').children[0].children[0]; check.checked=true; await check.fire('change');
+  await el('localActivityForm').fire('submit');
+  assert.equal(el('localActivityStatus').textContent,'Temporary network failure');
+  assert.equal(el('localActivityName').value,'Packing lesson');
+  await el('localActivityForm').fire('submit');
+  assert.deepEqual(localCalls[0],localCalls[1]);
+  assert.equal(localCalls[1].p_category,'theory');
+  assert.equal(localCalls[1].p_end_date,localCalls[1].p_start_date);
+  assert.deepEqual(localCalls[1].p_participant_ids,['denis']);
+  assert.equal(el('theoryActivitiesList').children[0].children[0].textContent,'Upcoming (1)');
+});
+test('local activity rejects reversed dates without writing', async()=>{
+  const {nodes,localCalls}=harness({route:'#activities/social'}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve)); await el('addSocialActivity').fire('click');
+  el('localActivityName').value='Sailing'; el('localActivityStart').value='2026-10-20'; el('localActivityEnd').value='2026-10-19';
+  await el('localActivityForm').fire('submit'); assert.equal(localCalls.length,0);
+  assert.match(el('localActivityStatus').textContent,/valid dates/);
 });

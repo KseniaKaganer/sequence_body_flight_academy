@@ -163,15 +163,60 @@
       </form>
       </details>
       </div>
-      <div id="activitySkydivePanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySkydiveTab" hidden><h2>Skydive Coaching</h2><p>Single coaching jumps, training days, and training over several days.</p></div>
-      <div id="activityTheoryPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityTheoryTab" hidden><h2>Theory</h2><p>Packing lessons, exam preparation, and theory workshops.</p></div>
-      <div id="activityFlyboxPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityFlyboxTab" hidden><h2>Flybox</h2><p>Tunnel coaching sessions and training days at Flybox.</p></div>
-      <div id="activitySocialPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySocialTab" hidden><h2>Social</h2><p>Sailing, community gatherings, and shared adventures.</p></div>
+      <div id="activitySkydivePanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySkydiveTab" hidden>
+        <div class="activity-category-header"><h2>Skydive Coaching</h2><button id="addSkydiveActivity" type="button" class="new-request-button">+ Add Activity</button></div>
+        <p>Single coaching jumps, training days, and training over several days.</p>
+        <p id="skydiveActivitiesStatus" role="status" aria-live="polite"></p>
+        <div id="skydiveActivitiesList"></div>
+      </div>
+      <div id="activityTheoryPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityTheoryTab" hidden>
+        <div class="activity-category-header"><h2>Theory</h2><button id="addTheoryActivity" type="button" class="new-request-button">+ Add Activity</button></div>
+        <p>Packing lessons, exam preparation, and theory workshops.</p>
+        <p id="theoryActivitiesStatus" role="status" aria-live="polite"></p>
+        <div id="theoryActivitiesList"></div>
+      </div>
+      <div id="activityFlyboxPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activityFlyboxTab" hidden>
+        <div class="activity-category-header"><h2>Flybox</h2><button id="addFlyboxActivity" type="button" class="new-request-button">+ Add Activity</button></div>
+        <p>Tunnel coaching sessions and training days at Flybox.</p>
+        <p id="flyboxActivitiesStatus" role="status" aria-live="polite"></p>
+        <div id="flyboxActivitiesList"></div>
+      </div>
+      <div id="activitySocialPanel" class="activity-category-panel" role="tabpanel" aria-labelledby="activitySocialTab" hidden>
+        <div class="activity-category-header"><h2>Social</h2><button id="addSocialActivity" type="button" class="new-request-button">+ Add Activity</button></div>
+        <p>Sailing, community gatherings, and shared adventures.</p>
+        <p id="socialActivitiesStatus" role="status" aria-live="polite"></p>
+        <div id="socialActivitiesList"></div>
+      </div>
     </section>
     <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
       <p>The requests list will appear here once the request form is defined.</p>
     </section>
+
+
+    <dialog id="localActivityDialog" class="login-dialog local-activity-dialog" aria-labelledby="localActivityTitle">
+      <h2 id="localActivityTitle">Add Activity</h2>
+      <form id="localActivityForm">
+        <fieldset id="localActivityFields">
+          <label for="localActivityName">Title</label>
+          <input id="localActivityName" maxlength="150" required placeholder="Activity title">
+          <div class="event-dates">
+            <div><label for="localActivityStart">Date / start date</label><input id="localActivityStart" type="date" required></div>
+            <div><label for="localActivityEnd">End date (optional)</label><input id="localActivityEnd" type="date"></div>
+          </div>
+          <label for="localActivityLocation">Location (optional)</label><input id="localActivityLocation" maxlength="150">
+          <label for="localActivityCoach">Coach / organizer (optional)</label><input id="localActivityCoach" maxlength="150">
+          <label for="localActivityNotes">Notes (optional)</label><textarea id="localActivityNotes" maxlength="5000" rows="3"></textarea>
+          <label for="localActivitySearch">Participants (optional)</label>
+          <input id="localActivitySearch" type="search" placeholder="Search name or phone" autocomplete="off">
+          <p id="localActivityPeopleStatus" role="status"></p>
+          <div id="localActivityPeople" class="event-participant-choices"></div>
+          <p id="localActivitySelected" aria-live="polite">0 selected</p>
+          <div class="edit-actions"><button id="cancelLocalActivity" type="button">Cancel</button><button id="saveLocalActivity" type="submit">Save Activity</button></div>
+        </fieldset>
+        <p id="localActivityStatus" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
 
     <dialog id="editParticipantDialog" class="login-dialog" aria-labelledby="editParticipantTitle">
       <h2 id="editParticipantTitle">Edit participant</h2>

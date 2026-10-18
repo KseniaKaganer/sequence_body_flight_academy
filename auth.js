@@ -89,6 +89,7 @@
     if (activePage === 'activities') {
       if (updateUrl) writeRoute();
       if (activeActivityTab === 'travel') { loadEventParticipants(); loadTravelEvents(); }
+      else loadLocalActivities(activeActivityTab);
     }
   }
   for (const [index, tab] of activityTabs.entries()) {
@@ -540,6 +541,10 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    ++localActivityPeopleRequest;
+    el('localActivityDialog').close();
+    localActivityPeople = []; localActivitySelection.clear(); localActivityCategory = null;
+    for (const category of Object.keys(localActivityLoads)) { ++localActivityLoads[category]; el(category + 'ActivitiesList').replaceChildren(); status(category + 'ActivitiesStatus', ''); }
     resetBasicEvent();
     ++eventPeopleLoad;
     ++travelEventsLoad;
@@ -937,6 +942,146 @@
       savingBasicEvent = false; el('basicEventFields').disabled = false;
       el('saveBasicEvent').disabled = !eventPeopleReady;
     }
+  });
+
+  const localActivityLabels = { skydive: 'Skydive Coaching', theory: 'Theory', flybox: 'Flybox', social: 'Social' };
+  let localActivityCategory = null;
+  let localActivityRequestId = null;
+  let localActivitySaving = false;
+  let localActivityPeopleReady = false;
+  let localActivityPeople = [];
+  let localActivityPeopleRequest = 0;
+  const localActivitySelection = new Set();
+  const localActivityLoads = { skydive: 0, theory: 0, flybox: 0, social: 0 };
+  function activityToday() {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const part = type => parts.find(p => p.type === type).value;
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  }
+  function renderLocalActivityPeople() {
+    const query = el('localActivitySearch').value.trim().toLowerCase();
+    const host = el('localActivityPeople'); host.replaceChildren();
+    for (const person of localActivityPeople.filter(person => person.searchText.toLowerCase().includes(query))) {
+      const label = document.createElement('label');
+      const input = document.createElement('input'); input.type = 'checkbox'; input.checked = localActivitySelection.has(person.id);
+      input.addEventListener('change', () => {
+        if (localActivitySaving) return;
+        if (input.checked) localActivitySelection.add(person.id); else localActivitySelection.delete(person.id);
+        el('localActivitySelected').textContent = `${localActivitySelection.size} selected`;
+      });
+      const text = document.createElement('span'); text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
+      label.append(input, text); host.append(label);
+    }
+    if (!host.children.length) host.textContent = 'No matching participants.';
+  }
+  async function openLocalActivity(category) {
+    if (!verifiedAdmin || localActivitySaving || !localActivityLabels[category]) return;
+    localActivityCategory = category; localActivityRequestId = crypto.randomUUID();
+    localActivitySelection.clear(); localActivityPeople = []; localActivityPeopleReady = false;
+    const request = ++localActivityPeopleRequest;
+    el('localActivityForm').reset(); el('localActivityPeople').replaceChildren();
+    el('localActivityTitle').textContent = `Add Activity · ${localActivityLabels[category]}`;
+    el('localActivityStart').value = activityToday();
+    if (category === 'flybox') el('localActivityLocation').value = 'Flybox';
+    el('localActivitySelected').textContent = '0 selected';
+    el('saveLocalActivity').disabled = true; status('localActivityStatus', '');
+    status('localActivityPeopleStatus', 'Loading participants…');
+    el('localActivityDialog').showModal();
+    try {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('participants').select('id,display_name,surname,phone,email')
+          .order('display_name').order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== localActivityPeopleRequest) return;
+        rows.push(...data); if (data.length < 500) break;
+      }
+      localActivityPeople = groupParticipantRecords(rows); localActivityPeopleReady = true;
+      renderLocalActivityPeople(); status('localActivityPeopleStatus', 'Select participants, or leave empty to plan the activity first.');
+      el('saveLocalActivity').disabled = false;
+    } catch {
+      if (verifiedAdmin && request === localActivityPeopleRequest) status('localActivityPeopleStatus', 'Unable to load participants. Close and reopen Add Activity to retry.');
+    }
+  }
+  async function loadLocalActivities(category) {
+    if (!verifiedAdmin || !localActivityLabels[category]) return;
+    const request = ++localActivityLoads[category];
+    status(category + 'ActivitiesStatus', 'Loading activities…');
+    try {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('sequence_activities')
+          .select('id,title,start_date,end_date,location,coach,notes,sequence_activity_participants(count)')
+          .eq('category', category).order('start_date').order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== localActivityLoads[category]) return;
+        rows.push(...data); if (data.length < 500) break;
+      }
+      const host = el(category + 'ActivitiesList'); host.replaceChildren();
+      const today = activityToday();
+      for (const past of [false, true]) {
+        const items = rows.filter(row => (row.end_date < today) === past)
+          .sort((a,b) => past ? b.start_date.localeCompare(a.start_date) : a.start_date.localeCompare(b.start_date));
+        const section = document.createElement('details'); section.open = !past;
+        const summary = document.createElement('summary'); summary.textContent = `${past ? 'Past' : 'Upcoming'} (${items.length})`;
+        section.append(summary);
+        if (!items.length) { const empty = document.createElement('p'); empty.textContent = 'No activities yet.'; section.append(empty); }
+        for (const row of items) {
+          const card = document.createElement('article'); card.className = 'local-activity-card';
+          const title = document.createElement('h3'); title.textContent = row.title;
+          const date = value => value.split('-').reverse().join('/');
+          const details = document.createElement('p');
+          details.textContent = [row.start_date === row.end_date ? date(row.start_date) : `${date(row.start_date)} – ${date(row.end_date)}`,
+            row.location, row.coach, `${row.sequence_activity_participants?.[0]?.count || 0} participants`].filter(Boolean).join(' · ');
+          card.append(title, details);
+          if (row.notes) { const notes = document.createElement('p'); notes.textContent = row.notes; card.append(notes); }
+          section.append(card);
+        }
+        host.append(section);
+      }
+      status(category + 'ActivitiesStatus', '');
+    } catch (error) {
+      if (verifiedAdmin && request === localActivityLoads[category]) status(category + 'ActivitiesStatus',
+        ['PGRST205', '42P01'].includes(error.code) ? 'Run database/local-activities.sql in Supabase to enable activities.' : 'Unable to load activities. Reopen this tab to retry.');
+    }
+  }
+  for (const category of Object.keys(localActivityLabels)) {
+    const title = category[0].toUpperCase() + category.slice(1);
+    el('add' + title + 'Activity').addEventListener('click', () => openLocalActivity(category));
+  }
+  el('localActivitySearch').addEventListener('input', renderLocalActivityPeople);
+  el('cancelLocalActivity').addEventListener('click', () => { if (!localActivitySaving) el('localActivityDialog').close(); });
+  el('localActivityDialog').addEventListener('cancel', event => { if (localActivitySaving) event.preventDefault(); });
+  el('localActivityDialog').addEventListener('close', () => {
+    ++localActivityPeopleRequest; localActivityCategory = null; localActivityPeople = [];
+    localActivitySelection.clear(); localActivityPeopleReady = false;
+    el('localActivityPeople').replaceChildren(); el('localActivityForm').reset();
+  });
+  el('localActivityForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || localActivitySaving || !localActivityCategory || !localActivityPeopleReady || !el('localActivityForm').reportValidity()) return;
+    const title = el('localActivityName').value.trim();
+    const start = el('localActivityStart').value, end = el('localActivityEnd').value || start;
+    if (!title || title.length > 150 || end < start) { status('localActivityStatus', 'Enter a title and valid dates. End date cannot be before start date.'); return; }
+    const category = localActivityCategory, accountRevision = revision;
+    localActivitySaving = true; el('localActivityFields').disabled = true;
+    status('localActivityStatus', 'Saving…');
+    try {
+      const { data, error } = await client.rpc('admin_create_sequence_activity', {
+        p_activity_id: localActivityRequestId, p_category: category, p_title: title,
+        p_start_date: start, p_end_date: end, p_location: el('localActivityLocation').value.trim() || null,
+        p_coach: el('localActivityCoach').value.trim() || null, p_notes: el('localActivityNotes').value.trim() || null,
+        p_participant_ids: [...localActivitySelection]
+      });
+      if (error) throw error;
+      if (!data) throw new Error('Unable to verify the saved activity. Retry with the same details.');
+      if (!verifiedAdmin || revision !== accountRevision) return;
+      el('localActivityDialog').close();
+      await loadLocalActivities(category);
+    } catch (error) {
+      if (verifiedAdmin && revision === accountRevision) status('localActivityStatus',
+        error.code === 'PGRST202' ? 'Run database/local-activities.sql in Supabase before saving activities.' : error.message || 'Unable to save. Your entries are still here.');
+    } finally { localActivitySaving = false; el('localActivityFields').disabled = false; }
   });
 
   async function init() {
