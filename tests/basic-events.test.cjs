@@ -34,11 +34,12 @@ function harness(options = {}) {
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
-      if(name==='admin_create_sequence_activity') {
+      if(name==='admin_list_sequence_coaches')return {data:[{user_id:'admin-ilya',display_name:'Ilya'},{user_id:'admin-ksenia',display_name:'Ksenia'}]};
+      if(name==='admin_create_sequence_activity_v2') {
         localCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
         localRows.push({id:args.p_activity_id,title:args.p_title,start_date:args.p_start_date,end_date:args.p_end_date,
-          category:args.p_category,location:args.p_location,coach:args.p_coach,notes:args.p_notes,sequence_activity_participants:[{count:args.p_participant_ids.length}]});
+          category:args.p_category,location:args.p_location,coach:args.p_coach_user_id === 'admin-ilya' ? 'Ilya' : null,notes:args.p_notes,sequence_activity_participants:[{count:args.p_participant_ids.length}]});
         for (const id of args.p_participant_ids) localMemberships.push({activity_id:args.p_activity_id,participant_id:id,sequence_activities:localRows[localRows.length-1]});
         return {data:args.p_activity_id};
       }
@@ -230,8 +231,8 @@ test('local activity save keeps the category, selected people and retry ID, then
   await new Promise(resolve=>setImmediate(resolve));
   await el('addTheoryActivity').fire('click');
   el('localActivityName').value='Packing lesson'; el('localActivityNotes').value='Bring a rig';
-  el('localActivityCoach').value='Ilya';
-  const check=el('localActivityPeople').children[0].children[0]; check.checked=true; await check.fire('change');
+  el('localActivityCoach').value='admin-ilya';
+  const check=el('localActivityPeople').children[0].children[0].children[0]; check.checked=true; await check.fire('change');
   await el('localActivityForm').fire('submit');
   assert.equal(el('localActivityStatus').textContent,'Temporary network failure');
   assert.equal(el('localActivityName').value,'Packing lesson');
@@ -306,10 +307,45 @@ test('saving an activity with a participant makes it appear in that participant 
   const {nodes,navigate}=harness({route:'#activities/flybox'}); const el=id=>nodes.get(id);
   await new Promise(resolve=>setImmediate(resolve));await el('addFlyboxActivity').fire('click');
   el('localActivityName').value='Tunnel coaching';
-  const check=el('localActivityPeople').children[0].children[0];check.checked=true;await check.fire('change');
+  const check=el('localActivityPeople').children[0].children[0].children[0];check.checked=true;await check.fire('change');
   await el('localActivityForm').fire('submit');await el('localActivityForm').fire('submit');
   await navigate('#participants/denis/skill');
   assert.equal(el('activitySkillHistory').children[0].children[0].textContent,'Activities (1)');
   const row=el('activitySkillHistory').children[0].children[1].children[1].children[0];
   assert.equal(row.children[0].textContent,'Tunnel coaching');assert.equal(row.children[1].textContent,'Flybox');
+});
+
+
+test('local activity coach dropdown loads all admins and sends selected admin identity', async()=>{
+  const {nodes,localCalls}=harness({route:'#activities/theory'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('addTheoryActivity').fire('click');
+  assert.deepEqual(el('localActivityCoach').children.map(option=>option.textContent),['Select admin','Ilya','Ksenia']);
+  el('localActivityCoach').value='admin-ilya';el('localActivityName').value='Exam studies';
+  await el('localActivityForm').fire('submit');
+  assert.equal(localCalls[0].p_coach_user_id,'admin-ilya');
+});
+test('new local participants use separate names, can be edited and removed, and are sent in the activity save', async()=>{
+  const {nodes,localCalls}=harness({route:'#activities/social'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('addSocialActivity').fire('click');
+  el('localActivityName').value='Sailing';
+  el('localNewParticipant').value='Anna';el('localNewParticipantSurname').value='Smith';el('localNewParticipantPhone').value='0521234567';
+  await el('queueLocalActivityParticipant').fire('click');
+  let row=el('localActivitySelectedPeople').children[0];
+  assert.equal(row.children[0].textContent,'×');assert.equal(row.children[1].textContent,'Anna Smith (new)');
+  await row.children[2].fire('click');row.children[3].children[1].value='Jones';await row.children[3].children[3].fire('click');
+  await el('localActivityForm').fire('submit');
+  assert.deepEqual(localCalls[0].p_new_participants,[{name:'Anna',surname:'Jones',phone:'0521234567'}]);
+  row=el('localActivitySelectedPeople').children[0];await row.children[0].fire('click');
+  assert.equal(el('localActivitySelectedPeople').children.length,0);
+});
+test('local participant search reuses existing people and offers immediate phone editing', async()=>{
+  const {nodes,localCalls,phoneCalls}=harness({route:'#activities/flybox'});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('addFlyboxActivity').fire('click');
+  el('localNewParticipant').value='Denis';await el('queueLocalActivityParticipant').fire('click');
+  assert.doesNotMatch(el('localActivitySelectedPeople').children[0].children[1].textContent,/new/);
+  const row=el('localActivityPeople').children[0];await row.children[1].fire('click');
+  row.children[2].children[0].value='052-555';await row.children[2].children[1].fire('click');
+  assert.equal(phoneCalls.length,1);assert.equal(phoneCalls[0].p_phone,'052-555');
+  el('localActivityName').value='Coaching';await el('localActivityForm').fire('submit');
+  assert.deepEqual(localCalls[0].p_participant_ids,['denis']);assert.deepEqual(localCalls[0].p_new_participants,[]);
 });

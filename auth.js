@@ -410,6 +410,15 @@
       if (activePage === 'activities') {
         const selected = eventSelection.get(data.id);
         if (selected) { selected.name = personName(data); selected.phone = data.phone || ''; selected.originalPhone = data.phone ?? null; }
+        if (localActivityCategory) {
+          const selectedLocal = localActivitySelection.get(data.id);
+          if (selectedLocal) { selectedLocal.name = personName(data); selectedLocal.phone = data.phone || ''; selectedLocal.originalPhone = data.phone ?? null; }
+          localActivityPeople = localActivityPeople.map(person => person.id === data.id ? {
+            ...person, ...data, searchText: [data.display_name, data.surname, data.phone, data.email].filter(Boolean).join(' ')
+          } : person);
+          renderLocalActivitySelection(); renderLocalActivityPeople();
+          status('localActivityStatus', 'Participant details saved.');
+        }
         renderEventSelection(); await loadEventParticipants();
         status('basicEventStatus', 'Participant details saved.');
       }
@@ -964,7 +973,8 @@
   let localActivityPeopleReady = false;
   let localActivityPeople = [];
   let localActivityPeopleRequest = 0;
-  const localActivitySelection = new Set();
+  const localActivitySelection = new Map();
+  let localActivityCoaches = [];
   const localActivityDrafts = new Map();
   const localActivityFields = ['Name', 'Start', 'End', 'Location', 'Coach', 'Notes', 'Search'];
   const localActivityLoads = { skydive: 0, theory: 0, flybox: 0, social: 0 };
@@ -973,21 +983,135 @@
     const part = type => parts.find(p => p.type === type).value;
     return `${part('year')}-${part('month')}-${part('day')}`;
   }
+  function renderLocalActivitySelection() {
+    el('localActivitySelected').textContent = `${localActivitySelection.size} participant(s) selected`;
+    el('localActivitySelectedPeople').replaceChildren();
+    for (const [key, person] of localActivitySelection) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Remove ${person.name}${person.id ? '' : ' (new)'}`;
+      button.setAttribute('aria-label', `Remove ${person.name}`);
+      button.addEventListener('click', () => {
+        if (localActivitySaving) return;
+        localActivitySelection.delete(key); renderLocalActivitySelection(); renderLocalActivityPeople();
+      });
+      button.textContent = '×'; button.className = 'event-remove-icon';
+      button.title = `Remove ${person.name}`;
+      const row = document.createElement('div'); row.className = 'event-selected-person';
+      const name = document.createElement('span'); name.className = 'event-selected-name';
+      name.textContent = person.name + (person.id ? '' : ' (new)');
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit ${person.name}`); edit.title = `Edit ${person.name}`;
+      edit.addEventListener('click', async () => {
+        if (!verifiedAdmin || localActivitySaving) return;
+        if (person.id) {
+          const accountRevision = revision; edit.disabled = true;
+          try {
+            const { data, error } = await client.from('participants')
+              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+            if (error) throw error;
+            if (!verifiedAdmin || revision !== accountRevision) return;
+            if (!data) throw new Error('Participant no longer exists. Refresh Events.');
+            editingParticipant = { ...data };
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
+          } catch (error) {
+            if (verifiedAdmin && revision === accountRevision) status('localActivityStatus', error.message || 'Unable to open participant details.');
+          } finally { edit.disabled = false; }
+        } else { editor.hidden = !editor.hidden; if (!editor.hidden) first.focus(); }
+      });
+      const editor = document.createElement('div'); editor.className = 'event-new-person-editor'; editor.hidden = true;
+      const first = document.createElement('input'); first.value = person.firstName || ''; first.maxLength = 150;
+      first.setAttribute('aria-label', 'Name'); first.placeholder = 'Name';
+      const last = document.createElement('input'); last.value = person.surname || ''; last.maxLength = 150;
+      last.setAttribute('aria-label', 'Surname'); last.placeholder = 'Surname';
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40; phone.value = person.phone || '';
+      phone.setAttribute('aria-label', 'Phone'); phone.placeholder = 'Phone (optional)';
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓'; save.setAttribute('aria-label', 'Apply participant edits');
+      save.addEventListener('click', () => {
+        if (localActivitySaving) return;
+        const firstName = first.value.trim().replace(/\s+/g, ' '), surname = last.value.trim().replace(/\s+/g, ' ');
+        if (!firstName || firstName.length > 150 || surname.length > 150) {
+          status('localActivityStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return;
+        }
+        const full = [firstName, surname].filter(Boolean).join(' ');
+        if ([...localActivitySelection].some(([otherKey, other]) => otherKey !== key && nameKey(other.name) === nameKey(full)) ||
+            localActivityPeople.some(other => nameKey(personName(other)) === nameKey(full))) {
+          status('localActivityStatus', 'This participant is already listed. Select their existing record.'); return;
+        }
+        const phoneValue = phone.value.trim();
+        if (phoneValue && (phoneValue.length > 40 || !/^[+0-9().\s-]+$/.test(phoneValue) || !/\d/.test(phoneValue))) {
+          status('localActivityStatus', 'Enter a valid phone number.'); return;
+        }
+        person.firstName = firstName; person.surname = surname; person.name = full; person.phone = phoneValue;
+        const updatedKey = 'new:' + nameKey(full);
+        if (updatedKey !== key) { localActivitySelection.delete(key); localActivitySelection.set(updatedKey, person); }
+        status('localActivityStatus', ''); renderLocalActivitySelection();
+      });
+      editor.append(first, last, phone, save);
+      row.append(button, name, edit, editor);
+      el('localActivitySelectedPeople').append(row);
+    }
+  }
   function renderLocalActivityPeople() {
     const query = el('localActivitySearch').value.trim().toLowerCase();
     const host = el('localActivityPeople'); host.replaceChildren();
     for (const person of localActivityPeople.filter(person => person.searchText.toLowerCase().includes(query))) {
       const label = document.createElement('label');
-      const input = document.createElement('input'); input.type = 'checkbox'; input.checked = localActivitySelection.has(person.id);
+      const input = document.createElement('input'); input.type = 'checkbox';
+      input.checked = localActivitySelection.has(person.id);
       input.addEventListener('change', () => {
         if (localActivitySaving) return;
-        if (input.checked) localActivitySelection.add(person.id); else localActivitySelection.delete(person.id);
-        el('localActivitySelected').textContent = `${localActivitySelection.size} selected`;
+        if (input.checked) localActivitySelection.set(person.id, { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null });
+        else localActivitySelection.delete(person.id);
+        renderLocalActivitySelection();
       });
-      const text = document.createElement('span'); text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
-      label.append(input, text); host.append(label);
+      const text = document.createElement('span');
+      text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
+      label.append(input, text);
+      const row = document.createElement('div'); row.className = 'event-search-person';
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
+      edit.setAttribute('aria-label', `Edit phone for ${personName(person)}`);
+      const editor = document.createElement('div'); editor.className = 'event-phone-editor'; editor.hidden = true;
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
+      phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${personName(person)}`);
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = '✓';
+      save.setAttribute('aria-label', `Save phone for ${personName(person)}`);
+      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '×'; cancel.setAttribute('aria-label', 'Cancel phone edit');
+      const message = document.createElement('span'); message.setAttribute('role', 'status');
+      edit.addEventListener('click', () => { editor.hidden = false; edit.hidden = true; phone.focus(); });
+      cancel.addEventListener('click', () => { editor.hidden = true; edit.hidden = false; phone.value = person.phone || ''; message.textContent = ''; });
+      let saving = false;
+      save.addEventListener('click', async () => {
+        if (!verifiedAdmin || saving || localActivitySaving) return;
+        const value = phone.value.trim();
+        if (value && (value.length > 40 || !/^[+0-9().\s-]+$/.test(value) || !/\d/.test(value))) {
+          message.textContent = 'Enter a valid phone number.'; return;
+        }
+        const accountRevision = revision;
+        saving = true; save.disabled = true; cancel.disabled = true; phone.disabled = true;
+        message.textContent = 'Saving…';
+        try {
+          const { error } = await client.rpc('admin_update_participant_phone', {
+            p_participant_id: person.id, p_original_phone: person.phone ?? null, p_phone: value || null
+          });
+          if (error) throw error;
+          if (!verifiedAdmin || revision !== accountRevision) return;
+          person.phone = value || null;
+          person.searchText = [personName(person), person.phone, person.email].filter(Boolean).join(' ');
+          const selected = localActivitySelection.get(person.id);
+          if (selected) { selected.phone = value; selected.originalPhone = value || null; }
+          text.textContent = personName(person) + (value ? ` · ${value}` : '');
+          editor.hidden = true; edit.hidden = false; message.textContent = 'Saved';
+          renderLocalActivitySelection();
+        } catch (error) {
+          if (verifiedAdmin && revision === accountRevision) message.textContent = error.code === 'PGRST202'
+            ? 'Run the updated database/basic-events.sql in Supabase.' : error.message || 'Unable to save. Try again.';
+        } finally { saving = false; save.disabled = false; cancel.disabled = false; phone.disabled = false; }
+      });
+      editor.append(phone, save, cancel); row.append(label, edit, editor, message); host.append(row);
     }
-    if (!host.children.length) host.textContent = 'No matching participants.';
+    if (!host.children.length) host.textContent = localActivityPeopleReady ? 'No matching participants.' : 'Loading participants…';
   }
   function closeLocalActivity(discard = true) {
     if (localActivityCategory) {
@@ -995,7 +1119,8 @@
       if (discard) localActivityDrafts.delete(category);
       else localActivityDrafts.set(category, {
         values: Object.fromEntries(localActivityFields.map(name => [name, el('localActivity' + name).value])),
-        ids: [...localActivitySelection], requestId: localActivityRequestId
+        ids: [...localActivitySelection], requestId: localActivityRequestId,
+        pending: ['localNewParticipant', 'localNewParticipantSurname', 'localNewParticipantPhone'].map(id => el(id).value)
       });
       const title = category[0].toUpperCase() + category.slice(1);
       el('add' + title + 'Section').open = false;
@@ -1003,7 +1128,7 @@
     ++localActivityPeopleRequest; localActivityCategory = null; localActivityPeople = [];
     localActivitySelection.clear(); localActivityPeopleReady = false;
     el('localActivityDialog').hidden = true;
-    el('localActivityPeople').replaceChildren(); el('localActivityForm').reset();
+    el('localActivityPeople').replaceChildren(); el('localActivitySelectedPeople').replaceChildren(); el('localActivityForm').reset();
   }
   async function openLocalActivity(category) {
     if (!verifiedAdmin || localActivitySaving || !localActivityLabels[category]) return;
@@ -1016,14 +1141,15 @@
     const draft = localActivityDrafts.get(category);
     localActivityCategory = category; localActivityRequestId = draft?.requestId || crypto.randomUUID();
     localActivitySelection.clear();
-    for (const id of draft?.ids || []) localActivitySelection.add(id);
+    for (const [key, person] of draft?.ids || []) localActivitySelection.set(key, person);
     localActivityPeople = []; localActivityPeopleReady = false;
     const request = ++localActivityPeopleRequest;
-    el('localActivityForm').reset(); el('localActivityPeople').replaceChildren();
+    el('localActivityForm').reset(); el('localActivityPeople').replaceChildren(); renderLocalActivitySelection();
     el('localActivityTitle').textContent = 'Add Activity · ' + localActivityLabels[category];
     el('localActivityStart').value = activityToday();
     if (category === 'flybox') el('localActivityLocation').value = 'Flybox';
     if (draft) for (const name of localActivityFields) el('localActivity' + name).value = draft.values[name];
+    if (draft?.pending) ['localNewParticipant', 'localNewParticipantSurname', 'localNewParticipantPhone'].forEach((id, index) => { el(id).value = draft.pending[index]; });
     el('localActivitySelected').textContent = localActivitySelection.size + ' selected';
     el('saveLocalActivity').disabled = true; status('localActivityStatus', '');
     status('localActivityPeopleStatus', 'Loading participants…');
@@ -1036,11 +1162,21 @@
         if (!verifiedAdmin || request !== localActivityPeopleRequest) return;
         rows.push(...data); if (data.length < 500) break;
       }
+      const { data: admins, error: adminError } = await client.rpc('admin_list_sequence_coaches');
+      if (adminError) throw adminError;
+      if (!verifiedAdmin || request !== localActivityPeopleRequest) return;
+      localActivityCoaches = admins || [];
+      const select = el('localActivityCoach'); const previous = draft?.values?.Coach || '';
+      select.replaceChildren(); const empty = document.createElement('option'); empty.value = ''; empty.textContent = 'Select admin'; select.append(empty);
+      for (const admin of localActivityCoaches) {
+        const option = document.createElement('option'); option.value = admin.user_id; option.textContent = admin.display_name; select.append(option);
+      }
+      select.value = localActivityCoaches.some(admin => admin.user_id === previous) ? previous : '';
       localActivityPeople = groupParticipantRecords(rows); localActivityPeopleReady = true;
-      renderLocalActivityPeople(); status('localActivityPeopleStatus', 'Select participants, or leave empty to plan the activity first.');
+      renderLocalActivitySelection(); renderLocalActivityPeople(); status('localActivityPeopleStatus', 'Select participants, or leave empty to plan the activity first.');
       el('saveLocalActivity').disabled = false;
-    } catch {
-      if (verifiedAdmin && request === localActivityPeopleRequest) status('localActivityPeopleStatus', 'Unable to load participants. Close and reopen Add Activity to retry.');
+    } catch (error) {
+      if (verifiedAdmin && request === localActivityPeopleRequest) status('localActivityPeopleStatus', error.code === 'PGRST202' ? 'Run the updated database/local-activities.sql to load admins and participants.' : 'Unable to load admins or participants. Close and reopen Add Activity to retry.');
     }
   }
   async function loadLocalActivities(category) {
@@ -1110,6 +1246,34 @@
       else return openLocalActivity(category);
     });
   }
+  el('queueLocalActivityParticipant').addEventListener('click', () => {
+    if (!verifiedAdmin || !localActivityPeopleReady || localActivitySaving) return;
+    const firstName = el('localNewParticipant').value.trim().replace(/\s+/g, ' ');
+    const surname = el('localNewParticipantSurname').value.trim().replace(/\s+/g, ' ');
+    const name = [firstName, surname].filter(Boolean).join(' ');
+    if (!firstName || firstName.length > 150 || surname.length > 150) { status('localActivityStatus', 'Enter a name; name and surname can each contain up to 150 characters.'); return; }
+    const matches = localActivityPeople.filter(person => nameKey(personName(person)) === nameKey(name));
+    if (matches.length > 1) {
+      el('localActivitySearch').value = name; renderLocalActivityPeople();
+      status('localActivityStatus', 'Several participants have this name. Select the correct person from the list.'); return;
+    }
+    const enteredPhone = el('localNewParticipantPhone').value.trim();
+    if (enteredPhone && (!/^[+0-9().\s-]+$/.test(enteredPhone) || !/\d/.test(enteredPhone))) {
+      status('localActivityStatus', 'Enter a valid phone number.'); return;
+    }
+    const phoneMatches = enteredPhone ? localActivityPeople.filter(person => normalizedParticipantPhone(person.phone) === normalizedParticipantPhone(enteredPhone)) : [];
+    if (phoneMatches.length && (!matches[0] || matches[0].id !== phoneMatches[0].id)) {
+      el('localActivitySearch').value = enteredPhone; renderLocalActivityPeople();
+      status('localActivityStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
+    }
+    const person = matches[0];
+    localActivitySelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, firstName, surname, phone: enteredPhone });
+    el('localNewParticipant').value = '';
+    el('localNewParticipantSurname').value = '';
+    el('localNewParticipantPhone').value = '';
+    status('localActivityStatus', ''); renderLocalActivitySelection(); renderLocalActivityPeople();
+  });
+
   el('localActivitySearch').addEventListener('input', renderLocalActivityPeople);
   el('cancelLocalActivity').addEventListener('click', () => { if (!localActivitySaving) closeLocalActivity(); });
   el('localActivityForm').addEventListener('submit', async event => {
@@ -1118,15 +1282,24 @@
     const title = el('localActivityName').value.trim();
     const start = el('localActivityStart').value, end = el('localActivityEnd').value || start;
     if (!title || title.length > 150 || end < start) { status('localActivityStatus', 'Enter a title and valid dates. End date cannot be before start date.'); return; }
+    if (el('localNewParticipant').value.trim() || el('localNewParticipantSurname').value.trim() || el('localNewParticipantPhone').value.trim()) {
+      status('localActivityStatus', 'Click Add participant to include the name you entered.'); return;
+    }
+    if ([...localActivitySelection.values()].some(person => person.phone && (person.phone.length > 40 || !/^[+0-9().\s-]+$/.test(person.phone) || !/\d/.test(person.phone)))) {
+      status('localActivityStatus', 'Enter valid phone numbers of up to 40 characters.'); return;
+    }
     const category = localActivityCategory, accountRevision = revision;
     localActivitySaving = true; el('localActivityFields').disabled = true;
     status('localActivityStatus', 'Saving…');
     try {
-      const { data, error } = await client.rpc('admin_create_sequence_activity', {
+      const { data, error } = await client.rpc('admin_create_sequence_activity_v2', {
         p_activity_id: localActivityRequestId, p_category: category, p_title: title,
         p_start_date: start, p_end_date: end, p_location: el('localActivityLocation').value.trim() || null,
-        p_coach: el('localActivityCoach').value.trim() || null, p_notes: el('localActivityNotes').value.trim() || null,
-        p_participant_ids: [...localActivitySelection]
+        p_coach_user_id: el('localActivityCoach').value || null, p_notes: el('localActivityNotes').value.trim() || null,
+        p_participant_ids: [...localActivitySelection.values()].filter(person => person.id).map(person => person.id),
+        p_new_participants: [...localActivitySelection.values()].filter(person => !person.id).map(person => ({
+          name: person.firstName, surname: person.surname || null, phone: person.phone.trim() || null
+        }))
       });
       if (error) throw error;
       if (!data) throw new Error('Unable to verify the saved activity. Retry with the same details.');
@@ -1270,4 +1443,5 @@
   }
   init();
 })();
+
 

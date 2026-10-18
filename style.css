@@ -290,3 +290,5 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 #participantFiltersStatus:empty { display: none; }
 #activitySkillHistory { overflow-x: auto; }
 #activitySkillHistory .skill-history-table { min-width: 570px; }
+
+.local-activity-inline select { width: 100%; min-height: 44px; padding: 12px; border: 1px solid #555; border-radius: 8px; background: #080808; color: var(--text); font: inherit; }

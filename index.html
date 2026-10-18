@@ -239,13 +239,16 @@
             <div><label for="localActivityEnd">End date (optional)</label><input id="localActivityEnd" type="date"></div>
           </div>
           <label for="localActivityLocation">Location (optional)</label><input id="localActivityLocation" maxlength="150">
-          <label for="localActivityCoach">Coach / organizer (optional)</label><input id="localActivityCoach" maxlength="150">
+          <label for="localActivityCoach">Coach / organizer (optional)</label><select id="localActivityCoach"><option value="">Select admin</option></select>
           <label for="localActivityNotes">Notes (optional)</label><textarea id="localActivityNotes" maxlength="5000" rows="3"></textarea>
           <label for="localActivitySearch">Participants (optional)</label>
           <input id="localActivitySearch" type="search" placeholder="Search name or phone" autocomplete="off">
           <p id="localActivityPeopleStatus" role="status"></p>
           <div id="localActivityPeople" class="event-participant-choices"></div>
+          <label for="localNewParticipant">Participant not listed? Add a new participant</label>
+          <div class="event-add-person"><input id="localNewParticipant" maxlength="150" placeholder="Name" aria-label="New participant name"><input id="localNewParticipantSurname" maxlength="150" placeholder="Surname" aria-label="New participant surname"><input id="localNewParticipantPhone" type="tel" maxlength="40" placeholder="Phone (optional)" aria-label="New participant phone"><button id="queueLocalActivityParticipant" type="button">Add participant</button></div>
           <p id="localActivitySelected" aria-live="polite">0 selected</p>
+          <div id="localActivitySelectedPeople" class="event-selected-participants"></div>
           <div class="edit-actions"><button id="cancelLocalActivity" type="button">Cancel</button><button id="saveLocalActivity" type="submit">Save Activity</button></div>
         </fieldset>
         <p id="localActivityStatus" role="status" aria-live="polite"></p>
