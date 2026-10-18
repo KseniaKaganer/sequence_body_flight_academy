@@ -21,7 +21,7 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const requestCalls=[];const requestRows=[];const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
+  const addRequestCalls=[];const requestCalls=[];const requestRows=[];let failedAddition=false;const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
   let failSave=true;
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
@@ -35,6 +35,14 @@ function harness(options = {}) {
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
       if(name==='admin_list_sequence_coaches')return {data:[{user_id:'admin-ilya',display_name:'Ilya'},{user_id:'admin-ksenia',display_name:'Ksenia'}]};
+      if(name==='admin_add_sequence_request_participants') {
+        addRequestCalls.push(JSON.parse(JSON.stringify(args)));
+        if(options.failAddition && !failedAddition){failedAddition=true;return {error:{message:'Add failed'}};}
+        const request=requestRows.find(row=>row.id===args.p_request_id);
+        for(const id of args.p_participant_ids)if(!request.sequence_request_participants.some(link=>link.participant_id===id))request.sequence_request_participants.push({participant_id:id,participants:people.find(person=>person.id===id)});
+        for(const person of args.p_new_participants)request.sequence_request_participants.push({participant_id:'new-added-person',participants:{display_name:person.name,surname:person.surname}});
+        return {data:args.p_request_id};
+      }
       if(name==='admin_create_sequence_request') {
         requestCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
@@ -71,7 +79,7 @@ function harness(options = {}) {
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls,requestCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
+  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -377,11 +385,11 @@ test('a simple Gear request supports existing and new participants and safe retr
   const row=el('requestsList').children[0].children[0].children[2].children[0];
   assert.equal(row.children[0].textContent,'Gear');assert.equal(row.children[1].textContent,'Denis, Anna Smith');
 });
-test('requests need a type and a participant and reject unqueued new names',async()=>{
+test('requests need a type and reject unqueued new names',async()=>{
   const {nodes,requestCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
   await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
   await el('newRequestForm').fire('submit');assert.equal(requestCalls.length,0);assert.match(el('newRequestStatus').textContent,/Choose a request type/);
-  el('newRequestType').value='other';await el('newRequestForm').fire('submit');assert.match(el('newRequestStatus').textContent,/Select a participant/);
+  el('newRequestType').value='other';
   el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
   el('requestNewParticipant').value='Pending Person';await el('newRequestForm').fire('submit');assert.match(el('newRequestStatus').textContent,/Click Add participant/);assert.equal(requestCalls.length,0);
 });
@@ -392,4 +400,27 @@ test('request participant search has quick phone editing and selection removal',
   assert.equal(phoneCalls[0].p_phone,'052123');
   el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
   await el('requestSelectedParticipants').children[0].children[0].fire('click');assert.equal(el('requestSelectedParticipants').children.length,0);
+});
+
+
+test('save a request with no participants, then append people without creating a second request',async()=>{
+  const {nodes,requestCalls,addRequestCalls}=harness({route:'#requests',failAddition:true});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+  el('newRequestType').value='gear';el('newRequestNotes').value='Order shirts';
+  await el('newRequestForm').fire('submit');await el('newRequestForm').fire('submit');
+  assert.deepEqual(requestCalls[1].p_participant_ids,[]);assert.deepEqual(requestCalls[1].p_new_participants,[]);
+  let row=el('requestsList').children[0].children[0].children[2].children[0];
+  assert.equal(row.children[1].textContent,'No participants yet');
+  await row.children[5].children[0].fire('click');
+  assert.equal(el('newRequestType').disabled,true);assert.equal(el('newRequestNotes').readOnly,true);
+  assert.equal(el('newRequestNotes').value,'Order shirts');
+  el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
+  await el('newRequestForm').fire('submit');assert.equal(el('newRequestStatus').textContent,'Add failed');
+  await el('newRequestForm').fire('submit');assert.deepEqual(addRequestCalls[0],addRequestCalls[1]);
+  assert.equal(addRequestCalls[1].p_request_id,requestCalls[1].p_request_id);
+  assert.equal(el('requestsListTitle').textContent,'Requests (1)');
+  row=el('requestsList').children[0].children[0].children[2].children[0];
+  assert.equal(row.children[1].textContent,'Denis');assert.equal(row.children[2].textContent,'Order shirts');
+  await row.children[5].children[0].fire('click');
+  assert.equal(el('requestPeople').children[0].children[0].children[0].disabled,true);
 });

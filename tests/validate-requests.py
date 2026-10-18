@@ -6,5 +6,5 @@ from pglast import parse_sql, parser
 source = (Path(__file__).resolve().parents[1] / "database" / "requests.sql").read_text()
 statements = parse_sql(source)
 functions = json.loads(parser.parse_plpgsql_json(source))
-assert len(functions) == 1
-print(f"Parsed {len(statements)} SQL statements and {len(functions)} PL/pgSQL function")
+assert len(functions) == 2
+print(f"Parsed {len(statements)} SQL statements and {len(functions)} PL/pgSQL functions")

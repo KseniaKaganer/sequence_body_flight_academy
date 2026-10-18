@@ -307,7 +307,8 @@
             <option value="gear">Gear</option><option value="other">Other</option>
           </select>
           <label for="newRequestNotes">Notes (optional)</label><textarea id="newRequestNotes" maxlength="5000" rows="3" placeholder="What is needed?"></textarea>
-          <label for="requestParticipantSearch">Participants</label><input id="requestParticipantSearch" type="search" placeholder="Search name, phone or email" autocomplete="off">
+          <p id="requestExistingPeople" hidden></p>
+          <label for="requestParticipantSearch">Participants (optional — can be added later)</label><input id="requestParticipantSearch" type="search" placeholder="Search name, phone or email" autocomplete="off">
           <p id="requestPeopleStatus" role="status"></p><div id="requestPeople" class="event-participant-choices"></div>
           <label for="requestNewParticipant">Participant not listed? Add a new participant</label>
           <div class="event-add-person"><input id="requestNewParticipant" maxlength="150" placeholder="Name" aria-label="New participant name"><input id="requestNewParticipantSurname" maxlength="150" placeholder="Surname" aria-label="New participant surname"><input id="requestNewParticipantPhone" type="tel" maxlength="40" placeholder="Phone (optional)" aria-label="New participant phone"><button id="queueRequestParticipant" type="button">Add participant</button></div>

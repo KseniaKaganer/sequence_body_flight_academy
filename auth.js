@@ -1433,12 +1433,23 @@
   let requestsLoad = 0;
   let requestPeople = [];
   let newRequestId = null;
+  let requestEditingId = null;
+  let requestOperationId = null;
+  const requestExistingIds = new Set();
   const requestParticipantSelection = new Map();
-  async function openNewRequest() {
+  async function openNewRequest(existing = null) {
     if (!verifiedAdmin || savingRequest) return;
     const load = ++requestPeopleLoad;
-    requestParticipantSelection.clear(); requestPeople = []; requestPeopleReady = false; newRequestId = crypto.randomUUID();
+    requestParticipantSelection.clear(); requestPeople = []; requestPeopleReady = false; newRequestId = existing?.id || crypto.randomUUID();
+    requestEditingId = existing?.id || null; requestOperationId = crypto.randomUUID(); requestExistingIds.clear();
+    for (const link of existing?.sequence_request_participants || []) requestExistingIds.add(link.participant_id);
     el('newRequestForm').reset(); el('requestPeople').replaceChildren(); renderRequestSelection();
+    el('requestTitle').textContent = existing ? 'Add participants to request' : 'New Request';
+    el('newRequestType').value = existing?.request_type || ''; el('newRequestType').disabled = Boolean(existing);
+    el('newRequestNotes').value = existing?.notes || ''; el('newRequestNotes').readOnly = Boolean(existing);
+    el('saveNewRequest').textContent = existing ? 'Add participants' : 'Save Request';
+    el('requestExistingPeople').hidden = !existing;
+    el('requestExistingPeople').textContent = existing ? 'Current participants: ' + ((existing.sequence_request_participants || []).map(link => link.participants ? personName(link.participants) : '').filter(Boolean).join(', ') || 'None yet') : '';
     status('newRequestStatus', ''); status('requestPeopleStatus', 'Loading participants…');
     el('saveNewRequest').disabled = true; el('requestDialog').showModal();
     try {
@@ -1451,9 +1462,9 @@
         rows.push(...data);if(data.length<500)break;
       }
       requestPeople=groupParticipantRecords(rows);requestPeopleReady=true;
-      renderRequestPeople();status('requestPeopleStatus','Select participants or add someone new.');el('saveNewRequest').disabled=false;
+      renderRequestPeople();status('requestPeopleStatus','Select participants, add someone new, or leave empty to add them later.');el('saveNewRequest').disabled=false;
     } catch {
-      if(verifiedAdmin && load===requestPeopleLoad)status('requestPeopleStatus','Unable to load participants. Close and reopen New Request to retry.');
+      if(verifiedAdmin && load===requestPeopleLoad) { status('requestPeopleStatus','Participants could not be loaded. You can save a new request without them, or reopen to retry.'); el('saveNewRequest').disabled = Boolean(requestEditingId); }
     }
   }
   async function loadRequests() {
@@ -1475,15 +1486,19 @@
         const table=document.createElement('table');table.className='travel-events-table';
         const caption=document.createElement('caption');caption.className='visually-hidden';caption.textContent='Requests';
         const head=document.createElement('thead'),headers=document.createElement('tr');
-        for(const label of ['Type','Participants','Notes','Date','Status']){const th=document.createElement('th');th.scope='col';th.textContent=label;headers.append(th);}
+        for(const label of ['Type','Participants','Notes','Date','Status','']){const th=document.createElement('th');th.scope='col';th.textContent=label;headers.append(th);}
         head.append(headers);const body=document.createElement('tbody');
         for(const row of rows){
           const tr=document.createElement('tr');
           const names=(row.sequence_request_participants||[]).map(link=>link.participants?personName(link.participants):'').filter(Boolean).join(', ');
           const date=row.created_at?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem'}).format(new Date(row.created_at)):'—';
-          for(const value of [requestTypeLabels[row.request_type]||row.request_type,names,row.notes,date,row.status]){
+          for(const value of [requestTypeLabels[row.request_type]||row.request_type,names || 'No participants yet',row.notes,date,row.status]){
             const td=document.createElement('td');td.textContent=value||'—';tr.append(td);
           }
+          const action = document.createElement('td'), button = document.createElement('button');
+          button.type = 'button'; button.className = 'event-travel-button'; button.textContent = 'Add participants';
+          button.setAttribute('aria-label', 'Add participants to ' + (requestTypeLabels[row.request_type] || row.request_type) + ' request');
+          button.addEventListener('click', () => openNewRequest(row)); action.append(button); tr.append(action);
           body.append(tr);
         }
         table.append(caption,head,body);const scroll=document.createElement('div');scroll.className='travel-events-scroll';scroll.tabIndex=0;
@@ -1493,32 +1508,35 @@
     }catch(error){if(verifiedAdmin && request===requestsLoad)status('requestsListStatus',
       ['PGRST205','42P01'].includes(error.code)?'Run database/requests.sql in Supabase to enable requests.':'Unable to load requests. Reopen Requests to retry.');}
   }
-  el('newRequest').addEventListener('click',openNewRequest);
+  el('newRequest').addEventListener('click',()=>openNewRequest());
   for(const id of ['closeRequest','cancelNewRequest'])el(id).addEventListener('click',()=>{if(!savingRequest)el('requestDialog').close();});
   el('requestDialog').addEventListener('cancel',event=>{if(savingRequest)event.preventDefault();});
   el('requestDialog').addEventListener('close',()=>{
-    ++requestPeopleLoad;requestPeopleReady=false;requestPeople=[];newRequestId=null;requestParticipantSelection.clear();
+    ++requestPeopleLoad;requestPeopleReady=false;requestPeople=[];newRequestId=null;requestEditingId=null;requestOperationId=null;requestExistingIds.clear();requestParticipantSelection.clear();
     el('newRequestForm').reset();el('requestPeople').replaceChildren();renderRequestSelection();status('newRequestStatus','');
   });
   el('requestParticipantSearch').addEventListener('input',renderRequestPeople);
   el('newRequestForm').addEventListener('submit',async event=>{
     event.preventDefault();
-    if(!verifiedAdmin || savingRequest || !requestPeopleReady || !el('newRequestForm').reportValidity())return;
+    if(!verifiedAdmin || savingRequest || (requestParticipantSelection.size && !requestPeopleReady) || !el('newRequestForm').reportValidity())return;
     const type=el('newRequestType').value,notes=el('newRequestNotes').value.trim();
     if(!requestTypeLabels[type] || notes.length>5000){status('newRequestStatus','Choose a request type and keep notes under 5000 characters.');return;}
-    if(!requestParticipantSelection.size){status('newRequestStatus','Select a participant or add someone new.');return;}
+    if(requestEditingId && !requestParticipantSelection.size){status('newRequestStatus','Select a participant or add someone new.');return;}
     if(['requestNewParticipant','requestNewParticipantSurname','requestNewParticipantPhone'].some(id=>el(id).value.trim())){
       status('newRequestStatus','Click Add participant to include the person you entered.');return;
     }
     const accountRevision=revision;
     savingRequest=true;el('newRequestFields').disabled=true;el('closeRequest').disabled=true;status('newRequestStatus','Saving…');
     try{
-      const {data,error}=await client.rpc('admin_create_sequence_request',{
-        p_request_id:newRequestId,p_type:type,p_notes:notes||null,
+      const payload = {
+        p_request_id:newRequestId,
         p_participant_ids:[...requestParticipantSelection.values()].filter(person=>person.id).map(person=>person.id),
         p_new_participants:[...requestParticipantSelection.values()].filter(person=>!person.id)
           .map(person=>({name:person.firstName,surname:person.surname||null,phone:person.phone.trim()||null}))
-      });
+      };
+      if (requestEditingId) payload.p_operation_id = requestOperationId;
+      else { payload.p_type = type; payload.p_notes = notes || null; }
+      const {data,error}=await client.rpc(requestEditingId ? 'admin_add_sequence_request_participants' : 'admin_create_sequence_request',payload);
       if(error)throw error;if(!data)throw new Error('Unable to verify the saved request. Retry with the same details.');
       if(!verifiedAdmin || revision!==accountRevision)return;
       el('requestDialog').close();await loadRequests();
@@ -1603,15 +1621,17 @@
     for (const person of requestPeople.filter(person => person.searchText.toLowerCase().includes(query))) {
       const label = document.createElement('label');
       const input = document.createElement('input'); input.type = 'checkbox';
-      input.checked = requestParticipantSelection.has(person.id);
+      const alreadyAdded = person.recordIds.some(id => requestExistingIds.has(id));
+      input.checked = alreadyAdded || requestParticipantSelection.has(person.id);
+      input.disabled = alreadyAdded;
       input.addEventListener('change', () => {
-        if (savingRequest) return;
+        if (savingRequest || alreadyAdded) return;
         if (input.checked) requestParticipantSelection.set(person.id, { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null });
         else requestParticipantSelection.delete(person.id);
         renderRequestSelection();
       });
       const text = document.createElement('span');
-      text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '');
+      text.textContent = personName(person) + (person.phone ? ` · ${person.phone}` : '') + (alreadyAdded ? ' · Already added' : '');
       label.append(input, text);
       const row = document.createElement('div'); row.className = 'event-search-person';
       const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎';
@@ -1679,6 +1699,7 @@
       status('newRequestStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
     }
     const person = matches[0];
+    if (person && person.recordIds.some(id => requestExistingIds.has(id))) { status('newRequestStatus', 'This participant is already on the request.'); return; }
     requestParticipantSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null } : { name, firstName, surname, phone: enteredPhone });
     el('requestNewParticipant').value = '';
     el('requestNewParticipantSurname').value = '';

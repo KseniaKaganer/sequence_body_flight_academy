@@ -45,8 +45,8 @@ begin
   if p_request_id is null or p_type is null or p_type not in ('travel','skydive','theory','flybox','social','gear','other')
     or char_length(p_notes) > 5000 then raise exception 'Choose a request type and keep notes under 5000 characters.'; end if;
   if p_new_participants is null or jsonb_typeof(p_new_participants) <> 'array' then raise exception 'Invalid participant data.'; end if;
-  if coalesce(cardinality(p_participant_ids),0) + jsonb_array_length(p_new_participants) not between 1 and 500 then
-    raise exception 'Choose between 1 and 500 participants.';
+  if coalesce(cardinality(p_participant_ids),0) + jsonb_array_length(p_new_participants) > 500 then
+    raise exception 'Select up to 500 participants.';
   end if;
   select coalesce(array_agg(id order by id),array[]::uuid[]) into v_ids
     from (select distinct unnest(coalesce(p_participant_ids,array[]::uuid[])) as id) ids;
@@ -101,5 +101,89 @@ end;
 $function$;
 revoke all on function public.admin_create_sequence_request(uuid,text,text,uuid[],jsonb) from public, anon;
 grant execute on function public.admin_create_sequence_request(uuid,text,text,uuid[],jsonb) to authenticated;
+
+-- Idempotent additions let participants be attached later without replacing
+-- people, notes or types saved by another administrator.
+create table if not exists public.sequence_request_participant_additions (
+  operation_id uuid primary key,
+  request_id uuid not null references public.sequence_requests(id) on delete cascade,
+  payload jsonb not null
+);
+alter table public.sequence_request_participant_additions enable row level security;
+revoke all on public.sequence_request_participant_additions from anon, authenticated;
+grant select, insert on public.sequence_request_participant_additions to authenticated;
+drop policy if exists "Admins manage request additions" on public.sequence_request_participant_additions;
+create policy "Admins manage request additions" on public.sequence_request_participant_additions for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+create or replace function public.admin_add_sequence_request_participants(
+  p_request_id uuid,p_operation_id uuid,p_participant_ids uuid[],p_new_participants jsonb
+) returns uuid language plpgsql security invoker set search_path=public as $function$
+declare
+  v_payload jsonb; v_previous jsonb; v_ids uuid[]; v_person jsonb;
+  v_name text; v_surname text; v_full text; v_phone text; v_existing_phone text; v_matches uuid[]; v_id uuid;
+begin
+  if not coalesce(public.is_admin(),false) then raise exception 'Administrator access required.' using errcode='42501'; end if;
+  if p_request_id is null or p_operation_id is null or p_new_participants is null or jsonb_typeof(p_new_participants)<>'array' then
+    raise exception 'Invalid participant data.';
+  end if;
+  if coalesce(cardinality(p_participant_ids),0)+jsonb_array_length(p_new_participants) not between 1 and 500 then
+    raise exception 'Select between 1 and 500 participants to add.';
+  end if;
+  select coalesce(array_agg(id order by id),array[]::uuid[]) into v_ids
+    from (select distinct unnest(coalesce(p_participant_ids,array[]::uuid[])) as id) ids;
+  v_payload:=jsonb_build_object('request',p_request_id,'participants',v_ids,'new_participants',p_new_participants);
+  perform pg_advisory_xact_lock(1862026,1);
+  perform pg_advisory_xact_lock(hashtextextended(p_request_id::text,0));
+  if not exists(select 1 from public.sequence_requests where id=p_request_id) then raise exception 'Request no longer exists.'; end if;
+  select payload into v_previous from public.sequence_request_participant_additions where operation_id=p_operation_id;
+  if found then
+    if v_previous<>v_payload then raise exception 'These additions were already saved with different details. Close and reopen the request.'; end if;
+    return p_request_id;
+  end if;
+  if exists(select 1 from unnest(v_ids) ids(id) where id is null or not exists(select 1 from public.participants p where p.id=ids.id)) then
+    raise exception 'A selected participant no longer exists. Reopen the request.';
+  end if;
+  for v_person in select value from jsonb_array_elements(p_new_participants) loop
+    if jsonb_typeof(v_person) <> 'object' then raise exception 'Invalid participant data.'; end if;
+    v_name := regexp_replace(trim(v_person->>'name'), '\s+', ' ', 'g');
+    v_surname := nullif(regexp_replace(trim(v_person->>'surname'), '\s+', ' ', 'g'), '');
+    v_phone := nullif(trim(v_person->>'phone'), '');
+    if v_name is null or char_length(v_name) not between 1 and 150 or char_length(v_surname) > 150 then
+      raise exception 'Enter a participant name; name and surname can each contain up to 150 characters.';
+    end if;
+    if v_phone is not null and (char_length(v_phone) > 40 or v_phone !~ '^[+0-9().[:space:]-]+$' or v_phone !~ '[0-9]') then
+      raise exception 'Enter a valid phone number (up to 40 characters).';
+    end if;
+    v_full := concat_ws(' ', v_name, v_surname);
+    select array_agg(id order by id) into v_matches from public.participants
+      where lower(regexp_replace(trim(concat_ws(' ', display_name, nullif(trim(surname), ''))), '\s+', ' ', 'g')) = lower(v_full);
+    if coalesce(cardinality(v_matches), 0) > 1 then
+      raise exception 'Several records match %. Select their existing record.', v_full;
+    elsif cardinality(v_matches) = 1 then
+      v_id := v_matches[1];
+      select phone into v_existing_phone from public.participants where id = v_id;
+      if v_phone is not null and ltrim(regexp_replace(coalesce(v_existing_phone, ''), '[^0-9]', '', 'g'), '0') <> ltrim(regexp_replace(v_phone, '[^0-9]', '', 'g'), '0') then
+        raise exception '% already exists. Select their existing record to edit their phone.', v_full;
+      end if;
+    else
+      if v_phone is not null and exists (select 1 from public.participants
+        where ltrim(regexp_replace(phone, '[^0-9]', '', 'g'), '0') = ltrim(regexp_replace(v_phone, '[^0-9]', '', 'g'), '0')) then
+        raise exception 'Phone for % belongs to an existing participant. Select them from the list.', v_full;
+      end if;
+      insert into public.participants(display_name, surname, phone) values(v_name, v_surname, v_phone) returning id into v_id;
+    end if;
+    if not (v_id = any(v_ids)) then v_ids := array_append(v_ids, v_id); end if;
+  end loop;
+
+
+  insert into public.sequence_request_participants(request_id,participant_id)
+    select p_request_id,id from unnest(v_ids) ids(id) on conflict(request_id,participant_id) do nothing;
+  insert into public.sequence_request_participant_additions(operation_id,request_id,payload) values(p_operation_id,p_request_id,v_payload);
+  return p_request_id;
+end;
+$function$;
+revoke all on function public.admin_add_sequence_request_participants(uuid,uuid,uuid[],jsonb) from public,anon;
+grant execute on function public.admin_add_sequence_request_participants(uuid,uuid,uuid[],jsonb) to authenticated;
+
 notify pgrst, 'reload schema';
 commit;
