@@ -280,3 +280,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .local-activity-inline textarea { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #555; border-radius: 8px; color: var(--text); background: #080808; font: inherit; resize: vertical; }
 .local-activity-inline .edit-actions { margin-top: 20px; }
 .local-activity-details { display: block; font-weight: 400; font-size: .85rem; color: var(--muted); margin-top: 6px; white-space: pre-wrap; }
+
+.participant-filters { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.participant-filters summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 4px 0; }
+.participant-filters label { display: block; font-size: .8rem; color: var(--muted); margin: 12px 0 6px; }
+.participant-filters select { width: 100%; min-height: 42px; border: 1px solid #414141; border-radius: 8px; padding: 8px; background: #0b0b0b; color: var(--text); font: inherit; font-size: .85rem; }
+.participant-filters button { margin-top: 12px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text); background: var(--panel); cursor: pointer; }
+#participantFiltersStatus { font-size: .8rem; color: var(--muted); }
+#participantFiltersStatus:empty { display: none; }
+#activitySkillHistory { overflow-x: auto; }
+#activitySkillHistory .skill-history-table { min-width: 570px; }

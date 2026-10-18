@@ -93,6 +93,18 @@
         <button id="refreshParticipants" type="button">Refresh</button>
       </div>
 
+          <details class="participant-filters">
+            <summary>Filter participants</summary>
+            <label for="participantCategoryFilter">Activity category</label>
+            <select id="participantCategoryFilter" disabled>
+              <option value="">All categories</option><option value="travel">Travel</option><option value="skydive">Skydive Coaching</option>
+              <option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option>
+            </select>
+            <label for="participantActivityFilter">Activity / event</label>
+            <select id="participantActivityFilter" disabled><option value="">All activities / events</option></select>
+            <button id="clearParticipantFilters" type="button">Clear filters</button>
+            <p id="participantFiltersStatus" role="status" aria-live="polite"></p>
+          </details>
           <div id="participantsList" class="participants-list"></div>
         </section>
         <section class="participant-detail-panel" aria-labelledby="participantTitle">
@@ -113,6 +125,8 @@
             <button id="addManualSkill" class="edit-participant-button" type="button">+ Add Skill</button>
             <p id="manualSkillStatus" role="status" aria-live="polite"></p>
             <div id="manualSkillHistory"></div>
+            <p id="activitySkillStatus" role="status" aria-live="polite"></p>
+            <div id="activitySkillHistory"></div>
             <p id="skillStatus" role="status" aria-live="polite"></p>
             <div id="skillHistory"></div>
           </div>

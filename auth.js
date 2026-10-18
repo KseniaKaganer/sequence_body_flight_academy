@@ -257,6 +257,7 @@
   }
   async function loadSkillHistory(participantId) {
     if (!verifiedAdmin) return;
+    loadParticipantActivitySkills(participantId);
     const recordIds = participants.find(person => person.id === participantId)?.recordIds || [participantId];
     const request = ++skillRequest;
     const current = () => verifiedAdmin && selectedParticipantId === participantId && request === skillRequest;
@@ -423,6 +424,8 @@
     }
   });
   function clearParticipantDetails() {
+    ++activitySkillRequest;
+    el('activitySkillHistory').replaceChildren(); status('activitySkillStatus', '');
     ++skillRequest;
     ++manualSkillRequest;
     el('manualSkillHistory').replaceChildren();
@@ -461,10 +464,11 @@
   }
   function renderParticipants() {
     const query = el('participantSearch').value.trim().toLowerCase();
-    const matches = participants.filter(person =>
+    const filtersActive = Boolean(el('participantCategoryFilter').value || el('participantActivityFilter').value);
+    const matches = participants.filter(person => participantMatchesActivityFilters(person) && (
       (person.searchText || [person.display_name, person.surname, person.phone, person.email]
         .filter(Boolean).join(' ')).toLowerCase().includes(query) ||
-      (normalizedParticipantPhone(query) && normalizedParticipantPhone(person.phone).includes(normalizedParticipantPhone(query))));
+      (normalizedParticipantPhone(query) && normalizedParticipantPhone(person.phone).includes(normalizedParticipantPhone(query)))));
     if (!matches.some(person => person.id === selectedParticipantId)) clearParticipantDetails();
     el('participantsList').replaceChildren();
     for (const person of matches) {
@@ -492,19 +496,20 @@
       });
       el('participantsList').append(button);
     }
-    el('participantsListTitle').textContent = query
+    el('participantsListTitle').textContent = query || filtersActive
       ? `Participants (${matches.length} / ${participants.length})` : `Participants (${participants.length})`;
     status('participantsStatus', '');
     if (!matches.length) {
       const empty = document.createElement('p');
       empty.className = 'participant-list-empty';
-      empty.textContent = query ? 'No participants match your search.' : 'No participants found.';
+      empty.textContent = query || filtersActive ? 'No participants match your filters.' : 'No participants found.';
       el('participantsList').append(empty);
     }
   }
   async function loadParticipants() {
     if (!verifiedAdmin) return;
     const request = ++participantLoad;
+    ++participantFilterRequest;
     status('participantsStatus', 'Loading participants…');
     try {
       const rows = [];
@@ -520,6 +525,7 @@
       }
       participantRecords = rows;
       participants = groupParticipantRecords(participantRecords);
+      loadParticipantActivityFilters();
       const route = readRoute();
       if (activePage === 'participants' && route.page === 'participants') {
         selectedParticipantId = participants.find(person => person.recordIds.includes(route.participant))?.id || null;
@@ -545,6 +551,10 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    ++participantFilterRequest; participantActivityIndex.clear();
+    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = '';
+    el('participantCategoryFilter').disabled = true; el('participantActivityFilter').disabled = true;
+    renderParticipantActivityOptions(); status('participantFiltersStatus', '');
     ++localActivityPeopleRequest;
     closeLocalActivity(); localActivityDrafts.clear();
     localActivityPeople = []; localActivitySelection.clear(); localActivityCategory = null;
@@ -1123,10 +1133,118 @@
       if (!verifiedAdmin || revision !== accountRevision) return;
       closeLocalActivity();
       await loadLocalActivities(category);
+      if (selectedParticipantId) loadParticipantActivitySkills(selectedParticipantId);
     } catch (error) {
       if (verifiedAdmin && revision === accountRevision) status('localActivityStatus',
         error.code === 'PGRST202' ? 'Run database/local-activities.sql in Supabase before saving activities.' : error.message || 'Unable to save. Your entries are still here.');
     } finally { localActivitySaving = false; el('localActivityFields').disabled = false; }
+  });
+
+  let activitySkillRequest = 0;
+  let participantFilterRequest = 0;
+  let participantActivityIndex = new Map();
+  function participantMatchesActivityFilters(person) {
+    const category = el('participantCategoryFilter').value;
+    const activity = el('participantActivityFilter').value;
+    if (!category && !activity) return true;
+    return [...participantActivityIndex].some(([key, item]) => (!activity || key === activity)
+      && (!category || item.category === category)
+      && person.recordIds.some(id => item.participants.has(id)));
+  }
+  function renderParticipantActivityOptions() {
+    const select = el('participantActivityFilter');
+    const previous = select.value;
+    const category = el('participantCategoryFilter').value;
+    select.replaceChildren();
+    const all = document.createElement('option'); all.value = ''; all.textContent = 'All activities / events'; select.append(all);
+    const entries = [...participantActivityIndex].filter(([, item]) => !category || item.category === category)
+      .sort((a,b) => (b[1].date || '').localeCompare(a[1].date || '') || a[1].name.localeCompare(b[1].name));
+    for (const [key, item] of entries) {
+      const option = document.createElement('option'); option.value = key;
+      option.textContent = item.name + (item.date ? ' · ' + item.date.split('-').reverse().join('/') : '');
+      select.append(option);
+    }
+    select.value = entries.some(([key]) => key === previous) ? previous : '';
+  }
+  async function loadParticipantActivityFilters() {
+    const request = ++participantFilterRequest;
+    el('participantCategoryFilter').disabled = true; el('participantActivityFilter').disabled = true;
+    status('participantFiltersStatus', 'Loading activity filters…');
+    const readMemberships = async local => {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        let query = local
+          ? client.from('sequence_activity_participants').select('activity_id,participant_id,sequence_activities(id,title,category,start_date)').order('activity_id').order('participant_id')
+          : client.from('event_participants').select('id,participant_id,participant_status,events(id,name,start_date,status)').order('id');
+        const { data, error } = await query.range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== participantFilterRequest) return null;
+        rows.push(...data); if (data.length < 500) return rows;
+      }
+    };
+    try {
+      const [travel, local] = await Promise.all([readMemberships(false), readMemberships(true)]);
+      if (!verifiedAdmin || request !== participantFilterRequest || !travel || !local) return;
+      const index = new Map();
+      for (const [rows, isLocal] of [[travel, false], [local, true]]) {
+        for (const row of rows) {
+          const activity = isLocal ? row.sequence_activities : row.events;
+          if (!activity || row.participant_status === 'cancelled' || activity.status === 'cancelled') continue;
+          const key = (isLocal ? 'local:' : 'travel:') + activity.id;
+          if (!index.has(key)) index.set(key, { name: isLocal ? activity.title : activity.name,
+            category: isLocal ? activity.category : 'travel', date: activity.start_date, participants: new Set() });
+          index.get(key).participants.add(row.participant_id);
+        }
+      }
+      participantActivityIndex = index;
+      renderParticipantActivityOptions();
+      el('participantCategoryFilter').disabled = false; el('participantActivityFilter').disabled = false;
+      status('participantFiltersStatus', ''); renderParticipants();
+    } catch (error) {
+      if (!verifiedAdmin || request !== participantFilterRequest) return;
+      participantActivityIndex.clear();
+      el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = '';
+      status('participantFiltersStatus', ['PGRST205', '42P01'].includes(error.code)
+        ? 'Run database/local-activities.sql to enable activity filters.' : 'Unable to load activity filters. Refresh participants to retry.');
+      renderParticipants();
+    }
+  }
+  async function loadParticipantActivitySkills(participantId) {
+    if (!verifiedAdmin) return;
+    const request = ++activitySkillRequest;
+    const ids = participants.find(person => person.id === participantId)?.recordIds || [participantId];
+    const current = () => verifiedAdmin && request === activitySkillRequest && selectedParticipantId === participantId;
+    el('activitySkillHistory').replaceChildren(); status('activitySkillStatus', 'Loading activities…');
+    try {
+      const activities = new Map();
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('sequence_activity_participants')
+          .select('activity_id,participant_id,sequence_activities(id,title,category,start_date,end_date,coach)')
+          .in('participant_id', ids).order('activity_id').order('participant_id').range(start, start + 499);
+        if (error) throw error;
+        if (!current()) return;
+        for (const row of data) if (row.sequence_activities) activities.set(row.sequence_activities.id, row.sequence_activities);
+        if (data.length < 500) break;
+      }
+      const today = activityToday();
+      const date = value => value ? value.split('-').reverse().join('/') : '—';
+      const rows = [...activities.values()].sort((a,b) => b.start_date.localeCompare(a.start_date)).map(activity => [
+        activity.title, localActivityLabels[activity.category] || activity.category,
+        activity.start_date === activity.end_date ? date(activity.start_date) : `${date(activity.start_date)} – ${date(activity.end_date)}`,
+        activity.end_date < today ? 'Past' : activity.start_date <= today ? 'Current' : 'Upcoming', activity.coach
+      ]);
+      el('activitySkillHistory').append(historyTable(`Activities (${rows.length})`, ['Activity', 'Category', 'Dates', 'Status', 'Coach / organizer'], rows));
+      status('activitySkillStatus', '');
+    } catch (error) {
+      if (current()) status('activitySkillStatus', ['PGRST205', '42P01'].includes(error.code)
+        ? 'Run database/local-activities.sql to enable activity history.' : 'Unable to load activity history. Refresh participants to retry.');
+    }
+  }
+  el('participantCategoryFilter').addEventListener('change', () => { renderParticipantActivityOptions(); renderParticipants(); });
+  el('participantActivityFilter').addEventListener('change', renderParticipants);
+  el('clearParticipantFilters').addEventListener('click', () => {
+    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = '';
+    renderParticipantActivityOptions(); renderParticipants();
   });
 
   async function init() {

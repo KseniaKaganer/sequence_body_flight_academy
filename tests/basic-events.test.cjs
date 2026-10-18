@@ -21,7 +21,7 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=[];
+  const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
   let failSave=true;
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
@@ -38,7 +38,8 @@ function harness(options = {}) {
         localCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
         localRows.push({id:args.p_activity_id,title:args.p_title,start_date:args.p_start_date,end_date:args.p_end_date,
-          location:args.p_location,coach:args.p_coach,notes:args.p_notes,sequence_activity_participants:[{count:args.p_participant_ids.length}]});
+          category:args.p_category,location:args.p_location,coach:args.p_coach,notes:args.p_notes,sequence_activity_participants:[{count:args.p_participant_ids.length}]});
+        for (const id of args.p_participant_ids) localMemberships.push({activity_id:args.p_activity_id,participant_id:id,sequence_activities:localRows[localRows.length-1]});
         return {data:args.p_activity_id};
       }
       if(name==='admin_update_participant_phone') { phoneCalls.push(JSON.parse(JSON.stringify(args))); return options.phoneError ? {error:{message:'Phone save failed'}} : {data:null}; }
@@ -46,15 +47,22 @@ function harness(options = {}) {
       if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
       return {data:args.p_event_id};
     },from(table){
+      let filter = null;
       const query={select:()=>query,eq:()=>query,order:()=>query,
-        range:async()=>({data:table === 'events' ? events : table === 'sequence_activities' ? localRows : people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
+        in:(field,values)=>{filter={field,values};return query;},
+        range:async(start,end)=>{
+          const rows = table === 'events' ? events : table === 'sequence_activities' ? localRows
+            : table === 'sequence_activity_participants' ? localMemberships
+            : table === 'event_participants' ? travelMemberships : table === 'participant_manual_skills' ? [] : people;
+          return {data:rows.filter(row=>!filter || filter.values.includes(row[filter.field])).slice(start,end+1)};
+        },maybeSingle:async()=>({data:{display_name:'Admin'}})};
       return query;
     }};
-  const window={location:{hash:options.route || '#events'},history:{pushState(_state,_title,hash){window.location.hash=hash;}},addEventListener(){},
+  const window={location:{hash:options.route || '#events'},history:{pushState(_state,_title,hash){window.location.hash=hash;}},events:{},addEventListener(name,fn){this.events[name]=fn;},
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls};
+  return {nodes,calls,phoneCalls,localCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -259,4 +267,49 @@ test('local sections use tables and retain drafts when the add form is collapsed
   assert.equal(el('theoryActivitiesCount').textContent,'Theory (1)');
   const table=el('theoryActivitiesList').children[0].children[1].children[0];
   assert.deepEqual(table.children[1].children[0].children.map(cell=>cell.textContent),['Name','Dates','Status','Participants']);
+});
+
+
+test('category and activity filters find grouped participants, whose Skills show assigned activities once', async()=>{
+  const activity={id:'packing',title:'Packing Lesson',category:'theory',start_date:'2026-01-01',end_date:'2026-01-01',coach:'Ilya'};
+  const {nodes}=harness({route:'#participants',localMemberships:[
+    {activity_id:'packing',participant_id:'nadia-copy',sequence_activities:activity},
+    {activity_id:'packing',participant_id:'nadia',sequence_activities:activity}
+  ]}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  el('participantCategoryFilter').value='theory'; await el('participantCategoryFilter').fire('change');
+  assert.equal(el('participantsListTitle').textContent,'Participants (1 / 2)');
+  assert.equal(el('participantsList').children[0].children[0].textContent,'Nadia');
+  el('participantActivityFilter').value='local:packing'; await el('participantActivityFilter').fire('change');
+  await el('participantsList').children[0].fire('click');
+  await new Promise(resolve=>setImmediate(resolve));
+  const section=el('activitySkillHistory').children[0];
+  assert.equal(section.children[0].textContent,'Activities (1)');
+  const row=section.children[1].children[1].children[0];
+  assert.deepEqual(row.children.map(cell=>cell.textContent),['Packing Lesson','Theory','01/01/2026','Past','Ilya']);
+  await el('clearParticipantFilters').fire('click');
+  assert.equal(el('participantsListTitle').textContent,'Participants (2)');
+});
+test('Travel filter excludes cancelled memberships and combines with search', async()=>{
+  const event={id:'camp',name:'Camp',start_date:'2026-01-01',status:'draft'};
+  const {nodes}=harness({route:'#participants',travelMemberships:[
+    {id:'one',participant_id:'denis',participant_status:'active',events:event},
+    {id:'two',participant_id:'nadia',participant_status:'cancelled',events:event}
+  ]});const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  el('participantCategoryFilter').value='travel'; await el('participantCategoryFilter').fire('change');
+  assert.equal(el('participantsList').children[0].children[0].textContent,'Denis');
+  el('participantSearch').value='Nadia';await el('participantSearch').fire('input');
+  assert.equal(el('participantsListTitle').textContent,'Participants (0 / 2)');
+});
+test('saving an activity with a participant makes it appear in that participant Skills', async()=>{
+  const {nodes,navigate}=harness({route:'#activities/flybox'}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));await el('addFlyboxActivity').fire('click');
+  el('localActivityName').value='Tunnel coaching';
+  const check=el('localActivityPeople').children[0].children[0];check.checked=true;await check.fire('change');
+  await el('localActivityForm').fire('submit');await el('localActivityForm').fire('submit');
+  await navigate('#participants/denis/skill');
+  assert.equal(el('activitySkillHistory').children[0].children[0].textContent,'Activities (1)');
+  const row=el('activitySkillHistory').children[0].children[1].children[1].children[0];
+  assert.equal(row.children[0].textContent,'Tunnel coaching');assert.equal(row.children[1].textContent,'Flybox');
 });
