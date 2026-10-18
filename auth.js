@@ -507,6 +507,7 @@
     el('upcomingEventsList').replaceChildren();
     el('pastEventsList').replaceChildren();
     status('travelEventsStatus', '');
+    el('travelEventsCount').textContent = 'Travel Events';
     eventPeople = [];
     el('eventParticipantChoices').replaceChildren();
     ++participantLoad;
@@ -615,6 +616,7 @@
       const today = `${part('year')}-${part('month')}-${part('day')}`;
       const past = rows.filter(event => eventIsPast(event, today)).sort((a,b) => (b.start_date || '').localeCompare(a.start_date || ''));
       const upcoming = rows.filter(event => !eventIsPast(event, today));
+      el('travelEventsCount').textContent = `Travel Events (${rows.length})`;
       for (const [group, events] of [['upcoming', upcoming], ['past', past]]) {
         const host = el(group + 'EventsList'); host.replaceChildren();
         el(group + 'EventsTitle').textContent = `${group === 'past' ? 'Past' : 'Upcoming'} (${events.length})`;
