@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
-function harness() {
+function harness(options = {}) {
   const nodes = new Map();
   class Element {
     constructor() { this.value=''; this.hidden=false; this.children=[]; this.listeners={}; this.dataset={}; }
@@ -26,15 +26,20 @@ function harness() {
   const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
     {id:'nadia-copy',display_name:'Nadia',surname:'',phone:'50-456',email:''}];
+  const events = [
+    {id:'future',name:'Future Camp',event_type:'tunnel',start_date:'2099-01-01',end_date:'2099-01-07',status:'draft'},
+    {id:'past',name:'Old Camp',event_type:'skydive',start_date:'2020-01-01',end_date:'2020-01-07',status:'draft'},
+    {id:'completed',name:'Completed Camp',event_type:'skydive',start_date:'2099-02-01',end_date:'2099-02-07',status:'completed'}
+  ];
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
       calls.push(JSON.parse(JSON.stringify(args)));
       if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
       return {data:args.p_event_id};
-    },from(){
+    },from(table){
       const query={select:()=>query,eq:()=>query,order:()=>query,
-        range:async()=>({data:people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
+        range:async()=>({data:table === 'events' ? events : people}),maybeSingle:async()=>({data:{display_name:'Admin'}})};
       return query;
     }};
   const window={location:{hash:'#events'},history:{pushState(){}},addEventListener(){},
@@ -75,4 +80,35 @@ test('invalid date range and unqueued names do not send a save', async()=>{
   el('newEventParticipant').value='Unsaved Person';
   await el('basicEventForm').fire('submit'); assert.equal(calls.length,0);
   assert.match(el('basicEventStatus').textContent,/Click Add participant/);
+});
+
+test('Travel events include drafts and split completed/past events from upcoming events', async()=>{
+  const {nodes}=harness();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(nodes.get('upcomingEventsTitle').textContent,'Upcoming (1)');
+  assert.equal(nodes.get('pastEventsTitle').textContent,'Past (2)');
+  const upcoming=nodes.get('upcomingEventsList').children[0];
+  assert.equal(upcoming.children[0].children[0].textContent,'Future Camp');
+  assert.equal(upcoming.children[1].href,'https://shakshuka-travel.pages.dev/admin.html?event=future');
+});
+test('phones for existing and new participants are included in the atomic save', async()=>{
+  const {nodes,calls}=harness(); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  for(const [id,value] of Object.entries({basicEventName:'Phones',basicEventType:'tunnel',basicEventStart:'2026-01-01',basicEventEnd:'2026-01-02'}))el(id).value=value;
+  el('newEventParticipant').value='Denis'; await el('queueEventParticipant').fire('click');
+  let phone=el('eventSelectedParticipants').children[0].children[0].children[0];
+  phone.value='050-999'; await phone.fire('input');
+  el('newEventParticipant').value='New Person'; el('newEventParticipantPhone').value='052-777'; await el('queueEventParticipant').fire('click');
+  await el('basicEventForm').fire('submit');
+  assert.deepEqual(calls[0].p_participant_phones,[{id:'denis',phone:'050-999',original_phone:'050-123'}]);
+  assert.deepEqual(calls[0].p_new_phones,['052-777']);
+});
+test('a queued new name cannot reuse another participant phone', async()=>{
+  const {nodes,calls}=harness(); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve));
+  el('newEventParticipant').value='Someone Else'; el('newEventParticipantPhone').value='50-123';
+  await el('queueEventParticipant').fire('click');
+  assert.match(el('basicEventStatus').textContent,/phone belongs to an existing/);
+  assert.equal(el('eventSelectedParticipants').children.length,0);
+  assert.equal(calls.length,0);
 });

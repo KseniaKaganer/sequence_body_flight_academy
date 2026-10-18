@@ -65,7 +65,7 @@
     });
     if (updateUrl) writeRoute();
     if (page === 'participants') loadParticipants();
-    if (page === 'events') loadEventParticipants();
+    if (page === 'events') { loadEventParticipants(); loadTravelEvents(); }
   }
   function setParticipantTab(tab, focus = false, updateUrl = true) {
     activeParticipantTab = tab;
@@ -497,6 +497,10 @@
     verifiedAdmin = false;
     resetBasicEvent();
     ++eventPeopleLoad;
+    ++travelEventsLoad;
+    el('upcomingEventsList').replaceChildren();
+    el('pastEventsList').replaceChildren();
+    status('travelEventsStatus', '');
     eventPeople = [];
     el('eventParticipantChoices').replaceChildren();
     ++participantLoad;
@@ -582,6 +586,52 @@
     } catch (error) { status('accountStatus', error.message || 'Unable to log out.'); }
     finally { el('signOut').disabled = false; }
   });
+  let travelEventsLoad = 0;
+  function eventIsPast(event, today) {
+    return event.status === 'completed' || Boolean(event.end_date && event.end_date < today);
+  }
+  async function loadTravelEvents() {
+    if (!verifiedAdmin) return;
+    const request = ++travelEventsLoad;
+    status('travelEventsStatus', 'Loading events…');
+    try {
+      const rows = [];
+      for (let start = 0; ; start += 500) {
+        const { data, error } = await client.from('events').select('id,name,event_type,start_date,end_date,status')
+          .order('start_date').order('id').range(start, start + 499);
+        if (error) throw error;
+        if (!verifiedAdmin || request !== travelEventsLoad) return;
+        rows.push(...data);
+        if (data.length < 500) break;
+      }
+      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+      const part = type => parts.find(p => p.type === type).value;
+      const today = `${part('year')}-${part('month')}-${part('day')}`;
+      const past = rows.filter(event => eventIsPast(event, today)).sort((a,b) => (b.start_date || '').localeCompare(a.start_date || ''));
+      const upcoming = rows.filter(event => !eventIsPast(event, today));
+      for (const [group, events] of [['upcoming', upcoming], ['past', past]]) {
+        const host = el(group + 'EventsList'); host.replaceChildren();
+        el(group + 'EventsTitle').textContent = `${group === 'past' ? 'Past' : 'Upcoming'} (${events.length})`;
+        if (!events.length) { const empty = document.createElement('p'); empty.textContent = 'No events.'; host.append(empty); }
+        for (const event of events) {
+          const row = document.createElement('div'); row.className = 'travel-event-row';
+          const info = document.createElement('div'); const title = document.createElement('strong'); title.textContent = event.name;
+          const meta = document.createElement('span');
+          const date = value => value ? value.split('-').reverse().join('/') : '—';
+          meta.textContent = `${event.event_type === 'tunnel' ? 'Tunnel' : 'Skydive'} · ${date(event.start_date)} – ${date(event.end_date)} · ${event.status}`;
+          info.append(title, meta);
+          const link = document.createElement('a'); link.textContent = 'Open in Travel ↗'; link.target = '_blank'; link.rel = 'noopener';
+          link.href = 'https://shakshuka-travel.pages.dev/admin.html?event=' + encodeURIComponent(event.id);
+          row.append(info, link); host.append(row);
+        }
+      }
+      status('travelEventsStatus', '');
+    } catch {
+      if (verifiedAdmin && request === travelEventsLoad) status('travelEventsStatus', 'Unable to load events. Use Refresh events to retry.');
+    }
+  }
+  el('refreshTravelEvents').addEventListener('click', loadTravelEvents);
+
   let eventPeople = [];
   let eventPeopleLoad = 0;
   let eventPeopleReady = false;
@@ -596,13 +646,19 @@
     for (const [key, person] of eventSelection) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = `${person.name}${person.id ? '' : ' (new)'} ×`;
+      button.textContent = `Remove ${person.name}${person.id ? '' : ' (new)'}`;
       button.setAttribute('aria-label', `Remove ${person.name}`);
       button.addEventListener('click', () => {
         if (savingBasicEvent) return;
         eventSelection.delete(key); renderEventSelection(); renderEventChoices();
       });
-      el('eventSelectedParticipants').append(button);
+      const row = document.createElement('div'); row.className = 'event-selected-person';
+      const label = document.createElement('label'); label.textContent = `${person.name} — phone (optional)`;
+      const phone = document.createElement('input'); phone.type = 'tel'; phone.maxLength = 40;
+      phone.value = person.phone || ''; phone.setAttribute('aria-label', `Phone for ${person.name}`);
+      phone.addEventListener('input', () => { person.phone = phone.value; });
+      label.append(phone); row.append(label, button);
+      el('eventSelectedParticipants').append(row);
     }
   }
   function renderEventChoices() {
@@ -614,7 +670,7 @@
       input.checked = eventSelection.has(person.id);
       input.addEventListener('change', () => {
         if (savingBasicEvent) return;
-        if (input.checked) eventSelection.set(person.id, { id: person.id, name: personName(person) });
+        if (input.checked) eventSelection.set(person.id, { id: person.id, name: personName(person), phone: person.phone || '', originalPhone: person.phone ?? null });
         else eventSelection.delete(person.id);
         renderEventSelection();
       });
@@ -665,9 +721,19 @@
       el('eventParticipantSearch').value = name; renderEventChoices();
       status('basicEventStatus', 'Several participants have this name. Select the correct person from the list.'); return;
     }
+    const enteredPhone = el('newEventParticipantPhone').value.trim();
+    if (enteredPhone && (!/^[+0-9().\s-]+$/.test(enteredPhone) || !/\d/.test(enteredPhone))) {
+      status('basicEventStatus', 'Enter a valid phone number.'); return;
+    }
+    const phoneMatches = enteredPhone ? eventPeople.filter(person => normalizedParticipantPhone(person.phone) === normalizedParticipantPhone(enteredPhone)) : [];
+    if (phoneMatches.length && (!matches[0] || matches[0].id !== phoneMatches[0].id)) {
+      el('eventParticipantSearch').value = enteredPhone; renderEventChoices();
+      status('basicEventStatus', 'This phone belongs to an existing participant. Select them from the list.'); return;
+    }
     const person = matches[0];
-    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person) } : { name });
+    eventSelection.set(person ? person.id : 'new:' + nameKey(name), person ? { id: person.id, name: personName(person), phone: enteredPhone || person.phone || '', originalPhone: person.phone ?? null } : { name, phone: enteredPhone });
     el('newEventParticipant').value = '';
+    el('newEventParticipantPhone').value = '';
     status('basicEventStatus', ''); renderEventSelection(); renderEventChoices();
   });
   el('basicEventForm').addEventListener('submit', async event => {
@@ -678,17 +744,23 @@
     if (!name || end < start) { status('basicEventStatus', 'Enter a name and an end date on or after the start date.'); return; }
     if (!eventSelection.size) { status('basicEventStatus', 'Select at least one participant.'); return; }
     if (el('newEventParticipant').value.trim()) { status('basicEventStatus', 'Click Add participant to include the name you entered.'); return; }
+    if ([...eventSelection.values()].some(person => person.phone && (person.phone.length > 40 || !/^[+0-9().\s-]+$/.test(person.phone) || !/\d/.test(person.phone)))) {
+      status('basicEventStatus', 'Enter valid phone numbers of up to 40 characters.'); return;
+    }
     const accountRevision = revision;
     eventRequestId ||= crypto.randomUUID();
     savingBasicEvent = true; el('basicEventFields').disabled = true;
     status('basicEventStatus', 'Saving event and participants…');
     el('basicEventTravelLink').hidden = true;
     try {
-      const { data, error } = await client.rpc('admin_create_basic_event', {
+      const { data, error } = await client.rpc('admin_create_basic_event_v2', {
         p_event_id: eventRequestId, p_name: name, p_event_type: el('basicEventType').value,
         p_start_date: start, p_end_date: end,
         p_participant_ids: [...eventSelection.values()].filter(person => person.id).map(person => person.id),
-        p_new_names: [...eventSelection.values()].filter(person => !person.id).map(person => person.name)
+        p_new_names: [...eventSelection.values()].filter(person => !person.id).map(person => person.name),
+        p_new_phones: [...eventSelection.values()].filter(person => !person.id).map(person => person.phone.trim() || null),
+        p_participant_phones: [...eventSelection.values()].filter(person => person.id && (person.phone.trim() || null) !== person.originalPhone)
+          .map(person => ({ id: person.id, phone: person.phone.trim() || null, original_phone: person.originalPhone }))
       });
       if (error) throw error;
       if (!data) throw new Error('Unable to verify the saved event. Retry with the same details.');
@@ -697,7 +769,7 @@
       status('basicEventStatus', 'Event saved. Attendance is available in participants’ Skills history.');
       el('basicEventTravelLink').href = 'https://shakshuka-travel.pages.dev/admin.html?event=' + encodeURIComponent(data);
       el('basicEventTravelLink').hidden = false;
-      await loadEventParticipants();
+      await Promise.all([loadEventParticipants(), loadTravelEvents()]);
     } catch (error) {
       if (verifiedAdmin && accountRevision === revision) status('basicEventStatus',
         error.code === 'PGRST202' ? 'Database setup is needed: run database/basic-events.sql in Supabase.' : error.message || 'Unable to save. Your entries are still here; try again.');

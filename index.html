@@ -120,7 +120,15 @@
       </div>
     </section>
     <section id="eventsPage" hidden aria-labelledby="eventsTitle">
-      <h1 id="eventsTitle">Add Basic Event</h1>
+      <h1 id="eventsTitle">Events</h1>
+      <details class="travel-events-section">
+        <summary>Travel Events</summary>
+        <button id="refreshTravelEvents" type="button" class="edit-participant-button">Refresh events</button>
+        <p id="travelEventsStatus" role="status" aria-live="polite"></p>
+        <details open><summary id="upcomingEventsTitle">Upcoming</summary><div id="upcomingEventsList"></div></details>
+        <details><summary id="pastEventsTitle">Past</summary><div id="pastEventsList"></div></details>
+      </details>
+      <h2>Add Basic Event</h2>
       <p>Create an event and record attendance. Add more details later in SHAKSHUKA Travel.</p>
       <form id="basicEventForm" class="basic-event-form">
         <fieldset id="basicEventFields">
@@ -138,7 +146,7 @@
           <p id="eventParticipantsStatus" role="status"></p>
           <div id="eventParticipantChoices" class="event-participant-choices"></div>
           <label for="newEventParticipant">Participant not listed? Enter their name</label>
-          <div class="event-add-person"><input id="newEventParticipant" maxlength="150" placeholder="Full name"><button id="queueEventParticipant" type="button">Add participant</button></div>
+          <div class="event-add-person"><input id="newEventParticipant" maxlength="150" placeholder="Full name"><input id="newEventParticipantPhone" type="tel" maxlength="40" placeholder="Phone (optional)" aria-label="New participant phone"><button id="queueEventParticipant" type="button">Add participant</button></div>
           <p id="eventSelectionCount" aria-live="polite"></p>
           <div id="eventSelectedParticipants" class="event-selected-participants"></div>
           <button id="saveBasicEvent" type="submit">Create event</button>

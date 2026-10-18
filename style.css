@@ -205,3 +205,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 #basicEventTravelLink { display: inline-block; margin-top: 12px; }
 #basicEventTravelLink[hidden] { display: none; }
 @media(max-width: 500px) { .basic-event-form { padding: 16px; } .event-dates { flex-direction: column; gap: 0; } }
+
+.travel-events-section { padding: 20px; border: 1px solid var(--border); border-radius: 16px; margin-bottom: 28px; }
+.travel-events-section details { margin-top: 18px; }
+.travel-events-section summary { cursor: pointer; font-size: 1.15rem; font-weight: 600; padding: 8px 0; }
+.travel-event-row { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.travel-event-row span { display: block; color: var(--muted); margin-top: 6px; }
+.event-selected-person { width: 100%; display: flex; align-items: end; gap: 12px; }
+.event-selected-person label { flex: 1; min-width: 0; }
+.event-add-person { flex-wrap: wrap; }
+.event-add-person input { flex: 1 1 180px; }
+@media(max-width: 500px) { .travel-event-row, .event-selected-person { flex-direction: column; align-items: stretch; } }
