@@ -273,7 +273,7 @@
     <section id="requestPage" hidden aria-label="Requests">
       <button id="newRequest" class="new-request-button" type="button">+ New Request</button>
       <p id="requestsListStatus" role="status" aria-live="polite"></p>
-      <details class="travel-events-section" open><summary id="requestsListTitle">Requests</summary><div id="requestsList"></div></details>
+      <section class="travel-events-section"><h2 id="requestsListTitle">Requests</h2><div id="requestsList"></div></section>
     </section>
 
 
@@ -368,9 +368,9 @@
       <h2 id="requestTitle">New Request</h2>
       <form id="newRequestForm">
         <fieldset id="newRequestFields">
-          <label for="newRequestType">Type</label>
+          <label for="newRequestType">Activity</label>
           <select id="newRequestType" required>
-            <option value="">Choose type</option>
+            <option value="">Choose activity</option>
             <option value="travel">Travel</option><option value="skydive">Skydive Coaching</option>
             <option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option>
             <option value="gear">Gear</option><option value="other">Other</option>
@@ -395,10 +395,11 @@
     <dialog id="editRequestDialog" class="login-dialog basic-event-form" aria-labelledby="editRequestTitle">
       <h2 id="editRequestTitle">Edit request</h2>
       <form id="editRequestForm"><fieldset id="editRequestFields">
-        <label for="editRequestCategory">Category</label><select id="editRequestCategory" required>
+        <label for="editRequestCategory">Activity</label><select id="editRequestCategory" required>
           <option value="travel">Travel</option><option value="skydive">Skydive Coaching</option><option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option><option value="gear">Gear</option><option value="other">Other</option>
         </select>
         <label for="editRequestActivityType">Activity type (optional)</label><select id="editRequestActivityType"><option value="">Choose a saved type</option></select>
+        <button id="editRequestParticipants" type="button">Add participants</button>
         <label for="editRequestNotes">Notes</label><textarea id="editRequestNotes" maxlength="5000" rows="4"></textarea>
         <label for="editRequestState">Status</label><select id="editRequestState"><option value="new">New</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="cancelled">Cancelled</option></select>
         <div class="edit-actions"><button id="cancelEditRequest" type="button">Cancel</button><button type="submit">Save changes</button></div>
@@ -553,5 +554,6 @@
   <script src="auth.js" defer></script>
 </body>
 </html>
+
 
 

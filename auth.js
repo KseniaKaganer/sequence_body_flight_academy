@@ -1562,6 +1562,11 @@
       if(verifiedAdmin && load===requestPeopleLoad) { status('requestPeopleStatus','Participants could not be loaded. You can save a new request without them, or reopen to retry.'); el('saveNewRequest').disabled = Boolean(requestEditingId); }
     }
   }
+  const requestGroupOpen = new Map();
+  el('editRequestParticipants').addEventListener('click', () => {
+    if (!verifiedAdmin || editingRequestSaving || !editingRequest) return;
+    const row = editingRequest; el('editRequestDialog').close(); return openNewRequest(row);
+  });
   async function loadRequests() {
     if(!verifiedAdmin)return;
     const request=++requestsLoad;status('requestsListStatus','Loading requests…');
@@ -1577,29 +1582,32 @@
       }
       const host=el('requestsList');host.replaceChildren();el('requestsListTitle').textContent=`Requests (${rows.length})`;
       if(!rows.length){const p=document.createElement('p');p.textContent='No requests yet.';host.append(p);}
-      else {
+      else for (const [category, label] of Object.entries(requestTypeLabels)) {
+        const groupRows = rows.filter(row => row.request_type === category);
+        if (!groupRows.length) continue;
+        const group = document.createElement('details'); group.className = 'travel-events-section';
+        group.open = requestGroupOpen.get(category) || false;
+        group.addEventListener('toggle', () => requestGroupOpen.set(category, group.open));
+        const summary = document.createElement('summary'); summary.textContent = `Activity: ${label} (${groupRows.length})`; group.append(summary);
         const table=document.createElement('table');table.className='travel-events-table';
-        const caption=document.createElement('caption');caption.className='visually-hidden';caption.textContent='Requests';
+        const caption=document.createElement('caption');caption.className='visually-hidden';caption.textContent=label + ' requests';
         const head=document.createElement('thead'),headers=document.createElement('tr');
-        for(const label of ['Type','Participants','Notes','Date','Status','']){const th=document.createElement('th');th.scope='col';th.textContent=label;headers.append(th);}
+        for(const label of ['Type','Participants','Date','Status','']){const th=document.createElement('th');th.scope='col';th.textContent=label;headers.append(th);}
         head.append(headers);const body=document.createElement('tbody');
-        for(const row of rows){
+        for(const row of groupRows){
           const tr=document.createElement('tr');
           const names=(row.sequence_request_participants||[]).map(link=>link.participants?personName(link.participants):'').filter(Boolean).join(', ');
           const date=row.created_at?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem'}).format(new Date(row.created_at)):'—';
-          for(const value of [(requestTypeLabels[row.request_type]||row.request_type) + (row.sequence_activity_types?.name ? ' · ' + row.sequence_activity_types.name : ''),names || 'No participants yet',row.notes,date,row.status]){
+          for(const value of [row.sequence_activity_types?.name,names || 'No participants yet',date,row.status]){
             const td=document.createElement('td');td.textContent=value||'—';tr.append(td);
           }
-          const action = document.createElement('td'), button = document.createElement('button');
-          button.type = 'button'; button.className = 'event-travel-button'; button.textContent = 'Add participants';
-          button.setAttribute('aria-label', 'Add participants to ' + (requestTypeLabels[row.request_type] || row.request_type) + ' request');
-          button.addEventListener('click', () => openNewRequest(row)); action.append(button);
-          const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎ Edit'; edit.setAttribute('aria-label', 'Edit request');
+          const action = document.createElement('td'), edit = document.createElement('button');
+          edit.type = 'button'; edit.textContent = '✎'; edit.title = 'Edit request'; edit.setAttribute('aria-label', 'Edit ' + label + ' request');
           edit.addEventListener('click', () => openEditRequest(row)); action.append(edit); tr.append(action);
           body.append(tr);
         }
         table.append(caption,head,body);const scroll=document.createElement('div');scroll.className='travel-events-scroll';scroll.tabIndex=0;
-        scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Requests table');scroll.append(table);host.append(scroll);
+        scroll.setAttribute('role','region');scroll.setAttribute('aria-label',label + ' requests table');scroll.append(table);group.append(scroll);host.append(group);
       }
       status('requestsListStatus','');
     }catch(error){if(verifiedAdmin && request===requestsLoad)status('requestsListStatus',
@@ -2187,6 +2195,7 @@
   }
   init();
 })();
+
 
 
 

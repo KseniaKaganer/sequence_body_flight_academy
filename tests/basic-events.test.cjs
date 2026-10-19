@@ -72,7 +72,7 @@ function harness(options = {}) {
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
         const members=args.p_participant_ids.map(id=>({participant_id:id,participants:people.find(person=>person.id===id)}));
         for(const person of args.p_new_participants)members.push({participant_id:'new-request-person',participants:{display_name:person.name,surname:person.surname}});
-        requestRows.push({id:args.p_request_id,request_type:args.p_type,notes:args.p_notes,status:'new',created_at:'2026-10-18T19:00:00Z',sequence_request_participants:members});
+        requestRows.push({id:args.p_request_id,request_type:args.p_type,sequence_activity_types:activityTypes.find(type=>type.id===args.p_activity_type_id),notes:args.p_notes,status:'new',created_at:'2026-10-18T19:00:00Z',sequence_request_participants:members});
         return {data:args.p_request_id};
       }
       if(name==='admin_create_sequence_activity_v3') {
@@ -407,8 +407,9 @@ test('a simple Gear request supports existing and new participants and safe retr
   assert.deepEqual(requestCalls[1].p_participant_ids,['denis']);
   assert.deepEqual(requestCalls[1].p_new_participants,[{name:'Anna',surname:'Smith',phone:'0521234567'}]);
   assert.equal(el('requestsListTitle').textContent,'Requests (1)');
-  const row=el('requestsList').children[0].children[0].children[2].children[0];
-  assert.equal(row.children[0].textContent,'Gear');assert.equal(row.children[1].textContent,'Denis, Anna Smith');
+  const row=el('requestsList').children[0].children[1].children[0].children[2].children[0];
+  assert.equal(row.children[0].textContent,'—');
+  assert.equal(el('requestsList').children[0].children[0].textContent,'Activity: Gear (1)');assert.equal(row.children[1].textContent,'Denis, Anna Smith');
 });
 test('requests need a type and reject unqueued new names',async()=>{
   const {nodes,requestCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
@@ -434,9 +435,9 @@ test('save a request with no participants, then append people without creating a
   el('newRequestType').value='gear';el('newRequestNotes').value='Order shirts';
   await el('newRequestForm').fire('submit');await el('newRequestForm').fire('submit');
   assert.deepEqual(requestCalls[1].p_participant_ids,[]);assert.deepEqual(requestCalls[1].p_new_participants,[]);
-  let row=el('requestsList').children[0].children[0].children[2].children[0];
+  let row=el('requestsList').children[0].children[1].children[0].children[2].children[0];
   assert.equal(row.children[1].textContent,'No participants yet');
-  await row.children[5].children[0].fire('click');
+  await row.children[4].children[0].fire('click');await el('editRequestParticipants').fire('click');
   assert.equal(el('newRequestType').disabled,true);assert.equal(el('newRequestNotes').readOnly,true);
   assert.equal(el('newRequestNotes').value,'Order shirts');
   el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
@@ -444,9 +445,9 @@ test('save a request with no participants, then append people without creating a
   await el('newRequestForm').fire('submit');assert.deepEqual(addRequestCalls[0],addRequestCalls[1]);
   assert.equal(addRequestCalls[1].p_request_id,requestCalls[1].p_request_id);
   assert.equal(el('requestsListTitle').textContent,'Requests (1)');
-  row=el('requestsList').children[0].children[0].children[2].children[0];
-  assert.equal(row.children[1].textContent,'Denis');assert.equal(row.children[2].textContent,'Order shirts');
-  await row.children[5].children[0].fire('click');
+  row=el('requestsList').children[0].children[1].children[0].children[2].children[0];
+  assert.equal(row.children[1].textContent,'Denis');assert.equal(row.children[3].textContent,'new');
+  await row.children[4].children[0].fire('click');await el('editRequestParticipants').fire('click');
   assert.equal(el('requestPeople').children[0].children[0].children[0].disabled,true);
 });
 
@@ -537,8 +538,8 @@ test('request edits preserve participants and submit original values for conflic
  el('newRequestType').value='theory';el('newRequestNotes').value='Original';
  el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
  await el('newRequestForm').fire('submit');await el('newRequestForm').fire('submit');
- const scroll=el('requestsList').children[0], table=scroll.children[0], body=table.children[2], row=body.children[0], action=row.children[5];
- await action.children[1].fire('click');
+ const group=el('requestsList').children[0], scroll=group.children[1], table=scroll.children[0], body=table.children[2], row=body.children[0], action=row.children[4];
+ await action.children[0].fire('click');
  assert.equal(el('editRequestNotes').value,'Original');
  el('editRequestNotes').value='Updated';el('editRequestState').value='in_progress';el('editRequestActivityType').value='exams';
  await el('editRequestForm').fire('submit');
@@ -552,4 +553,21 @@ test('failed rename keeps the entered value and displays conflict',async()=>{
  el('localActivityType').value='exams';await el('localEditType').fire('click');
  el('renameTypeName').value='Updated Exams';await el('renameTypeForm').fire('submit');
  assert.equal(el('renameTypeName').value,'Updated Exams');assert.match(el('renameTypeStatus').textContent,/changed elsewhere/);
+});
+
+
+test('Requests groups by activity and uses the saved type with a pencil-only action',async()=>{
+ const {nodes}=harness({route:'#requests'});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+ el('newRequestType').value='theory';el('requestActivityType').value='exams';
+ await el('newRequestForm').fire('submit');await el('newRequestForm').fire('submit');
+ const group=el('requestsList').children[0];assert.equal(group.open,false);
+ const table=group.children[1].children[0];const headings=table.children[1].children[0].children.map(node=>node.textContent);
+ assert.deepEqual(headings,['Type','Participants','Date','Status','']);
+ const row=table.children[2].children[0];assert.equal(row.children[0].textContent,'Exams');assert.equal(row.children[4].children.length,1);assert.equal(row.children[4].children[0].textContent,'✎');
+ assert.equal(group.children[0].textContent,'Activity: Theory (1)');
+ group.open=true;await group.fire('toggle');
+ await el('newRequest').fire('click');el('newRequestType').value='gear';await el('newRequestForm').fire('submit');
+ assert.equal(el('requestsList').children.length,2);assert.equal(el('requestsList').children[0].open,true);
+ assert.equal(el('requestsList').children[1].children[0].textContent,'Activity: Gear (1)');
 });
