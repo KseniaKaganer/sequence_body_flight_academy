@@ -103,6 +103,7 @@
             </select>
             <label for="participantActivityFilter">Activity / event</label>
             <select id="participantActivityFilter" disabled><option value="">All activities / events</option></select>
+            <label class="missing-phone-filter"><input id="participantMissingPhone" type="checkbox"> Missing phone only</label>
             <button id="clearParticipantFilters" type="button">Clear filters</button>
             <p id="participantFiltersStatus" role="status" aria-live="polite"></p>
           </details>
@@ -111,8 +112,16 @@
         <section class="participant-detail-panel" aria-labelledby="participantTitle">
           <h2 id="participantTitle">Participant details</h2>
           <div id="participantTabs" class="participant-tabs" role="tablist" aria-label="Participant details" hidden>
-            <button id="participantSkillTab" type="button" role="tab" aria-selected="true" aria-controls="participantSkillPanel">Skill</button>
+            <button id="participantParticipationTab" type="button" role="tab" aria-selected="false" aria-controls="participantParticipationPanel" tabindex="-1">Participation</button>
+            <button id="participantSkillTab" type="button" role="tab" aria-selected="true" aria-controls="participantSkillPanel">Skills</button>
             <button id="participantInfoTab" type="button" role="tab" aria-selected="false" aria-controls="participantInfoPanel" tabindex="-1">Info</button>
+            <button id="participantGearTab" type="button" role="tab" aria-selected="false" aria-controls="participantGearPanel" tabindex="-1">Gear</button>
+          </div>
+          <p id="profileDataStatus" role="status" aria-live="polite"></p>
+          <div id="participantParticipationPanel" class="participant-profile-panel" role="tabpanel" aria-labelledby="participantParticipationTab" hidden><div id="participationHistory"></div></div>
+          <div id="participantGearPanel" class="participant-profile-panel" role="tabpanel" aria-labelledby="participantGearTab" hidden>
+            <button id="editParticipantGear" class="edit-participant-button" type="button">Edit gear</button>
+            <p id="gearStatus" role="status" aria-live="polite"></p><div id="gearHistory"></div>
           </div>
           <p id="participantEmpty">Select a participant to view their details.</p>
           <div id="participantInfoPanel" role="tabpanel" aria-labelledby="participantInfoTab" hidden>
@@ -126,8 +135,7 @@
             <button id="addManualSkill" class="edit-participant-button" type="button">+ Add Skill</button>
             <p id="manualSkillStatus" role="status" aria-live="polite"></p>
             <div id="manualSkillHistory"></div>
-            <p id="activitySkillStatus" role="status" aria-live="polite"></p>
-            <div id="activitySkillHistory"></div>
+            <div id="participantExperience"></div>
             <p id="skillStatus" role="status" aria-live="polite"></p>
             <div id="skillHistory"></div>
           </div>
@@ -290,6 +298,22 @@
         <p id="localActivityStatus" role="status" aria-live="polite"></p>
       </form>
     </div>
+
+
+    <dialog id="participantGearDialog" class="login-dialog basic-event-form" aria-labelledby="participantGearTitle">
+      <h2 id="participantGearTitle">Edit gear</h2>
+      <p>Blank fields use the latest available Travel record. Saved values apply to this profile.</p>
+      <form id="participantGearForm">
+        <fieldset id="participantGearFields">
+          <label for="gearCanopySize">Main canopy size (sq ft)</label><input id="gearCanopySize" type="number" min="0.1" step="any">
+          <label for="gearReserveSize">Reserve size (sq ft)</label><input id="gearReserveSize" type="number" min="0.1" step="any">
+          <label for="gearReserveDate">Reserve repack date</label><input id="gearReserveDate" type="date">
+          <label for="gearRental">Equipment</label><select id="gearRental"><option value="">Use Travel record</option><option value="own">Own gear</option><option value="rental">Rental gear</option></select>
+          <label for="gearNotes">Gear notes</label><textarea id="gearNotes" maxlength="5000" rows="3"></textarea>
+          <div class="edit-actions"><button id="cancelParticipantGear" type="button">Cancel</button><button id="saveParticipantGear" type="submit">Save gear</button></div>
+        </fieldset><p id="participantGearFormStatus" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
 
     <dialog id="editParticipantDialog" class="login-dialog" aria-labelledby="editParticipantTitle">
       <h2 id="editParticipantTitle">Edit participant</h2>

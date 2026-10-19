@@ -21,9 +21,9 @@ function harness(options = {}) {
   }
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
-  const addRequestCalls=[];const requestCalls=[];const requestRows=[];let failedAddition=false;const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
+  const addRequestCalls=[];const gearCalls=[];const gearProfiles=options.gearProfiles || [];const requestCalls=[];const requestRows=[];let failedAddition=false;const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
   let failSave=true;
-  const people=[{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
+  const people=options.people || [{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
     {id:'nadia-copy',display_name:'Nadia',surname:'',phone:'50-456',email:''}];
   const events = [
@@ -34,6 +34,12 @@ function harness(options = {}) {
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='is_admin')return {data:true};
+      if(name==='admin_save_participant_gear') {
+        gearCalls.push(JSON.parse(JSON.stringify(args)));if(options.gearError)return {error:{message:'Gear changed elsewhere'}};
+        const current=gearProfiles.find(p=>p.participant_id===args.p_participant_id);
+        const row={participant_id:args.p_participant_id,canopy_size:args.p_canopy_size,reserve_size:args.p_reserve_size,reserve_date:args.p_reserve_date,reserve_rental:args.p_reserve_rental,notes:args.p_notes,updated_at:'2026-10-19T10:00:00Z'};
+        if(current)Object.assign(current,row);else gearProfiles.push(row);return {data:row.updated_at};
+      }
       if(name==='admin_list_sequence_coaches')return {data:[{user_id:'admin-ilya',display_name:'Ilya'},{user_id:'admin-ksenia',display_name:'Ksenia'}]};
       if(name==='admin_add_sequence_request_participants') {
         addRequestCalls.push(JSON.parse(JSON.stringify(args)));
@@ -68,7 +74,7 @@ function harness(options = {}) {
       const query={select:()=>query,eq:()=>query,order:()=>query,
         in:(field,values)=>{filter={field,values};return query;},
         range:async(start,end)=>{
-          const rows = table === 'sequence_requests' ? requestRows : table === 'events' ? events : table === 'sequence_activities' ? localRows
+          const rows = table === 'participant_gear_profiles' ? gearProfiles : table === 'sequence_requests' ? requestRows : table === 'events' ? events : table === 'sequence_activities' ? localRows
             : table === 'sequence_activity_participants' ? localMemberships
             : table === 'event_participants' ? travelMemberships : table === 'participant_manual_skills' ? [] : people;
           return {data:rows.filter(row=>!filter || filter.values.includes(row[filter.field])).slice(start,end+1)};
@@ -79,7 +85,7 @@ function harness(options = {}) {
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
   const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
+  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,gearCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -300,8 +306,8 @@ test('category and activity filters find grouped participants, whose Skills show
   el('participantActivityFilter').value='local:packing'; await el('participantActivityFilter').fire('change');
   await el('participantsList').children[0].fire('click');
   await new Promise(resolve=>setImmediate(resolve));
-  const section=el('activitySkillHistory').children[0];
-  assert.equal(section.children[0].textContent,'Activities (1)');
+  const section=el('participationHistory').children[0];
+  assert.equal(section.children[0].textContent,'Participation (1)');
   const row=section.children[1].children[1].children[0];
   assert.deepEqual(row.children.map(cell=>cell.textContent),['Packing Lesson','Theory','01/01/2026','Past','Ilya']);
   await el('clearParticipantFilters').fire('click');
@@ -326,8 +332,8 @@ test('saving an activity with a participant makes it appear in that participant 
   const check=el('localActivityPeople').children[0].children[0].children[0];check.checked=true;await check.fire('change');
   await el('localActivityForm').fire('submit');await el('localActivityForm').fire('submit');
   await navigate('#participants/denis/skill');
-  assert.equal(el('activitySkillHistory').children[0].children[0].textContent,'Activities (1)');
-  const row=el('activitySkillHistory').children[0].children[1].children[1].children[0];
+  assert.equal(el('participationHistory').children[0].children[0].textContent,'Participation (1)');
+  const row=el('participationHistory').children[0].children[1].children[1].children[0];
   assert.equal(row.children[0].textContent,'Tunnel coaching');assert.equal(row.children[1].textContent,'Flybox');
 });
 
@@ -450,4 +456,35 @@ test('Most active supports list limits and category filters while preserving the
  row=el('statisticsOverviewPeople').children[0].children[0].children[2].children[0];assert.equal(row.children[1].textContent,'Nadia');
  el('statisticsPeopleCategory').value='';el('statisticsPeopleLimit').value='all';await el('statisticsPeopleLimit').fire('change');
  assert.match(el('statisticsPeopleCount').textContent,/Showing 2 of 2/);
+});
+
+test('missing-phone filter includes blank or unusable numbers and combines with search',async()=>{
+ const {nodes}=harness({route:'#participants',people:[{id:'p1',display_name:'Anna',phone:null},{id:'p2',display_name:'Boris',phone:'--'},{id:'p3',display_name:'Dana',phone:'050123'}]});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));el('participantMissingPhone').checked=true;await el('participantMissingPhone').fire('change');
+ assert.equal(el('participantsListTitle').textContent,'Participants (2 / 3)');
+ el('participantSearch').value='Anna';await el('participantSearch').fire('input');assert.equal(el('participantsListTitle').textContent,'Participants (1 / 3)');
+ await el('clearParticipantFilters').fire('click');assert.equal(el('participantMissingPhone').checked,false);assert.equal(el('participantsListTitle').textContent,'Participants (3)');
+});
+test('profile Info reads passport from matching records and Skills/Gear show Travel data',async()=>{
+ const {nodes}=harness({route:'#participants/nadia/gear',people:[{id:'nadia',display_name:'Nadia',phone:'050456'},{id:'nadia-copy',display_name:'Nadia',phone:'50-456',passport_number:'AB123'}],
+ travelMemberships:[{id:'member',event_id:'camp',participant_id:'nadia-copy',participant_status:'active',number_of_jumps:1500,tunnel_minutes_total:125,canopy_size:135,reserve_date:'2026-01-01',reserve_rental:false,
+ events:{id:'camp',name:'Travel Camp',start_date:'2026-02-01',end_date:'2026-02-07',status:'completed',event_type:'skydive'}}]});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(el('participantGearPanel').hidden,false);
+ assert.equal(el('participantDetails').children.find(row=>row.children[0].textContent==='Passport number').children[1].textContent,'AB123');
+ const experience=el('participantExperience').children[0].children[1].children[1].children;
+ assert.equal(experience[0].children[1].textContent,'1500');assert.match(experience[0].children[2].textContent,/Travel Camp/);
+ const gear=el('gearHistory').children[0].children[1].children[1].children;assert.equal(gear[0].children[1].textContent,'135');assert.equal(gear[2].children[1].textContent,'01/01/2026');
+});
+test('Gear saves current profile values without changing historical memberships',async()=>{
+ const {nodes,gearCalls}=harness({route:'#participants/denis/gear'});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('editParticipantGear').fire('click');
+ el('gearCanopySize').value='135';el('gearReserveSize').value='108';el('gearReserveDate').value='2026-08-01';el('gearRental').value='own';el('gearNotes').value='Main rig';
+ await el('participantGearForm').fire('submit');assert.equal(gearCalls.length,1);assert.equal(gearCalls[0].p_participant_id,'denis');assert.equal(gearCalls[0].p_reserve_size,108);
+ const gear=el('gearHistory').children[0].children[1].children[1].children;assert.equal(gear[0].children[1].textContent,'135');assert.match(gear[0].children[2].textContent,/Saved gear profile/);
+});
+test('concurrent gear edits keep entered values and show the conflict',async()=>{
+ const {nodes}=harness({route:'#participants/denis/gear',gearError:true});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('editParticipantGear').fire('click');el('gearCanopySize').value='135';
+ await el('participantGearForm').fire('submit');assert.equal(el('gearCanopySize').value,'135');assert.equal(el('participantGearFormStatus').textContent,'Gear changed elsewhere');
 });

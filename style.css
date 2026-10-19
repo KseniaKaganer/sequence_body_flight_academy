@@ -310,3 +310,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .statistics-card span { color: var(--muted); font-size: .9rem; }
 #statisticsContent [role=tabpanel] { min-width: 0; }
 @media(max-width: 600px) { .statistics-cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; } .statistics-card { padding: 16px; } .statistics-controls > div { flex: 1 1 160px; } .statistics-controls select, .statistics-controls input { width: 100%; box-sizing: border-box; } }
+
+.participant-tabs { flex-wrap: wrap; }
+.participant-profile-panel { padding: 16px 20px; min-width: 0; }
+#profileDataStatus { padding: 0 20px; color: var(--muted); font-size: .85rem; }
+#profileDataStatus:empty { display: none; }
+#participationHistory, #gearHistory, #participantExperience { overflow-x: auto; }
+#participationHistory .skill-history-table { min-width: 620px; table-layout: auto; }
+#gearHistory .skill-history-table, #participantExperience .skill-history-table { min-width: 430px; table-layout: auto; }
+.participant-filters .missing-phone-filter { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.missing-phone-filter input { width: 18px; height: 18px; margin: 0; }
+#participantGearDialog select { min-height: 44px; width: 100%; padding: 12px; background: #080808; color: var(--text); border: 1px solid #555; border-radius: 8px; font: inherit; }
+#participantGearDialog textarea { width: 100%; box-sizing: border-box; padding: 12px; background: #080808; color: var(--text); border: 1px solid #555; border-radius: 8px; font: inherit; }
+#saveParticipantGear { background: var(--accent); }
+#participantGearDialog .edit-actions { margin-top: 16px; }

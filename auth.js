@@ -31,20 +31,20 @@
   let activePage = 'home';
   const statisticsViews = ['overview','types','participation','coaches','months','requests'];
   let activeStatisticsView = 'overview';
-  let activeParticipantTab = 'skill';
+  let activeParticipantTab = 'participation';
   const activityTabs = ['travel', 'skydive', 'theory', 'flybox', 'social'];
   let activeActivityTab = 'travel';
   function readRoute() {
     let parts;
     try { parts = window.location.hash.slice(1).split('/').map(decodeURIComponent); }
-    catch { return { page: 'home', participant: null, tab: 'skill' }; }
+    catch { return { page: 'home', participant: null, tab: 'participation' }; }
     const requestedPage = parts[0] === 'events' ? 'activities' : parts[0];
     const page = ['participants', 'requests', 'activities', 'statistics'].includes(requestedPage) ? requestedPage : 'home';
     return { page: page === 'requests' ? 'request' : page,
       statisticsView: statisticsViews.includes(parts[1]) ? parts[1] : 'overview',
       activity: activityTabs.includes(parts[1]) ? parts[1] : 'travel',
       participant: page === 'participants' ? parts[1] || null : null,
-      tab: parts[2] === 'info' ? 'info' : 'skill' };
+      tab: ['participation','skill','info','gear'].includes(parts[2]) ? parts[2] : 'participation' };
   }
   function writeRoute() {
     let hash = activePage === 'request' ? '#requests' : '#' + activePage;
@@ -116,26 +116,26 @@
     });
   }
 
+  const participantTabNames = ['Participation','Skill','Info','Gear'];
   function setParticipantTab(tab, focus = false, updateUrl = true) {
-    activeParticipantTab = tab;
-    for (const name of ['Skill', 'Info']) {
-      const selected = name.toLowerCase() === tab;
+    activeParticipantTab = participantTabNames.some(name=>name.toLowerCase()===tab) ? tab : 'participation';
+    for (const name of participantTabNames) {
+      const selected = name.toLowerCase() === activeParticipantTab;
       const button = el('participant' + name + 'Tab');
-      button.setAttribute('aria-selected', String(selected));
-      button.tabIndex = selected ? 0 : -1;
+      button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
       el('participant' + name + 'Panel').hidden = !selected;
       if (selected && focus) button.focus();
     }
     if (updateUrl && selectedParticipantId) writeRoute();
   }
-  for (const name of ['Skill', 'Info']) {
+  for (const [index,name] of participantTabNames.entries()) {
     const button = el('participant' + name + 'Tab');
     button.addEventListener('click', () => setParticipantTab(name.toLowerCase()));
     button.addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
       event.preventDefault();
-      const tab = event.key === 'Home' ? 'skill' : event.key === 'End' ? 'info' : name === 'Info' ? 'skill' : 'info';
-      setParticipantTab(tab, true);
+      const next=event.key==='Home'?0:event.key==='End'?participantTabNames.length-1:(index+(event.key==='ArrowRight'?1:-1)+participantTabNames.length)%participantTabNames.length;
+      setParticipantTab(participantTabNames[next].toLowerCase(),true);
     });
   }
   let skillRequest = 0;
@@ -300,8 +300,6 @@
       const eventRow = row => [row.events.name, row.events.event_type,
         `${date(row.events.start_date)} – ${date(row.events.end_date)}`];
       const host = el('skillHistory');
-      host.append(historyTable(`SHAKSHUKA Travel history (${past.length})`,
-        ['Event', 'Type', 'Dates'], past.map(eventRow)));
       const courseRows = [];
       let courseErrors = 0;
       // Reuse the same admin endpoints as Shakshuka, including custom courses.
@@ -324,8 +322,6 @@
       }
       if (!current()) return;
       host.append(historyTable(`Canopy Training history (${courseRows.length})`, ['Course', 'Event', 'Event end'], courseRows));
-      if (other.length) host.append(historyTable('Upcoming, current or unconfirmed registrations',
-        ['Event', 'Type', 'Dates'], other.map(eventRow)));
       status('skillStatus', courseErrors ? 'Some canopy history could not be loaded. Counts may be incomplete; use Refresh above.' : '');
     } catch (error) {
       if (current()) {
@@ -344,7 +340,7 @@
     const person = participants.find(person => person.id === selectedParticipantId);
     if (!verifiedAdmin || !person) return;
     editingParticipant = { ...person };
-    for (const [field, input] of Object.entries(participantFields)) el(input).value = person[field] || '';
+    for (const [field, input] of Object.entries(participantFields)) el(input).value = participantInfo(person)[field] || '';
     status('editParticipantStatus', '');
     el('editParticipantDialog').showModal();
   });
@@ -443,7 +439,10 @@
   });
   function clearParticipantDetails() {
     ++activitySkillRequest;
-    el('activitySkillHistory').replaceChildren(); status('activitySkillStatus', '');
+    profileDataCache = null;
+    for (const id of ['participationHistory','participantExperience','gearHistory']) el(id).replaceChildren();
+    status('profileDataStatus',''); status('gearStatus','');
+    el('participantParticipationPanel').hidden = true; el('participantGearPanel').hidden = true;
     ++skillRequest;
     ++manualSkillRequest;
     el('manualSkillHistory').replaceChildren();
@@ -460,6 +459,7 @@
     el('participantEmpty').hidden = false;
   }
   function renderParticipantDetails(person) {
+    person = participantInfo(person);
     el('participantTitle').textContent = [person.display_name, person.surname].filter(Boolean).join(' ');
     el('participantDetails').replaceChildren();
     el('participantEmpty').hidden = true;
@@ -482,7 +482,7 @@
   }
   function renderParticipants() {
     const query = el('participantSearch').value.trim().toLowerCase();
-    const filtersActive = Boolean(el('participantCategoryFilter').value || el('participantActivityFilter').value);
+    const filtersActive = Boolean(el('participantCategoryFilter').value || el('participantActivityFilter').value || el('participantMissingPhone').checked);
     const matches = participants.filter(person => participantMatchesActivityFilters(person) && (
       (person.searchText || [person.display_name, person.surname, person.phone, person.email]
         .filter(Boolean).join(' ')).toLowerCase().includes(query) ||
@@ -505,7 +505,7 @@
         if (!verifiedAdmin) return;
         const changed = selectedParticipantId !== person.id;
         selectedParticipantId = person.id;
-        if (changed) { setParticipantTab('skill', false, false); loadSkillHistory(person.id); loadManualSkills(person.id); }
+        if (changed) { setParticipantTab('participation', false, false); loadSkillHistory(person.id); loadManualSkills(person.id); }
         writeRoute();
         // Update selection without replacing the focused list button.
         for (const row of el('participantsList').children) row.setAttribute('aria-pressed', 'false');
@@ -569,6 +569,8 @@
   el('refreshParticipants').addEventListener('click', loadParticipants);
   function showSignedOut() {
     verifiedAdmin = false;
+    el('participantGearDialog').close(); gearEditing = null; profileDataCache = null;
+    el('participantMissingPhone').checked = false;
     ++statisticsLoad; statisticsData = null; el('statisticsContent').hidden = true; status('statisticsStatus', '');
     for (const id of ['statisticsCards','statisticsOverviewPeople','statisticsTypes','statisticsPeople','statisticsCoaches','statisticsMonths','statisticsRequestCards','statisticsRequests']) el(id).replaceChildren();
     ++requestPeopleLoad; ++requestsLoad;
@@ -1333,6 +1335,7 @@
   function participantMatchesActivityFilters(person) {
     const category = el('participantCategoryFilter').value;
     const activity = el('participantActivityFilter').value;
+    if (el('participantMissingPhone').checked && normalizedParticipantPhone(person.phone)) return false;
     if (!category && !activity) return true;
     return [...participantActivityIndex].some(([key, item]) => (!activity || key === activity)
       && (!category || item.category === category)
@@ -1397,40 +1400,13 @@
     }
   }
   async function loadParticipantActivitySkills(participantId) {
-    if (!verifiedAdmin) return;
-    const request = ++activitySkillRequest;
-    const ids = participants.find(person => person.id === participantId)?.recordIds || [participantId];
-    const current = () => verifiedAdmin && request === activitySkillRequest && selectedParticipantId === participantId;
-    el('activitySkillHistory').replaceChildren(); status('activitySkillStatus', 'Loading activities…');
-    try {
-      const activities = new Map();
-      for (let start = 0; ; start += 500) {
-        const { data, error } = await client.from('sequence_activity_participants')
-          .select('activity_id,participant_id,sequence_activities(id,title,category,start_date,end_date,coach)')
-          .in('participant_id', ids).order('activity_id').order('participant_id').range(start, start + 499);
-        if (error) throw error;
-        if (!current()) return;
-        for (const row of data) if (row.sequence_activities) activities.set(row.sequence_activities.id, row.sequence_activities);
-        if (data.length < 500) break;
-      }
-      const today = activityToday();
-      const date = value => value ? value.split('-').reverse().join('/') : '—';
-      const rows = [...activities.values()].sort((a,b) => b.start_date.localeCompare(a.start_date)).map(activity => [
-        activity.title, localActivityLabels[activity.category] || activity.category,
-        activity.start_date === activity.end_date ? date(activity.start_date) : `${date(activity.start_date)} – ${date(activity.end_date)}`,
-        activity.end_date < today ? 'Past' : activity.start_date <= today ? 'Current' : 'Upcoming', activity.coach
-      ]);
-      el('activitySkillHistory').append(historyTable(`Activities (${rows.length})`, ['Activity', 'Category', 'Dates', 'Status', 'Coach / organizer'], rows));
-      status('activitySkillStatus', '');
-    } catch (error) {
-      if (current()) status('activitySkillStatus', ['PGRST205', '42P01'].includes(error.code)
-        ? 'Run database/local-activities.sql to enable activity history.' : 'Unable to load activity history. Refresh participants to retry.');
-    }
+    return loadParticipantProfileData(participantId);
   }
   el('participantCategoryFilter').addEventListener('change', () => { renderParticipantActivityOptions(); renderParticipants(); });
   el('participantActivityFilter').addEventListener('change', renderParticipants);
+  el('participantMissingPhone').addEventListener('change',renderParticipants);
   el('clearParticipantFilters').addEventListener('click', () => {
-    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = '';
+    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = ''; el('participantMissingPhone').checked = false;
     renderParticipantActivityOptions(); renderParticipants();
   });
 
@@ -1930,6 +1906,136 @@
   el('statisticsRange').addEventListener('change',()=>{el('statisticsCustomDates').hidden=el('statisticsRange').value!=='custom';renderStatistics();});
   for(const id of ['statisticsScope','statisticsStart','statisticsEnd','statisticsPeopleCategory','statisticsPeopleLimit'])el(id).addEventListener('change',renderStatistics);
   el('refreshStatistics').addEventListener('click',loadStatistics);
+
+  let profileDataCache = null;
+  let gearEditing = null;
+  let gearSaving = false;
+  function participantInfo(person) {
+    const rows = (person.recordIds || [person.id]).map(id => participantRecords.find(row => row.id === id)).filter(Boolean);
+    const result = { ...person };
+    for (const field of Object.keys(participantFields)) {
+      if (result[field] == null || String(result[field]).trim() === '') {
+        const source = rows.find(row => row[field] != null && String(row[field]).trim() !== '');
+        if (source) result[field] = source[field];
+      }
+    }
+    return result;
+  }
+  function deriveParticipantProfile(travel, local, gear, ids, today) {
+    const activities = new Map();
+    const validTravel = travel.filter(row => row.events && row.participant_status !== 'cancelled' && row.events.status !== 'cancelled');
+    const rank = { invited: 1, active: 2, completed: 3 };
+    for (const row of validTravel) {
+      const key = 'travel:' + row.events.id, existing = activities.get(key);
+      const state = row.participant_status === 'completed' || row.events.status === 'completed' || row.events.end_date < today ? 'Past'
+        : row.events.start_date > today ? 'Upcoming' : 'Current';
+      if (!existing || (rank[row.participant_status] || 0) > existing.rank) activities.set(key, {
+        name: row.events.name, category: row.events.event_type === 'tunnel' ? 'Travel · Tunnel' : 'Travel · Skydive',
+        start: row.events.start_date, end: row.events.end_date, state, coach: '', rank: rank[row.participant_status] || 0
+      });
+    }
+    for (const row of local) {
+      const activity = row.sequence_activities; if (!activity) continue;
+      activities.set('local:' + activity.id, { name: activity.title, category: localActivityLabels[activity.category] || activity.category,
+        start: activity.start_date, end: activity.end_date, coach: activity.coach || '',
+        state: activity.end_date < today ? 'Past' : activity.start_date > today ? 'Upcoming' : 'Current' });
+    }
+    validTravel.sort((a,b) => (b.events.start_date || '').localeCompare(a.events.start_date || '') || String(a.id).localeCompare(String(b.id)));
+    const source = row => ({ text: row.events.name, date: row.events.start_date });
+    const latest = field => {
+      const row = validTravel.find(row => row[field] != null && String(row[field]).trim() !== '');
+      return row ? { value: row[field], source: source(row) } : { value: null, source: null };
+    };
+    const experience = Object.fromEntries(['number_of_jumps','last_jump_date','tunnel_minutes_total','license_text','water_training_done','canopy_course_done'].map(field => [field, latest(field)]));
+    const overrides = [...gear].filter(row => ids.includes(row.participant_id)).sort((a,b) => (b.updated_at || '').localeCompare(a.updated_at || '') || String(a.participant_id).localeCompare(String(b.participant_id)));
+    const current = overrides[0] || null;
+    const equipment = {};
+    for (const field of ['canopy_size','reserve_size','reserve_date','reserve_rental','notes']) {
+      equipment[field] = current && current[field] != null && String(current[field]).trim() !== ''
+        ? { value: current[field], source: { text: 'Saved gear profile', date: current.updated_at?.slice(0,10) } }
+        : ['canopy_size','reserve_date','reserve_rental'].includes(field) ? latest(field) : { value:null,source:null };
+    }
+    return { activities: [...activities.values()].sort((a,b) => (b.start || '').localeCompare(a.start || '') || a.name.localeCompare(b.name)), experience, equipment, current };
+  }
+  function renderParticipantProfile(profile) {
+    const date = value => value ? value.split('-').reverse().join('/') : '—';
+    const source = item => item.source ? item.source.text + (item.source.date ? ' · ' + date(item.source.date) : '') : '—';
+    const display = (item, format = String) => item.value == null ? '—' : format(item.value);
+    const rows = profile.activities.map(activity => [activity.name, activity.category,
+      activity.start === activity.end ? date(activity.start) : date(activity.start) + ' – ' + date(activity.end), activity.state, activity.coach]);
+    el('participationHistory').replaceChildren(historyTable(`Participation (${rows.length})`,['Activity / event','Category','Dates','Status','Coach / organizer'],rows));
+    const labels = {number_of_jumps:'Number of jumps',last_jump_date:'Last jump date',tunnel_minutes_total:'Total tunnel time',license_text:'License',water_training_done:'Water training',canopy_course_done:'Canopy course'};
+    const formats = {last_jump_date:date,tunnel_minutes_total:value=>Math.floor(Number(value)/60)+'h '+(Number(value)%60)+'m',water_training_done:value=>value?'Yes':'No',canopy_course_done:value=>value?'Yes':'No'};
+    el('participantExperience').replaceChildren(historyTable('Latest recorded experience',['Field','Value','Source'],Object.entries(labels).map(([field,label])=>{
+      const item=profile.experience[field];return [label,display(item,formats[field] || String),source(item)];
+    })));
+    const gearLabels={canopy_size:'Main canopy size (sq ft)',reserve_size:'Reserve size (sq ft)',reserve_date:'Reserve repack date',reserve_rental:'Equipment',notes:'Gear notes'};
+    el('gearHistory').replaceChildren(historyTable('Gear',['Field','Value','Source'],Object.entries(gearLabels).map(([field,label])=>{
+      const item=profile.equipment[field];const format=field==='reserve_date'?date:field==='reserve_rental'?value=>value?'Rental gear':'Own gear':String;
+      return [label,display(item,format),source(item)];
+    })));
+  }
+  async function loadParticipantProfileData(participantId) {
+    if(!verifiedAdmin)return;
+    const request=++activitySkillRequest;
+    const ids=participants.find(person=>person.id===participantId)?.recordIds || [participantId];
+    const current=()=>verifiedAdmin && request===activitySkillRequest && selectedParticipantId===participantId;
+    profileDataCache=null;el('editParticipantGear').disabled=true;
+    for(const id of ['participationHistory','participantExperience','gearHistory'])el(id).replaceChildren();
+    status('profileDataStatus','Loading participation and profile data…');status('gearStatus','');
+    const read=async(table,columns,orders)=>{
+      const rows=[];
+      for(let start=0; ; start+=500){
+        let query=client.from(table).select(columns).in('participant_id',ids);for(const order of orders)query=query.order(order);
+        const {data,error}=await query.range(start,start+499);if(error)throw error;
+        if(!current())return null;rows.push(...data);if(data.length<500)return rows;
+      }
+    };
+    const results=await Promise.allSettled([
+      read('event_participants','id,event_id,participant_status,number_of_jumps,last_jump_date,tunnel_minutes_total,canopy_size,reserve_date,reserve_rental,license_text,water_training_done,canopy_course_done,events(id,name,start_date,end_date,status,event_type)',['id']),
+      read('sequence_activity_participants','activity_id,participant_id,sequence_activities(id,title,category,start_date,end_date,coach)',['activity_id','participant_id']),
+      read('participant_gear_profiles','participant_id,canopy_size,reserve_size,reserve_date,reserve_rental,notes,updated_at',['participant_id'])
+    ]);
+    if(!current())return;
+    const warnings=[];const values=results.map((result,index)=>{
+      if(result.status==='fulfilled')return result.value || [];
+      if(index===2){status('gearStatus',['PGRST205','42P01'].includes(result.reason.code)?'Run database/participant-gear.sql to enable gear editing. Travel gear data is still shown.':'Saved gear data could not be loaded. Refresh participants to retry.');}
+      else warnings.push(index===0?'Travel data could not be loaded.':'Local activity data could not be loaded.');
+      return [];
+    });
+    const profile=deriveParticipantProfile(values[0],values[1],values[2],ids,activityToday());
+    profileDataCache={participantId,profile,gearReady:results[2].status==='fulfilled'};
+    renderParticipantProfile(profile);el('editParticipantGear').disabled=!profileDataCache.gearReady;
+    status('profileDataStatus',warnings.join(' '));
+  }
+  el('editParticipantGear').addEventListener('click',()=>{
+    if(!verifiedAdmin || gearSaving || !profileDataCache?.gearReady || profileDataCache.participantId!==selectedParticipantId)return;
+    const current=profileDataCache.profile.current;
+    gearEditing={participantId:selectedParticipantId,targetId:current?.participant_id || selectedParticipantId,expected:current?.updated_at || null};
+    el('participantGearForm').reset();
+    for(const [field,id] of Object.entries({canopy_size:'gearCanopySize',reserve_size:'gearReserveSize',reserve_date:'gearReserveDate',notes:'gearNotes'}))el(id).value=current?.[field] ?? '';
+    el('gearRental').value=current?.reserve_rental==null?'':current.reserve_rental?'rental':'own';
+    status('participantGearFormStatus','');el('participantGearDialog').showModal();
+  });
+  el('cancelParticipantGear').addEventListener('click',()=>{if(!gearSaving)el('participantGearDialog').close();});
+  el('participantGearDialog').addEventListener('cancel',event=>{if(gearSaving)event.preventDefault();});
+  el('participantGearDialog').addEventListener('close',()=>{gearEditing=null;el('participantGearForm').reset();status('participantGearFormStatus','');});
+  el('participantGearForm').addEventListener('submit',async event=>{
+    event.preventDefault();if(!verifiedAdmin || gearSaving || !gearEditing || !el('participantGearForm').reportValidity())return;
+    const canopy=el('gearCanopySize').value,reserve=el('gearReserveSize').value,notes=el('gearNotes').value.trim();
+    if([canopy,reserve].some(value=>value!=='' && (!Number.isFinite(Number(value)) || Number(value)<=0)) || notes.length>5000){status('participantGearFormStatus','Use positive canopy sizes and notes under 5000 characters.');return;}
+    const original={...gearEditing},accountRevision=revision;gearSaving=true;el('participantGearFields').disabled=true;status('participantGearFormStatus','Saving…');
+    try{
+      const {data,error}=await client.rpc('admin_save_participant_gear',{
+        p_participant_id:original.targetId,p_expected_updated_at:original.expected,p_canopy_size:canopy===''?null:Number(canopy),p_reserve_size:reserve===''?null:Number(reserve),
+        p_reserve_date:el('gearReserveDate').value || null,p_reserve_rental:el('gearRental').value===''?null:el('gearRental').value==='rental',p_notes:notes||null
+      });
+      if(error)throw error;if(!data)throw new Error('Unable to verify gear save. Reopen Gear and try again.');
+      if(!verifiedAdmin || revision!==accountRevision)return;el('participantGearDialog').close();
+      if(selectedParticipantId===original.participantId)await loadParticipantProfileData(original.participantId);
+    }catch(error){if(verifiedAdmin && revision===accountRevision)status('participantGearFormStatus',error.code==='PGRST202'?'Run database/participant-gear.sql in Supabase before saving.':error.message||'Unable to save gear.');}
+    finally{gearSaving=false;el('participantGearFields').disabled=false;}
+  });
 
   async function init() {
     try {
