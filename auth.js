@@ -2037,6 +2037,19 @@
     finally{gearSaving=false;el('participantGearFields').disabled=false;}
   });
 
+
+  // Reuse the verified admin session only for links to the owned Travel site.
+  document.addEventListener('click', event => {
+    if (!verifiedAdmin || event.defaultPrevented || (event.button != null && event.button !== 0)) return;
+    const link = event.target.closest?.('a[href]');
+    if (!link || !window.SequenceAdminSession) return;
+    let url;
+    try { url = new URL(link.href, window.location.href); } catch { return; }
+    if (url.origin !== 'https://shakshuka-travel.pages.dev' || !['/', '/index.html', '/admin.html'].includes(url.pathname)) return;
+    const child = window.SequenceAdminSession.openTravel(client, () => verifiedAdmin, url.href);
+    if (child) event.preventDefault();
+  });
+
   async function init() {
     try {
       const config = window.SEQUENCE_CONFIG;

@@ -6,7 +6,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 function harness(options = {}) {
-  const nodes = new Map();
+  const nodes = new Map(); const documentEvents = {}; const travelOpens = [];
   class Element {
     constructor() { this.value=''; this.hidden=false; this.children=[]; this.listeners={}; this.dataset={}; }
     addEventListener(event, listener) { (this.listeners[event] ||= []).push(listener); }
@@ -83,9 +83,10 @@ function harness(options = {}) {
     }};
   const window={location:{hash:options.route || '#events'},history:{pushState(_state,_title,hash){window.location.hash=hash;}},events:{},addEventListener(name,fn){this.events[name]=fn;},
     SEQUENCE_CONFIG:{},supabase:{createClient:()=>client}};
-  const context={window,document:{getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
+  window.SequenceAdminSession={openTravel:(_client,isAdmin,url)=>{travelOpens.push({admin:isAdmin(),url});return options.blockPopup ? null : {};}};
+  const context={URL,window,document:{addEventListener:(name,fn)=>{documentEvents[name]=fn;},getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,gearCalls,navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
+  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,gearCalls,travelOpens,clickTravel:href=>{let prevented=false;documentEvents.click({target:{closest:()=>({href})},button:0,preventDefault(){prevented=true;}});return prevented;},navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -487,4 +488,16 @@ test('concurrent gear edits keep entered values and show the conflict',async()=>
  const {nodes}=harness({route:'#participants/denis/gear',gearError:true});const el=id=>nodes.get(id);
  await new Promise(resolve=>setImmediate(resolve));await el('editParticipantGear').fire('click');el('gearCanopySize').value='135';
  await el('participantGearForm').fire('submit');assert.equal(el('gearCanopySize').value,'135');assert.equal(el('participantGearFormStatus').textContent,'Gear changed elsewhere');
+});
+
+
+test('verified admin Travel links use the session handoff and preserve event destinations',async()=>{
+ const {clickTravel,travelOpens}=harness();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(clickTravel('https://shakshuka-travel.pages.dev/admin.html?event=camp'),true);
+ assert.equal(travelOpens[0].admin,true);assert.match(travelOpens[0].url,/event=camp/);
+ assert.equal(clickTravel('https://evil.test/'),false);assert.equal(travelOpens.length,1);
+});
+test('blocked handoff windows leave normal link navigation available',async()=>{
+ const {clickTravel}=harness({blockPopup:true});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(clickTravel('https://shakshuka-travel.pages.dev/'),false);
 });
