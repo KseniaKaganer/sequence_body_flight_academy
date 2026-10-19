@@ -5,6 +5,21 @@ const vm = require('node:vm');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
+test('saved category types are shared by Activities and Requests and sent on save', async()=>{
+  const {nodes,localCalls,requestCalls}=harness({route:'#activities/theory'}); const el=id=>nodes.get(id);
+  await new Promise(resolve=>setImmediate(resolve)); await el('addTheoryActivity').fire('click');
+  assert.equal(el('localActivityType').children[1].textContent,'Exams');
+  el('localNewType').value='Packing Course'; await el('localAddType').fire('click');
+  const typeId=el('localActivityType').value; assert.ok(typeId);
+  el('localActivityName').value='Packing evening';el('localActivityStart').value='2026-10-20';
+  await el('localActivityForm').fire('submit'); assert.equal(localCalls[0].p_activity_type_id,typeId);
+  await el('newRequest').fire('click');el('newRequestType').value='theory';await el('newRequestType').fire('change');
+  assert.equal(el('requestActivityType').children[2].textContent,'Packing Course');
+  el('requestActivityType').value=typeId;await el('newRequestForm').fire('submit');
+  assert.equal(requestCalls[0].p_activity_type_id,typeId);
+  el('newRequestType').value='gear';await el('newRequestType').fire('change');
+  assert.equal(el('requestActivityType').children.length,1);assert.equal(el('requestActivityType').value,'');
+});
 function harness(options = {}) {
   const nodes = new Map(); const documentEvents = {}; const travelOpens = [];
   class Element {
@@ -22,7 +37,7 @@ function harness(options = {}) {
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
   const addRequestCalls=[];const gearCalls=[];const gearProfiles=options.gearProfiles || [];const requestCalls=[];const requestRows=[];let failedAddition=false;const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
-  let failSave=true;
+  let failSave=true; const activityTypes=[{id:'exams',category:'theory',name:'Exams'}];
   const people=options.people || [{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
     {id:'nadia-copy',display_name:'Nadia',surname:'',phone:'50-456',email:''}];
@@ -33,6 +48,7 @@ function harness(options = {}) {
   ];
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
+      if(name==='admin_save_activity_type'){const row=activityTypes.find(row=>row.category===args.p_category && row.name.toLowerCase()===args.p_name.toLowerCase());if(row)return {data:row.id};const id=randomUUID();activityTypes.push({id,category:args.p_category,name:args.p_name});return {data:id};}
       if(name==='is_admin')return {data:true};
       if(name==='admin_save_participant_gear') {
         gearCalls.push(JSON.parse(JSON.stringify(args)));if(options.gearError)return {error:{message:'Gear changed elsewhere'}};
@@ -49,7 +65,7 @@ function harness(options = {}) {
         for(const person of args.p_new_participants)request.sequence_request_participants.push({participant_id:'new-added-person',participants:{display_name:person.name,surname:person.surname}});
         return {data:args.p_request_id};
       }
-      if(name==='admin_create_sequence_request') {
+      if(name==='admin_create_sequence_request_v2') {
         requestCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
         const members=args.p_participant_ids.map(id=>({participant_id:id,participants:people.find(person=>person.id===id)}));
@@ -57,7 +73,7 @@ function harness(options = {}) {
         requestRows.push({id:args.p_request_id,request_type:args.p_type,notes:args.p_notes,status:'new',created_at:'2026-10-18T19:00:00Z',sequence_request_participants:members});
         return {data:args.p_request_id};
       }
-      if(name==='admin_create_sequence_activity_v2') {
+      if(name==='admin_create_sequence_activity_v3') {
         localCalls.push(JSON.parse(JSON.stringify(args)));
         if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
         localRows.push({id:args.p_activity_id,title:args.p_title,start_date:args.p_start_date,end_date:args.p_end_date,
@@ -70,8 +86,8 @@ function harness(options = {}) {
       if(failSave){failSave=false;return {error:{message:'Temporary network failure'}};}
       return {data:args.p_event_id};
     },from(table){
-      let filter = null;
-      const query={select:()=>query,eq:()=>query,order:()=>query,
+      let filter = null; let category;
+      const query={then:resolve=>resolve({data:activityTypes.filter(row=>row.category===category)}),select:()=>query,eq:(field,value)=>{if(field==='category')category=value;return query;},order:()=>query,
         in:(field,values)=>{filter={field,values};return query;},
         range:async(start,end)=>{
           const rows = table === 'participant_gear_profiles' ? gearProfiles : table === 'sequence_requests' ? requestRows : table === 'events' ? events : table === 'sequence_activities' ? localRows
@@ -501,3 +517,4 @@ test('blocked handoff windows leave normal link navigation available',async()=>{
  const {clickTravel}=harness({blockPopup:true});await new Promise(resolve=>setImmediate(resolve));
  assert.equal(clickTravel('https://shakshuka-travel.pages.dev/'),false);
 });
+

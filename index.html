@@ -164,6 +164,10 @@
         <fieldset id="basicEventFields">
           <label for="basicEventName">Event name</label>
           <input id="basicEventName" required maxlength="150" placeholder="Shakshuka Florida 26">
+          <label for="travelActivityType">Activity type (optional)</label>
+          <select id="travelActivityType"><option value="">Choose a saved type</option></select>
+          <div class="event-add-person"><input id="travelNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="travelAddType" type="button">Add type</button></div>
+          <p id="travelTypeStatus" role="status"></p>
           <label for="basicEventType">Type</label>
           <select id="basicEventType" required><option value="skydive">Skydive</option><option value="tunnel">Tunnel</option></select>
           <div class="event-dates">
@@ -276,6 +280,10 @@
       <h2 id="localActivityTitle" class="visually-hidden">Add Activity</h2>
       <form id="localActivityForm">
         <fieldset id="localActivityFields">
+          <label for="localActivityType">Activity type (optional)</label>
+          <select id="localActivityType"><option value="">Choose a saved type</option></select>
+          <div class="event-add-person"><input id="localNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="localAddType" type="button">Add type</button></div>
+          <p id="localTypeStatus" role="status"></p>
           <label for="localActivityName">Title</label>
           <input id="localActivityName" maxlength="150" required placeholder="Activity title">
           <div class="event-dates">
@@ -365,6 +373,10 @@
             <option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option>
             <option value="gear">Gear</option><option value="other">Other</option>
           </select>
+          <label for="requestActivityType">Activity type (optional)</label>
+          <select id="requestActivityType"><option value="">Choose a saved type</option></select>
+          <div class="event-add-person"><input id="requestNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="requestAddType" type="button">Add type</button></div>
+          <p id="requestTypeStatus" role="status"></p>
           <label for="newRequestNotes">Notes (optional)</label><textarea id="newRequestNotes" maxlength="5000" rows="3" placeholder="What is needed?"></textarea>
           <p id="requestExistingPeople" hidden></p>
           <label for="requestParticipantSearch">Participants (optional — can be added later)</label><input id="requestParticipantSearch" type="search" placeholder="Search name, phone or email" autocomplete="off">
@@ -519,3 +531,4 @@
   <script src="auth.js" defer></script>
 </body>
 </html>
+

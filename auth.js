@@ -688,7 +688,7 @@
     try {
       const rows = [];
       for (let start = 0; ; start += 500) {
-        const { data, error } = await client.from('events').select('id,name,event_type,start_date,end_date,status')
+        const { data, error } = await client.from('events').select('id,name,event_type,start_date,end_date,status,sequence_activity_types(name)')
           .order('start_date').order('id').range(start, start + 499);
         if (error) throw error;
         if (!verifiedAdmin || request !== travelEventsLoad) return;
@@ -716,7 +716,7 @@
         head.append(header); const body = document.createElement('tbody');
         for (const event of events) {
           const row = document.createElement('tr');
-          const name = document.createElement('td'); name.textContent = event.name;
+          const name = document.createElement('td'); name.textContent = event.name + (event.sequence_activity_types?.name ? ' · ' + event.sequence_activity_types.name : '');
           const dates = document.createElement('td');
           const date = value => value ? value.split('-').reverse().join('/') : '—';
           dates.textContent = `${date(event.start_date)} – ${date(event.end_date)}`;
@@ -949,13 +949,15 @@
     if ([...eventSelection.values()].some(person => person.phone && (person.phone.length > 40 || !/^[+0-9().\s-]+$/.test(person.phone) || !/\d/.test(person.phone)))) {
       status('basicEventStatus', 'Enter valid phone numbers of up to 40 characters.'); return;
     }
+    if (el('travelNewType').value.trim()) { status('basicEventStatus', 'Click Add type to save the new type first.'); return; }
     const accountRevision = revision;
     eventRequestId ||= crypto.randomUUID();
     savingBasicEvent = true; el('basicEventFields').disabled = true;
     status('basicEventStatus', 'Saving event and participants…');
     el('basicEventTravelLink').hidden = true;
     try {
-      const { data, error } = await client.rpc('admin_create_basic_event_v3', {
+      const { data, error } = await client.rpc('admin_create_basic_event_v4', {
+        p_activity_type_id: el('travelActivityType').value || null,
         p_event_id: eventRequestId, p_name: name, p_event_type: el('basicEventType').value,
         p_start_date: start, p_end_date: end,
         p_participant_ids: [...eventSelection.values()].filter(person => person.id).map(person => person.id),
@@ -992,6 +994,46 @@
   const localActivitySelection = new Map();
   let localActivityCoaches = [];
   const localActivityDrafts = new Map();
+  const savedActivityTypes = new Map();
+  const typeLoads = new Map();
+  const typeCategory = prefix => prefix === 'travel' ? 'travel' : prefix === 'local' ? localActivityCategory : el('newRequestType').value;
+  async function loadActivityTypes(prefix, selected = '') {
+    const category = typeCategory(prefix), token = (typeLoads.get(prefix) || 0) + 1;
+    typeLoads.set(prefix, token);
+    const select = el(prefix + 'ActivityType');
+    select.replaceChildren(); select.value = '';
+    const empty = document.createElement('option'); empty.value = ''; empty.textContent = 'Choose a saved type'; select.append(empty);
+    if (!category) return;
+    status(prefix + 'TypeStatus', 'Loading types…');
+    try {
+      const { data, error } = await client.from('sequence_activity_types').select('id,category,name').eq('category', category).order('name');
+      if (error) throw error;
+      if (!verifiedAdmin || typeLoads.get(prefix) !== token || typeCategory(prefix) !== category) return;
+      for (const row of data || []) {
+        savedActivityTypes.set(row.id, row.name);
+        const option = document.createElement('option'); option.value = row.id; option.textContent = row.name; select.append(option);
+      }
+      select.value = selected; status(prefix + 'TypeStatus', '');
+    } catch (_) { if (typeLoads.get(prefix) === token) status(prefix + 'TypeStatus', 'Run database/activity-types.sql to enable saved types.'); }
+  }
+  for (const prefix of ['travel', 'local', 'request']) {
+    el(prefix + 'AddType').addEventListener('click', async () => {
+      const category = typeCategory(prefix), name = el(prefix + 'NewType').value.trim();
+      if (!verifiedAdmin || !category || !name) { status(prefix + 'TypeStatus', 'Choose a category and enter a type name.'); return; }
+      const accountRevision = revision;
+      el(prefix + 'AddType').disabled = true;
+      try {
+        const { data, error } = await client.rpc('admin_save_activity_type', { p_category: category, p_name: name });
+        if (error) throw error;
+        if (!verifiedAdmin || accountRevision !== revision || typeCategory(prefix) !== category) return;
+        el(prefix + 'NewType').value = ''; await loadActivityTypes(prefix, data);
+      } catch (error) { status(prefix + 'TypeStatus', error.message || 'Unable to save type.'); }
+      finally { el(prefix + 'AddType').disabled = false; }
+    });
+  }
+  el('newRequestType').addEventListener('change', () => loadActivityTypes('request'));
+  
+  el('addEventSection')?.addEventListener('toggle', () => { if (el('addEventSection').open) loadActivityTypes('travel'); });
   const localActivityFields = ['Name', 'Start', 'End', 'Location', 'Coach', 'Notes', 'Search'];
   const localActivityLoads = { skydive: 0, theory: 0, flybox: 0, social: 0 };
   function activityToday() {
@@ -1134,6 +1176,7 @@
       const category = localActivityCategory;
       if (discard) localActivityDrafts.delete(category);
       else localActivityDrafts.set(category, {
+        activityType: el('localActivityType').value,
         values: Object.fromEntries(localActivityFields.map(name => [name, el('localActivity' + name).value])),
         ids: [...localActivitySelection], requestId: localActivityRequestId,
         pending: ['localNewParticipant', 'localNewParticipantSurname', 'localNewParticipantPhone'].map(id => el(id).value)
@@ -1163,6 +1206,8 @@
     el('localActivityForm').reset(); el('localActivityPeople').replaceChildren(); renderLocalActivitySelection();
     el('localActivityTitle').textContent = 'Add Activity · ' + localActivityLabels[category];
     el('localActivityStart').value = activityToday();
+    await loadActivityTypes('local', draft?.activityType || '');
+    if (!verifiedAdmin || request !== localActivityPeopleRequest) return;
     if (category === 'flybox') el('localActivityLocation').value = 'Flybox';
     if (draft) for (const name of localActivityFields) el('localActivity' + name).value = draft.values[name];
     if (draft?.pending) ['localNewParticipant', 'localNewParticipantSurname', 'localNewParticipantPhone'].forEach((id, index) => { el(id).value = draft.pending[index]; });
@@ -1203,7 +1248,7 @@
       const rows = [];
       for (let start = 0; ; start += 500) {
         const { data, error } = await client.from('sequence_activities')
-          .select('id,title,start_date,end_date,location,coach,notes,sequence_activity_participants(count)')
+          .select('id,title,start_date,end_date,location,coach,notes,sequence_activity_types(name),sequence_activity_participants(count)')
           .eq('category', category).order('start_date').order('id').range(start, start + 499);
         if (error) throw error;
         if (!verifiedAdmin || request !== localActivityLoads[category]) return;
@@ -1230,7 +1275,7 @@
           head.append(header); const body = document.createElement('tbody');
           for (const row of items) {
             const tr = document.createElement('tr');
-            const name = document.createElement('td'); const title = document.createElement('strong'); title.textContent = row.title; name.append(title);
+            const name = document.createElement('td'); const title = document.createElement('strong'); title.textContent = row.title + (row.sequence_activity_types?.name ? ' · ' + row.sequence_activity_types.name : ''); name.append(title);
             const info = [row.location, row.coach, row.notes].filter(Boolean).join(' · ');
             if (info) { const details = document.createElement('span'); details.className = 'local-activity-details'; details.textContent = info; name.append(details); }
             const dates = document.createElement('td'); const date = value => value.split('-').reverse().join('/');
@@ -1304,11 +1349,13 @@
     if ([...localActivitySelection.values()].some(person => person.phone && (person.phone.length > 40 || !/^[+0-9().\s-]+$/.test(person.phone) || !/\d/.test(person.phone)))) {
       status('localActivityStatus', 'Enter valid phone numbers of up to 40 characters.'); return;
     }
+    if (el('localNewType').value.trim()) { status('localActivityStatus', 'Click Add type to save the new type first.'); return; }
     const category = localActivityCategory, accountRevision = revision;
     localActivitySaving = true; el('localActivityFields').disabled = true;
     status('localActivityStatus', 'Saving…');
     try {
-      const { data, error } = await client.rpc('admin_create_sequence_activity_v2', {
+      const { data, error } = await client.rpc('admin_create_sequence_activity_v3', {
+        p_activity_type_id: el('localActivityType').value || null,
         p_activity_id: localActivityRequestId, p_category: category, p_title: title,
         p_start_date: start, p_end_date: end, p_location: el('localActivityLocation').value.trim() || null,
         p_coach_user_id: el('localActivityCoach').value || null, p_notes: el('localActivityNotes').value.trim() || null,
@@ -1430,6 +1477,9 @@
     el('newRequestForm').reset(); el('requestPeople').replaceChildren(); renderRequestSelection();
     el('requestTitle').textContent = existing ? 'Add participants to request' : 'New Request';
     el('newRequestType').value = existing?.request_type || ''; el('newRequestType').disabled = Boolean(existing);
+    await loadActivityTypes('request', existing?.sequence_activity_type_id || '');
+    el('requestActivityType').disabled = Boolean(existing);
+    el('requestNewType').disabled = Boolean(existing); el('requestAddType').hidden = Boolean(existing);
     el('newRequestNotes').value = existing?.notes || ''; el('newRequestNotes').readOnly = Boolean(existing);
     el('saveNewRequest').textContent = existing ? 'Add participants' : 'Save Request';
     el('requestExistingPeople').hidden = !existing;
@@ -1458,7 +1508,7 @@
       const rows=[];
       for(let start=0; ; start+=500) {
         const {data,error}=await client.from('sequence_requests')
-          .select('id,request_type,notes,status,created_at,sequence_request_participants(participant_id,participants(display_name,surname))')
+          .select('id,request_type,notes,status,created_at,sequence_activity_type_id,sequence_activity_types(name),sequence_request_participants(participant_id,participants(display_name,surname))')
           .order('created_at',{ascending:false}).order('id').range(start,start+499);
         if(error)throw error;
         if(!verifiedAdmin || request!==requestsLoad)return;
@@ -1476,7 +1526,7 @@
           const tr=document.createElement('tr');
           const names=(row.sequence_request_participants||[]).map(link=>link.participants?personName(link.participants):'').filter(Boolean).join(', ');
           const date=row.created_at?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem'}).format(new Date(row.created_at)):'—';
-          for(const value of [requestTypeLabels[row.request_type]||row.request_type,names || 'No participants yet',row.notes,date,row.status]){
+          for(const value of [(requestTypeLabels[row.request_type]||row.request_type) + (row.sequence_activity_types?.name ? ' · ' + row.sequence_activity_types.name : ''),names || 'No participants yet',row.notes,date,row.status]){
             const td=document.createElement('td');td.textContent=value||'—';tr.append(td);
           }
           const action = document.createElement('td'), button = document.createElement('button');
@@ -1509,6 +1559,7 @@
     if(['requestNewParticipant','requestNewParticipantSurname','requestNewParticipantPhone'].some(id=>el(id).value.trim())){
       status('newRequestStatus','Click Add participant to include the person you entered.');return;
     }
+    if (el('requestNewType').value.trim()) { status('newRequestStatus', 'Click Add type to save the new type first.'); return; }
     const accountRevision=revision;
     savingRequest=true;el('newRequestFields').disabled=true;el('closeRequest').disabled=true;status('newRequestStatus','Saving…');
     try{
@@ -1519,8 +1570,8 @@
           .map(person=>({name:person.firstName,surname:person.surname||null,phone:person.phone.trim()||null}))
       };
       if (requestEditingId) payload.p_operation_id = requestOperationId;
-      else { payload.p_type = type; payload.p_notes = notes || null; }
-      const {data,error}=await client.rpc(requestEditingId ? 'admin_add_sequence_request_participants' : 'admin_create_sequence_request',payload);
+      else { payload.p_activity_type_id = el('requestActivityType').value || null; payload.p_type = type; payload.p_notes = notes || null; }
+      const {data,error}=await client.rpc(requestEditingId ? 'admin_add_sequence_request_participants' : 'admin_create_sequence_request_v2',payload);
       if(error)throw error;if(!data)throw new Error('Unable to verify the saved request. Retry with the same details.');
       if(!verifiedAdmin || revision!==accountRevision)return;
       el('requestDialog').close();await loadRequests();
@@ -2073,5 +2124,6 @@
   }
   init();
 })();
+
 
 
