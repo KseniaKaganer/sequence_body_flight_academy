@@ -996,7 +996,7 @@
   const localActivityDrafts = new Map();
   const savedActivityTypes = new Map();
   const typeLoads = new Map();
-  const typeCategory = prefix => prefix === 'travel' ? 'travel' : prefix === 'local' ? localActivityCategory : el('newRequestType').value;
+  const typeCategory = prefix => prefix === 'travel' ? 'travel' : prefix === 'local' ? localActivityCategory : prefix === 'editRequest' ? el('editRequestCategory').value : el('newRequestType').value;
   async function loadActivityTypes(prefix, selected = '') {
     const category = typeCategory(prefix), token = (typeLoads.get(prefix) || 0) + 1;
     typeLoads.set(prefix, token);
@@ -1004,7 +1004,7 @@
     select.replaceChildren(); select.value = '';
     const empty = document.createElement('option'); empty.value = ''; empty.textContent = 'Choose a saved type'; select.append(empty);
     if (!category) return;
-    status(prefix + 'TypeStatus', 'Loading types…');
+    status(prefix === 'editRequest' ? 'editRequestStatus' : prefix + 'TypeStatus', 'Loading types…');
     try {
       const { data, error } = await client.from('sequence_activity_types').select('id,category,name').eq('category', category).order('name');
       if (error) throw error;
@@ -1013,13 +1013,13 @@
         savedActivityTypes.set(row.id, row.name);
         const option = document.createElement('option'); option.value = row.id; option.textContent = row.name; select.append(option);
       }
-      select.value = selected; status(prefix + 'TypeStatus', '');
-    } catch (_) { if (typeLoads.get(prefix) === token) status(prefix + 'TypeStatus', 'Run database/activity-types.sql to enable saved types.'); }
+      select.value = selected; status(prefix === 'editRequest' ? 'editRequestStatus' : prefix + 'TypeStatus', ''); return true;
+    } catch (_) { if (typeLoads.get(prefix) === token) status(prefix === 'editRequest' ? 'editRequestStatus' : prefix + 'TypeStatus', 'Run database/activity-types.sql to enable saved types.'); }
   }
   for (const prefix of ['travel', 'local', 'request']) {
     el(prefix + 'AddType').addEventListener('click', async () => {
       const category = typeCategory(prefix), name = el(prefix + 'NewType').value.trim();
-      if (!verifiedAdmin || !category || !name) { status(prefix + 'TypeStatus', 'Choose a category and enter a type name.'); return; }
+      if (!verifiedAdmin || !category || !name) { status(prefix === 'editRequest' ? 'editRequestStatus' : prefix + 'TypeStatus', 'Choose a category and enter a type name.'); return; }
       const accountRevision = revision;
       el(prefix + 'AddType').disabled = true;
       try {
@@ -1027,13 +1027,74 @@
         if (error) throw error;
         if (!verifiedAdmin || accountRevision !== revision || typeCategory(prefix) !== category) return;
         el(prefix + 'NewType').value = ''; await loadActivityTypes(prefix, data);
-      } catch (error) { status(prefix + 'TypeStatus', error.message || 'Unable to save type.'); }
+      } catch (error) { status(prefix === 'editRequest' ? 'editRequestStatus' : prefix + 'TypeStatus', error.message || 'Unable to save type.'); }
       finally { el(prefix + 'AddType').disabled = false; }
     });
   }
   el('newRequestType').addEventListener('change', () => loadActivityTypes('request'));
   
   el('addEventSection')?.addEventListener('toggle', () => { if (el('addEventSection').open) loadActivityTypes('travel'); });
+  let editingRequestTypesReady = false;
+  let editingRequest = null, editingType = null, editingRequestSaving = false, renamingType = false;
+  async function openEditRequest(row) {
+    if (!verifiedAdmin || editingRequestSaving) return;
+    editingRequest = row;
+    el('editRequestCategory').value = row.request_type;
+    el('editRequestNotes').value = row.notes || '';
+    el('editRequestState').value = row.status;
+    status('editRequestStatus', ''); el('editRequestDialog').showModal();
+    editingRequestTypesReady = false;
+    editingRequestTypesReady = Boolean(await loadActivityTypes('editRequest', row.sequence_activity_type_id || ''));
+  }
+  el('editRequestCategory').addEventListener('change', async () => { editingRequestTypesReady = false; editingRequestTypesReady = Boolean(await loadActivityTypes('editRequest')); });
+  el('cancelEditRequest').addEventListener('click', () => { if (!editingRequestSaving) el('editRequestDialog').close(); });
+  el('editRequestDialog').addEventListener('cancel', event => { if (editingRequestSaving) event.preventDefault(); });
+  el('editRequestForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || !editingRequest || !editingRequestTypesReady || editingRequestSaving || !el('editRequestForm').reportValidity()) return;
+    const row = editingRequest, accountRevision = revision;
+    editingRequestSaving = true; el('editRequestFields').disabled = true;
+    try {
+      const { data, error } = await client.rpc('admin_edit_sequence_request', {
+        p_id: row.id, p_original: { type: row.request_type, activity_type_id: row.sequence_activity_type_id || null, notes: row.notes || null, status: row.status },
+        p_type: el('editRequestCategory').value, p_activity_type_id: el('editRequestActivityType').value || null,
+        p_notes: el('editRequestNotes').value.trim() || null, p_status: el('editRequestState').value
+      });
+      if (error) throw error; if (!data) throw new Error('Unable to verify the update. Retry saving.');
+      if (!verifiedAdmin || revision !== accountRevision) return;
+      el('editRequestDialog').close(); await loadRequests();
+    } catch (error) { status('editRequestStatus', error.code === 'PGRST202' ? 'Run database/edit-requests-types.sql to enable editing.' : error.message || 'Unable to save changes.'); }
+    finally { editingRequestSaving = false; el('editRequestFields').disabled = false; }
+  });
+  for (const prefix of ['travel', 'local', 'request']) {
+    el(prefix + 'EditType').addEventListener('click', () => {
+      if (!verifiedAdmin || renamingType) return;
+      const id = el(prefix + 'ActivityType').value, name = savedActivityTypes.get(id);
+      if (!name) { status(prefix + 'TypeStatus', 'Select a saved type to edit.'); return; }
+      editingType = { id, name, prefix }; el('renameTypeName').value = name;
+      status('renameTypeStatus', ''); el('renameTypeDialog').showModal();
+    });
+  }
+  el('cancelRenameType').addEventListener('click', () => { if (!renamingType) el('renameTypeDialog').close(); });
+  el('renameTypeDialog').addEventListener('cancel', event => { if (renamingType) event.preventDefault(); });
+  el('renameTypeForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || !editingType || renamingType || !el('renameTypeForm').reportValidity()) return;
+    const item = editingType, accountRevision = revision;
+    renamingType = true; el('renameTypeFields').disabled = true;
+    try {
+      const { data, error } = await client.rpc('admin_rename_activity_type', { p_id: item.id, p_original_name: item.name, p_name: el('renameTypeName').value.trim() });
+      if (error) throw error; if (!data) throw new Error('Unable to verify the update. Retry saving.');
+      if (!verifiedAdmin || accountRevision !== revision) return;
+      el('renameTypeDialog').close();
+      for (const prefix of ['travel', 'local', 'request']) {
+        if (typeCategory(prefix)) await loadActivityTypes(prefix, el(prefix + 'ActivityType').value);
+      }
+      await loadRequests(); await loadTravelEvents();
+      if (localActivityCategory) await loadLocalActivities(localActivityCategory);
+    } catch (error) { status('renameTypeStatus', error.code === 'PGRST202' ? 'Run database/edit-requests-types.sql to enable editing.' : error.message || 'Unable to rename type.'); }
+    finally { renamingType = false; el('renameTypeFields').disabled = false; }
+  });
   const localActivityFields = ['Name', 'Start', 'End', 'Location', 'Coach', 'Notes', 'Search'];
   const localActivityLoads = { skydive: 0, theory: 0, flybox: 0, social: 0 };
   function activityToday() {
@@ -1532,7 +1593,9 @@
           const action = document.createElement('td'), button = document.createElement('button');
           button.type = 'button'; button.className = 'event-travel-button'; button.textContent = 'Add participants';
           button.setAttribute('aria-label', 'Add participants to ' + (requestTypeLabels[row.request_type] || row.request_type) + ' request');
-          button.addEventListener('click', () => openNewRequest(row)); action.append(button); tr.append(action);
+          button.addEventListener('click', () => openNewRequest(row)); action.append(button);
+          const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '✎ Edit'; edit.setAttribute('aria-label', 'Edit request');
+          edit.addEventListener('click', () => openEditRequest(row)); action.append(edit); tr.append(action);
           body.append(tr);
         }
         table.append(caption,head,body);const scroll=document.createElement('div');scroll.className='travel-events-scroll';scroll.tabIndex=0;
@@ -2124,6 +2187,7 @@
   }
   init();
 })();
+
 
 
 

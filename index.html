@@ -167,6 +167,7 @@
           <label for="travelActivityType">Activity type (optional)</label>
           <select id="travelActivityType"><option value="">Choose a saved type</option></select>
           <div class="event-add-person"><input id="travelNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="travelAddType" type="button">Add type</button></div>
+          <button id="travelEditType" type="button" aria-label="Rename selected activity type">✎ Edit selected type</button>
           <p id="travelTypeStatus" role="status"></p>
           <label for="basicEventType">Type</label>
           <select id="basicEventType" required><option value="skydive">Skydive</option><option value="tunnel">Tunnel</option></select>
@@ -283,6 +284,7 @@
           <label for="localActivityType">Activity type (optional)</label>
           <select id="localActivityType"><option value="">Choose a saved type</option></select>
           <div class="event-add-person"><input id="localNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="localAddType" type="button">Add type</button></div>
+          <button id="localEditType" type="button" aria-label="Rename selected activity type">✎ Edit selected type</button>
           <p id="localTypeStatus" role="status"></p>
           <label for="localActivityName">Title</label>
           <input id="localActivityName" maxlength="150" required placeholder="Activity title">
@@ -376,6 +378,7 @@
           <label for="requestActivityType">Activity type (optional)</label>
           <select id="requestActivityType"><option value="">Choose a saved type</option></select>
           <div class="event-add-person"><input id="requestNewType" maxlength="150" placeholder="New type name" aria-label="New activity type"><button id="requestAddType" type="button">Add type</button></div>
+          <button id="requestEditType" type="button" aria-label="Rename selected activity type">✎ Edit selected type</button>
           <p id="requestTypeStatus" role="status"></p>
           <label for="newRequestNotes">Notes (optional)</label><textarea id="newRequestNotes" maxlength="5000" rows="3" placeholder="What is needed?"></textarea>
           <p id="requestExistingPeople" hidden></p>
@@ -388,6 +391,25 @@
         </fieldset>
         <p id="newRequestStatus" role="status" aria-live="polite"></p>
       </form>
+    </dialog>
+    <dialog id="editRequestDialog" class="login-dialog basic-event-form" aria-labelledby="editRequestTitle">
+      <h2 id="editRequestTitle">Edit request</h2>
+      <form id="editRequestForm"><fieldset id="editRequestFields">
+        <label for="editRequestCategory">Category</label><select id="editRequestCategory" required>
+          <option value="travel">Travel</option><option value="skydive">Skydive Coaching</option><option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option><option value="gear">Gear</option><option value="other">Other</option>
+        </select>
+        <label for="editRequestActivityType">Activity type (optional)</label><select id="editRequestActivityType"><option value="">Choose a saved type</option></select>
+        <label for="editRequestNotes">Notes</label><textarea id="editRequestNotes" maxlength="5000" rows="4"></textarea>
+        <label for="editRequestState">Status</label><select id="editRequestState"><option value="new">New</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="cancelled">Cancelled</option></select>
+        <div class="edit-actions"><button id="cancelEditRequest" type="button">Cancel</button><button type="submit">Save changes</button></div>
+      </fieldset><p id="editRequestStatus" role="status"></p></form>
+    </dialog>
+    <dialog id="renameTypeDialog" class="login-dialog basic-event-form" aria-labelledby="renameTypeTitle">
+      <h2 id="renameTypeTitle">Rename activity type</h2><form id="renameTypeForm"><fieldset id="renameTypeFields">
+        <label for="renameTypeName">Name</label><input id="renameTypeName" required maxlength="150">
+        <p>This name is shared by activities and requests using this type.</p>
+        <div class="edit-actions"><button id="cancelRenameType" type="button">Cancel</button><button type="submit">Save changes</button></div>
+      </fieldset><p id="renameTypeStatus" role="status"></p></form>
     </dialog>
     <div id="homePage">
     <section class="menu-grid" aria-label="Main menu">
@@ -531,4 +553,5 @@
   <script src="auth.js" defer></script>
 </body>
 </html>
+
 

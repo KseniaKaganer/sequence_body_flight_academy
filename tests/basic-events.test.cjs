@@ -37,7 +37,7 @@ function harness(options = {}) {
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   for(const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1],new Element());
   const addRequestCalls=[];const gearCalls=[];const gearProfiles=options.gearProfiles || [];const requestCalls=[];const requestRows=[];let failedAddition=false;const calls=[]; const phoneCalls=[]; const localCalls=[]; const localRows=options.activities || []; const localMemberships=options.localMemberships || []; const travelMemberships=options.travelMemberships || [];
-  let failSave=true; const activityTypes=[{id:'exams',category:'theory',name:'Exams'}];
+  const editRequestCalls=[],renameCalls=[]; let failSave=true; const activityTypes=[{id:'exams',category:'theory',name:'Exams'}];
   const people=options.people || [{id:'denis',display_name:'Denis',surname:'',phone:'050-123',email:''},
     {id:'nadia',display_name:'Nadia',surname:'',phone:'050-456',email:''},
     {id:'nadia-copy',display_name:'Nadia',surname:'',phone:'50-456',email:''}];
@@ -49,6 +49,8 @@ function harness(options = {}) {
   const client={auth:{getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:'admin'}}}),onAuthStateChange(){}},
     rpc:async(name,args)=>{
       if(name==='admin_save_activity_type'){const row=activityTypes.find(row=>row.category===args.p_category && row.name.toLowerCase()===args.p_name.toLowerCase());if(row)return {data:row.id};const id=randomUUID();activityTypes.push({id,category:args.p_category,name:args.p_name});return {data:id};}
+      if(name==='admin_rename_activity_type'){renameCalls.push(args);if(options.renameError)return {error:{message:'Type changed elsewhere'}};const row=activityTypes.find(row=>row.id===args.p_id);row.name=args.p_name;return {data:args.p_id};}
+      if(name==='admin_edit_sequence_request'){editRequestCalls.push(args);if(options.editError)return {error:{message:'Request changed elsewhere'}};const row=requestRows.find(row=>row.id===args.p_id);Object.assign(row,{request_type:args.p_type,notes:args.p_notes,status:args.p_status,sequence_activity_type_id:args.p_activity_type_id});return {data:args.p_id};}
       if(name==='is_admin')return {data:true};
       if(name==='admin_save_participant_gear') {
         gearCalls.push(JSON.parse(JSON.stringify(args)));if(options.gearError)return {error:{message:'Gear changed elsewhere'}};
@@ -102,7 +104,7 @@ function harness(options = {}) {
   window.SequenceAdminSession={openTravel:(_client,isAdmin,url)=>{travelOpens.push({admin:isAdmin(),url});return options.blockPopup ? null : {};}};
   const context={URL,window,document:{addEventListener:(name,fn)=>{documentEvents[name]=fn;},getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element()},crypto:{randomUUID},setTimeout,console};
   vm.runInNewContext(fs.readFileSync(path.join(root,'auth.js'),'utf8'),context);
-  return {nodes,calls,phoneCalls,localCalls,requestCalls,addRequestCalls,gearCalls,travelOpens,clickTravel:href=>{let prevented=false;documentEvents.click({target:{closest:()=>({href})},button:0,preventDefault(){prevented=true;}});return prevented;},navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
+  return {nodes,calls,editRequestCalls,renameCalls,requestRows,phoneCalls,localCalls,requestCalls,addRequestCalls,gearCalls,travelOpens,clickTravel:href=>{let prevented=false;documentEvents.click({target:{closest:()=>({href})},button:0,preventDefault(){prevented=true;}});return prevented;},navigate:async hash=>{window.location.hash=hash;window.events.hashchange();await new Promise(resolve=>setImmediate(resolve));}};
 }
 test('basic events reuse existing people, group phones and retry the same atomic save', async()=>{
   const {nodes,calls}=harness();
@@ -518,3 +520,36 @@ test('blocked handoff windows leave normal link navigation available',async()=>{
  assert.equal(clickTravel('https://shakshuka-travel.pages.dev/'),false);
 });
 
+
+
+test('type pencil renames the selected type and refreshes its dropdown',async()=>{
+ const {nodes,renameCalls}=harness({route:'#activities/theory'});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('addTheoryActivity').fire('click');
+ el('localActivityType').value='exams';await el('localEditType').fire('click');
+ assert.equal(el('renameTypeName').value,'Exams');
+ el('renameTypeName').value='License Exams';await el('renameTypeForm').fire('submit');
+ assert.equal(renameCalls[0].p_original_name,'Exams');assert.equal(renameCalls[0].p_name,'License Exams');
+ assert.equal(el('localActivityType').children[1].textContent,'License Exams');
+});
+test('request edits preserve participants and submit original values for conflict detection',async()=>{
+ const {nodes,requestRows,editRequestCalls}=harness({route:'#requests'});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('newRequest').fire('click');
+ el('newRequestType').value='theory';el('newRequestNotes').value='Original';
+ el('requestNewParticipant').value='Denis';await el('queueRequestParticipant').fire('click');
+ await el('newRequestForm').fire('submit');await el('newRequestForm').fire('submit');
+ const scroll=el('requestsList').children[0], table=scroll.children[0], body=table.children[2], row=body.children[0], action=row.children[5];
+ await action.children[1].fire('click');
+ assert.equal(el('editRequestNotes').value,'Original');
+ el('editRequestNotes').value='Updated';el('editRequestState').value='in_progress';el('editRequestActivityType').value='exams';
+ await el('editRequestForm').fire('submit');
+ assert.equal(editRequestCalls[0].p_original.notes,'Original');
+ assert.equal(requestRows[0].notes,'Updated');assert.equal(requestRows[0].status,'in_progress');
+ assert.equal(requestRows[0].sequence_request_participants.length,1);assert.equal(requestRows[0].sequence_request_participants[0].participant_id,'denis');assert.equal(requestRows.length,1);
+});
+test('failed rename keeps the entered value and displays conflict',async()=>{
+ const {nodes}=harness({route:'#activities/theory',renameError:true});const el=id=>nodes.get(id);
+ await new Promise(resolve=>setImmediate(resolve));await el('addTheoryActivity').fire('click');
+ el('localActivityType').value='exams';await el('localEditType').fire('click');
+ el('renameTypeName').value='Updated Exams';await el('renameTypeForm').fire('submit');
+ assert.equal(el('renameTypeName').value,'Updated Exams');assert.match(el('renameTypeStatus').textContent,/changed elsewhere/);
+});
