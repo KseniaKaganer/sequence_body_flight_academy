@@ -1562,6 +1562,52 @@
       if(verifiedAdmin && load===requestPeopleLoad) { status('requestPeopleStatus','Participants could not be loaded. You can save a new request without them, or reopen to retry.'); el('saveNewRequest').disabled = Boolean(requestEditingId); }
     }
   }
+
+  let convertingRequest = null, conversionSaving = false;
+  function openRequestConversion(row) {
+    if (!verifiedAdmin || conversionSaving) return;
+    convertingRequest = row;
+    el('convertRequestForm').reset();
+    el('convertCategory').value = activityTabs.includes(row.request_type) ? row.request_type : '';
+    el('convertName').value = row.sequence_activity_types?.name || requestTypeLabels[row.request_type] || '';
+    el('convertStart').value = activityToday();
+    el('convertLocation').value = row.request_type === 'flybox' ? 'Flybox' : '';
+    el('convertNotes').value = row.notes || '';
+    el('convertTravelFields').hidden = el('convertCategory').value !== 'travel';
+    el('convertPeople').textContent = 'Participants: ' + ((row.sequence_request_participants || []).map(link => link.participants ? personName(link.participants) : '').filter(Boolean).join(', ') || 'None yet');
+    status('convertRequestStatus', '');
+    el('convertRequestDialog').showModal();
+  }
+  el('convertCategory').addEventListener('change', () => { el('convertTravelFields').hidden = el('convertCategory').value !== 'travel'; });
+  el('cancelConvertRequest').addEventListener('click', () => { if (!conversionSaving) el('convertRequestDialog').close(); });
+  el('convertRequestDialog').addEventListener('cancel', event => { if (conversionSaving) event.preventDefault(); });
+  el('convertRequestDialog').addEventListener('close', () => { convertingRequest = null; });
+  el('convertRequestForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!verifiedAdmin || conversionSaving || !convertingRequest || !el('convertRequestForm').reportValidity()) return;
+    const category = el('convertCategory').value, start = el('convertStart').value, end = el('convertEnd').value || start;
+    if (end < start) { status('convertRequestStatus', 'End date cannot be before start date.'); return; }
+    const accountRevision = revision;
+    conversionSaving = true; el('convertRequestFields').disabled = true;
+    status('convertRequestStatus', 'Saving activity…');
+    try {
+      const { data, error } = await client.rpc('admin_convert_sequence_request', {
+        p_request_id: convertingRequest.id, p_category: category, p_title: el('convertName').value.trim(),
+        p_start_date: start, p_end_date: end, p_location: el('convertLocation').value.trim() || null,
+        p_notes: el('convertNotes').value.trim() || null, p_event_type: el('convertTravelType').value
+      });
+      if (error) throw error;
+      if (!data) throw new Error('Could not verify the saved activity. Retry.');
+      if (!verifiedAdmin || accountRevision !== revision) return;
+      el('convertRequestDialog').close();
+      await loadRequests();
+      activeActivityTab = category; setPage('activities');
+    } catch (error) {
+      if (verifiedAdmin && accountRevision === revision) status('convertRequestStatus',
+        error.code === 'PGRST202' ? 'Run database/convert-request-to-activity.sql in Supabase, then retry.' : error.message || 'Unable to save. Your entries are still here.');
+    } finally { conversionSaving = false; el('convertRequestFields').disabled = false; }
+  });
+
   const requestGroupOpen = new Map();
   el('editRequestParticipants').addEventListener('click', () => {
     if (!verifiedAdmin || editingRequestSaving || !editingRequest) return;
@@ -1574,7 +1620,7 @@
       const rows=[];
       for(let start=0; ; start+=500) {
         const {data,error}=await client.from('sequence_requests')
-          .select('id,request_type,notes,status,created_at,sequence_activity_type_id,sequence_activity_types(name),sequence_request_participants(participant_id,participants(display_name,surname))')
+          .select('*,sequence_activity_types(name),sequence_request_participants(participant_id,participants(display_name,surname))')
           .order('created_at',{ascending:false}).order('id').range(start,start+499);
         if(error)throw error;
         if(!verifiedAdmin || request!==requestsLoad)return;
@@ -1603,7 +1649,15 @@
           }
           const action = document.createElement('td'), edit = document.createElement('button');
           edit.type = 'button'; edit.textContent = '✎'; edit.title = 'Edit request'; edit.setAttribute('aria-label', 'Edit ' + label + ' request');
-          edit.addEventListener('click', () => openEditRequest(row)); action.append(edit); tr.append(action);
+          edit.addEventListener('click', () => openEditRequest(row)); action.append(edit);
+          const convert = document.createElement('button'); convert.type = 'button';
+          convert.textContent = row.converted_activity_id ? 'View activity' : 'Create Activity';
+          convert.disabled = row.status === 'cancelled' && !row.converted_activity_id;
+          convert.addEventListener('click', () => {
+            if (row.converted_activity_id) { activeActivityTab = row.converted_category; setPage('activities'); }
+            else openRequestConversion(row);
+          });
+          action.append(convert); tr.append(action);
           body.append(tr);
         }
         table.append(caption,head,body);const scroll=document.createElement('div');scroll.className='travel-events-scroll';scroll.tabIndex=0;
