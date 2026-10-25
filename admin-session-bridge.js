@@ -4,16 +4,17 @@
  */
 (() => {
   const SEQUENCE = 'https://sequence-body-flight-academy.pages.dev';
+  const SEQUENCE_ORIGINS = new Set([SEQUENCE, 'https://kseniakaganer.github.io']);
   const TRAVEL = 'https://shakshuka-travel.pages.dev';
   const PROTOCOL = 'sequence-admin-session-v1';
   const pending = new Map();
   const receiverTimeout = 30000;
   function openTravel(client, isAdmin, destination) {
-    if (window.location.origin !== SEQUENCE || !isAdmin()) return null;
+    if (!SEQUENCE_ORIGINS.has(window.location.origin) || !isAdmin()) return null;
     const url = new URL(destination, TRAVEL);
     if (url.origin !== TRAVEL || !['/', '/index.html', '/admin.html'].includes(url.pathname)) return null;
     url.pathname = '/admin.html';
-    const nonce = crypto.randomUUID(); url.hash = 'sequence-admin-handoff=' + nonce;
+    const nonce = crypto.randomUUID(); url.hash = new URLSearchParams({ 'sequence-admin-handoff': nonce, 'sequence-admin-origin': window.location.origin }).toString();
     const child = window.open(url.href, '_blank');
     if (!child) return null;
     const expire = setTimeout(() => pending.delete(nonce), receiverTimeout);
@@ -21,7 +22,7 @@
     return child;
   }
   window.addEventListener('message', async event => {
-    if (window.location.origin !== SEQUENCE || event.origin !== TRAVEL) return;
+    if (!SEQUENCE_ORIGINS.has(window.location.origin) || event.origin !== TRAVEL) return;
     const message = event.data;
     if (!message || message.protocol !== PROTOCOL || message.action !== 'ready' || typeof message.nonce !== 'string') return;
     const entry = pending.get(message.nonce);
@@ -40,6 +41,8 @@
     if (window.location.origin !== TRAVEL) return Promise.resolve(false);
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const nonce = fragment.get('sequence-admin-handoff');
+    const sourceOrigin = fragment.get('sequence-admin-origin') || SEQUENCE;
+    if (!SEQUENCE_ORIGINS.has(sourceOrigin)) return Promise.resolve(false);
     if (!nonce || !/^[0-9a-f-]{36}$/i.test(nonce)) return Promise.resolve(false);
     // Remove the nonce before routing, sharing or reloading this page.
     const clean = new URL(window.location.href); clean.hash = '';
@@ -55,7 +58,7 @@
         resolve(result);
       };
       const listener = async event => {
-        if (claimed || event.origin !== SEQUENCE || event.source !== parent) return;
+        if (claimed || event.origin !== sourceOrigin || event.source !== parent) return;
         const message = event.data;
         if (!message || message.protocol !== PROTOCOL || message.action !== 'session' || message.nonce !== nonce
           || typeof message.access_token !== 'string' || !message.access_token
@@ -75,7 +78,7 @@
       };
       const timer = setTimeout(() => cleanup(false), receiverTimeout);
       window.addEventListener('message', listener);
-      parent.postMessage({ protocol: PROTOCOL, action: 'ready', nonce }, SEQUENCE);
+      parent.postMessage({ protocol: PROTOCOL, action: 'ready', nonce }, sourceOrigin);
     });
   }
   window.SequenceAdminSession = Object.freeze({ openTravel, receive });
