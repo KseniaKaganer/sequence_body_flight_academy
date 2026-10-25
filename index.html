@@ -551,7 +551,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="supabase-config.js" defer></script>
   <script src="admin-session-bridge.js?v=2" defer></script>
-  <script src="auth.js" defer></script>
+  <script src="auth.js?v=request-conversion-1" defer></script>
+
+<dialog id="convertRequestDialog" class="login-dialog basic-event-form" aria-labelledby="convertRequestTitle">
+ <h2 id="convertRequestTitle">Create activity from request</h2>
+ <form id="convertRequestForm"><fieldset id="convertRequestFields">
+ <label for="convertCategory">Activity</label><select id="convertCategory" required>
+ <option value="">Choose activity</option><option value="travel">Travel</option><option value="skydive">Skydive Coaching</option><option value="theory">Theory</option><option value="flybox">Flybox</option><option value="social">Social</option></select>
+ <label for="convertName">Title</label><input id="convertName" required maxlength="150">
+ <label for="convertStart">Start date</label><input id="convertStart" type="date" required>
+ <label for="convertEnd">End date (optional)</label><input id="convertEnd" type="date">
+ <label for="convertLocation">Location (optional)</label><input id="convertLocation" maxlength="150">
+ <div id="convertTravelFields" hidden><label for="convertTravelType">Travel event type</label><select id="convertTravelType"><option value="skydive">Skydive</option><option value="tunnel">Tunnel</option></select></div>
+ <label for="convertNotes">Notes</label><textarea id="convertNotes" maxlength="5000" rows="3"></textarea>
+ <p id="convertPeople"></p><p>The request's participants and matching activity type are copied. The request is marked Done after saving.</p>
+ <div class="edit-actions"><button id="cancelConvertRequest" type="button">Cancel</button><button type="submit">Save Activity</button></div>
+ </fieldset><p id="convertRequestStatus" role="status" aria-live="polite"></p></form>
+</dialog>
+
 </body>
 </html>
 
