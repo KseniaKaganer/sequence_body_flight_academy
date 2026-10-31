@@ -714,5 +714,128 @@ window.sequenceTranslations = {
   "500 jumps": {
     "he": "500 צניחות",
     "ru": "500 прыжков"
+  },
+  "Keep USPA membership current and in good standing.": {
+    "he": "חברות בתוקף ב־USPA, ללא הגבלות על החברות."
+  },
+  "Become familiar with the SIM and Governance Manual §1-6.": {
+    "he": "היכרות עם ה־SIM ועם סעיף 1-6 במדריך הנהלים של USPA."
+  },
+  "Log 25 jumps; eligible tandem, military and static-line jumps need verification.": {
+    "he": "תיעוד 25 צניחות ביומן. צניחות טנדם, צניחות צבאיות וצניחות עם פתיחה אוטומטית ייחשבו בכפוף לאימות זכאותן."
+  },
+  "Finish the A-License Progression Card, or qualifying Military Transition Proficiency Card.": {
+    "he": "השלמת כרטיס ההתקדמות לרישיון A, או כרטיס המעבר המתאים לצנחנים צבאיים."
+  },
+  "Pass the practical check dive, written exam (75% minimum), and oral exam (100%).": {
+    "he": "מעבר צניחת מבחן מעשית, מבחן בכתב בציון 75% לפחות ומבחן בעל פה בציון 100%."
+  },
+  "Hold A License or satisfy its current requirements; pass lower-license exams.": {
+    "he": "רישיון A או עמידה בדרישותיו העדכניות, ומעבר המבחנים של דרגות הרישיון הקודמות."
+  },
+  "Log 50 jumps and 30 minutes of controlled freefall.": {
+    "he": "תיעוד 50 צניחות ו־30 דקות של נפילה חופשית מבוקרת."
+  },
+  "Make 10 landings within 10 m (33 ft) of target center.": {
+    "he": "ביצוע 10 נחיתות במרחק של עד 10 מטרים (33 רגל) ממרכז המטרה."
+  },
+  "Complete planned formations on 10 formation or formation-freefly jumps; five must include at least three people.": {
+    "he": "השלמת המבנים שתוכננו ב־10 צניחות מבנה או מבנה בפריפליי; לפחות 5 מהן עם 3 משתתפים לפחות."
+  },
+  "Document live water-landing training in full equipment under SIM procedures.": {
+    "he": "תיעוד אימון מעשי לנחיתה במים עם ציוד מלא, בהתאם לנהלי ה־SIM."
+  },
+  "Finish the B-License Canopy Proficiency Card, signed by an S&TA, Examiner or board member.": {
+    "he": "השלמת כרטיס מיומנויות הטסת החופה לרישיון B, בחתימת S&TA, בוחן USPA או חבר הנהלה."
+  },
+  "Pass the B written exam with at least 75%.": {
+    "he": "מעבר המבחן בכתב לרישיון B בציון 75% לפחות."
+  },
+  "Hold B License or satisfy its current requirements; pass lower-license exams.": {
+    "he": "רישיון B או עמידה בדרישותיו העדכניות, ומעבר המבחנים של דרגות הרישיון הקודמות."
+  },
+  "Log 200 jumps and 60 minutes of controlled freefall.": {
+    "he": "תיעוד 200 צניחות ו־60 דקות של נפילה חופשית מבוקרת."
+  },
+  "Make 25 landings within 2 m (7 ft) of target center.": {
+    "he": "ביצוע 25 נחיתות במרחק של עד 2 מטרים (7 רגל) ממרכז המטרה."
+  },
+  "Complete 50 successful formation or formation-freefly jumps; ten must include at least four people.": {
+    "he": "השלמת 50 צניחות מבנה או מבנה בפריפליי בהצלחה; לפחות 10 מהן עם 4 משתתפים לפחות."
+  },
+  "Pass the C written exam with at least 75%.": {
+    "he": "מעבר המבחן בכתב לרישיון C בציון 75% לפחות."
+  },
+  "Hold C License or satisfy its current requirements; pass lower-license exams.": {
+    "he": "רישיון C או עמידה בדרישותיו העדכניות, ומעבר המבחנים של דרגות הרישיון הקודמות."
+  },
+  "Log 500 jumps and three hours of controlled freefall.": {
+    "he": "תיעוד 500 צניחות ו־3 שעות של נפילה חופשית מבוקרת."
+  },
+  "Pass the D written exam with at least 75%.": {
+    "he": "מעבר המבחן בכתב לרישיון D בציון 75% לפחות."
+  },
+  "A night jump following SIM recommendations.": {
+    "he": "ביצוע צניחת לילה בהתאם להמלצות ה־SIM."
+  },
+  "100 landings within 2 m (7 ft) of target center.": {
+    "he": "ביצוע 100 נחיתות במרחק של עד 2 מטרים (7 רגל) ממרכז המטרה."
+  },
+  "A full rotation in a canopy stack of three or more, returning to the starting position.": {
+    "he": "ביצוע רוטציה מלאה במבנה חופות של 3 משתתפים לפחות, תוך חזרה למיקום ההתחלתי."
+  },
+  "An intentional water jump.": {
+    "he": "ביצוע צניחה עם נחיתה מתוכננת במים."
+  },
+  "100 successful formation jumps; 25 with at least eight people.": {
+    "he": "השלמת 100 צניחות מבנה בהצלחה; לפחות 25 מהן עם 8 משתתפים לפחות."
+  },
+  "Two qualifying skills": {
+    "he": "שתי דרישות מיומנות"
+  },
+  "Complete at least two skills below; a requirement may be repeated.": {
+    "he": "יש להשלים לפחות שתיים מדרישות המיומנות שלהלן. ניתן לחזור על אותה דרישה."
+  },
+  "D exam: current S&TA, Examiner, Judge Examiner or board member. D logbook verification: S&TA or board member.": {
+    "he": "המבחן לרישיון D נערך בידי S&TA, בוחן, בוחן שופטים או חבר הנהלה, בעלי הסמכה בתוקף. אימות יומן הצניחות לרישיון D: בידי S&TA או חבר הנהלה."
+  },
+  "The full progression card covers the required training skills and sign-offs.": {
+    "he": "כרטיס ההתקדמות המלא מפרט את כל מיומנויות ההכשרה והחתימות הנדרשות."
+  },
+  "Open a license to view its requirements. Maintain current USPA membership, have qualifying logbook entries and application verified by an authorized USPA official, and submit the application and fee. This summary links to the official requirements and forms.": {
+    "he": "פתחו את תיבת הרישיון להצגת הדרישות. נדרשים חברות בתוקף ב־USPA, אימות יומן הצניחות והבקשה בידי נציג USPA מוסמך, והגשת הבקשה והתשלום. הקישורים מובילים לדרישות ולטפסים הרשמיים."
+  },
+  "Forms & verification": {
+    "he": "טפסים ואימות"
+  },
+  "Arrange supervised exams and required sign-offs with an authorized USPA official.": {
+    "he": "יש לתאם את המבחנים בפיקוח ואת החתימות הנדרשות עם נציג USPA מוסמך."
+  },
+  "A-License requirements & progression card ↗": {
+    "he": "דרישות רישיון A וכרטיס התקדמות ↗"
+  },
+  "Official USPA B-License requirements ↗": {
+    "he": "דרישות USPA הרשמיות לרישיון B ↗"
+  },
+  "Official USPA C-License requirements ↗": {
+    "he": "דרישות USPA הרשמיות לרישיון C ↗"
+  },
+  "Official USPA D-License requirements ↗": {
+    "he": "דרישות USPA הרשמיות לרישיון D ↗"
+  },
+  "A-License forms ↗": {
+    "he": "טפסים לרישיון A ↗"
+  },
+  "B / C / D forms & canopy card ↗": {
+    "he": "טפסים לרישיונות B / C / D וכרטיס מיומנויות חופה ↗"
+  },
+  "SIM 3-1: Licenses ↗": {
+    "he": "SIM 3-1: רישיונות ↗"
+  },
+  "License requirements": {
+    "he": "דרישות הרישיונות"
+  },
+  "Skydiving associations": {
+    "he": "איגודי צניחה"
   }
 };

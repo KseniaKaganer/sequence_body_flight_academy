@@ -55,6 +55,10 @@
       if (item.node.isConnected) item.node.nodeValue = item.prefix + translate(item.key) + item.suffix;
     }
     for (const item of attributes) item.element.setAttribute(item.name, translate(item.key));
+    document.querySelectorAll('[data-license-localized]').forEach(section => {
+      section.lang = language === 'he' ? 'he' : 'en';
+      section.dir = language === 'he' ? 'rtl' : 'ltr';
+    });
     select.value = language;
   }
   function applyTheme() {
