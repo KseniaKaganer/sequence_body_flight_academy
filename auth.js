@@ -332,15 +332,24 @@
   }
   const participantFields = {
     display_name: 'editName', surname: 'editSurname', phone: 'editPhone',
-    email: 'editEmail', passport_number: 'editPassport', notes: 'editNotes'
+    email: 'editEmail', passport_number: 'editPassport', notes: 'editNotes',
+    shakshuka_points: 'editShakshukaPoints'
   };
+  function parseShakshukaPoints(value) {
+    const text = String(value).trim();
+    const points = Number(text);
+    if (!/^\d+$/.test(text) || !Number.isSafeInteger(points) || points > 2147483647) {
+      throw new Error('Shakshuka points must be a whole number from 0 to 2147483647.');
+    }
+    return points;
+  }
   let editingParticipant = null;
   let savingParticipant = false;
   el('editParticipant').addEventListener('click', () => {
     const person = participants.find(person => person.id === selectedParticipantId);
     if (!verifiedAdmin || !person) return;
     editingParticipant = { ...person };
-    for (const [field, input] of Object.entries(participantFields)) el(input).value = participantInfo(person)[field] || '';
+    for (const [field, input] of Object.entries(participantFields)) el(input).value = participantInfo(person)[field] ?? '';
     status('editParticipantStatus', '');
     el('editParticipantDialog').showModal();
   });
@@ -365,6 +374,11 @@
     const limits = { display_name: 150, surname: 150, phone: 40, email: 254, passport_number: 50, notes: 5000 };
     for (const [field, input] of Object.entries(participantFields)) {
       const value = el(input).value.trim();
+      if (field === 'shakshuka_points') {
+        try { payload[field] = parseShakshukaPoints(value); }
+        catch (error) { status('editParticipantStatus', error.message); return; }
+        continue;
+      }
       if (value.length > limits[field]) {
         status('editParticipantStatus', 'One of the fields is too long. Please shorten it.');
         return;
@@ -392,7 +406,7 @@
         update = original[field] == null ? update.is(field, null) : update.eq(field, original[field]);
       }
       const { data, error } = await update
-        .select('id,display_name,surname,phone,email,passport_number,notes').maybeSingle();
+        .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').maybeSingle();
       if (error) throw error;
       if (!data) throw new Error('The participant changed or is no longer available. Cancel, refresh the list, and try again.');
       if (!verifiedAdmin || revision !== accountRevision) return;
@@ -468,14 +482,14 @@
     for (const [label, value] of [
       ['Name', person.display_name], ['Surname', person.surname],
       ['Phone', person.phone], ['Email', person.email],
-      ['Passport number', person.passport_number], ['Notes', person.notes]
+      ['Passport number', person.passport_number], ['Shakshuka points', person.shakshuka_points ?? 0], ['Notes', person.notes]
     ]) {
       const row = document.createElement('tr');
       const term = document.createElement('th');
       const detail = document.createElement('td');
       term.scope = 'row';
       term.textContent = label;
-      detail.textContent = value || '—';
+      detail.textContent = value === '' || value == null ? '—' : String(value);
       row.append(term, detail);
       el('participantDetails').append(row);
     }
@@ -534,7 +548,7 @@
       // Page through all records instead of silently truncating at the API limit.
       for (let start = 0; ; start += 500) {
         const { data, error } = await client.from('participants')
-          .select('id,display_name,surname,phone,email,passport_number,notes')
+          .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points')
           .order('display_name').order('id').range(start, start + 499);
         if (error) throw error;
         if (!verifiedAdmin || request !== participantLoad) return;
@@ -817,12 +831,12 @@
           const accountRevision = revision; edit.disabled = true;
           try {
             const { data, error } = await client.from('participants')
-              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+              .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').eq('id', person.id).maybeSingle();
             if (error) throw error;
             if (!verifiedAdmin || revision !== accountRevision) return;
             if (!data) throw new Error('Participant no longer exists. Refresh Events.');
             editingParticipant = { ...data };
-            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] ?? '';
             status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
           } catch (error) {
             if (verifiedAdmin && revision === accountRevision) status('basicEventStatus', error.message || 'Unable to open participant details.');
@@ -1170,12 +1184,12 @@
           const accountRevision = revision; edit.disabled = true;
           try {
             const { data, error } = await client.from('participants')
-              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+              .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').eq('id', person.id).maybeSingle();
             if (error) throw error;
             if (!verifiedAdmin || revision !== accountRevision) return;
             if (!data) throw new Error('Participant no longer exists. Refresh Events.');
             editingParticipant = { ...data };
-            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] ?? '';
             status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
           } catch (error) {
             if (verifiedAdmin && revision === accountRevision) status('localActivityStatus', error.message || 'Unable to open participant details.');
@@ -1773,12 +1787,12 @@
           const accountRevision = revision; edit.disabled = true;
           try {
             const { data, error } = await client.from('participants')
-              .select('id,display_name,surname,phone,email,passport_number,notes').eq('id', person.id).maybeSingle();
+              .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').eq('id', person.id).maybeSingle();
             if (error) throw error;
             if (!verifiedAdmin || revision !== accountRevision) return;
             if (!data) throw new Error('Participant no longer exists. Refresh Events.');
             editingParticipant = { ...data };
-            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] || '';
+            for (const [field, input] of Object.entries(participantFields)) el(input).value = data[field] ?? '';
             status('editParticipantStatus', ''); el('editParticipantDialog').showModal();
           } catch (error) {
             if (verifiedAdmin && revision === accountRevision) status('newRequestStatus', error.message || 'Unable to open participant details.');
