@@ -343,8 +343,39 @@
     }
     return points;
   }
+  async function saveParticipantRecord(client, payload, original) {
+    // Both paths rely on the existing admin-only participant RLS policy.
+    let query;
+    if (original.id) {
+      query = client.from('participants').update(payload).eq('id', original.id);
+      // Do not overwrite concurrent edits from another tab or Shakshuka.
+      for (const field of Object.keys(payload)) {
+        query = original[field] == null ? query.is(field, null) : query.eq(field, original[field]);
+      }
+    } else {
+      query = client.from('participants').insert(payload);
+    }
+    const { data, error } = await query
+      .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error(original.id
+      ? 'The participant changed or is no longer available. Cancel, refresh the list, and try again.'
+      : 'Unable to create the participant. Your changes are still here; please try again.');
+    return data;
+  }
   let editingParticipant = null;
   let savingParticipant = false;
+  el('addParticipant').addEventListener('click', () => {
+    if (!verifiedAdmin || savingParticipant) return;
+    editingParticipant = {};
+    el('editParticipantForm').reset();
+    el('editShakshukaPoints').value = '0';
+    el('editParticipantTitle').textContent = 'Add Participant';
+    el('saveParticipant').textContent = 'Add Participant';
+    status('editParticipantStatus', '');
+    el('editParticipantDialog').showModal();
+    el('editName').focus();
+  });
   el('editParticipant').addEventListener('click', () => {
     const person = participants.find(person => person.id === selectedParticipantId);
     if (!verifiedAdmin || !person) return;
@@ -361,6 +392,8 @@
   });
   el('editParticipantDialog').addEventListener('close', () => {
     editingParticipant = null;
+    el('editParticipantTitle').textContent = 'Edit participant';
+    el('saveParticipant').textContent = 'Save changes';
     el('editParticipantForm').reset();
     status('editParticipantStatus', '');
   });
@@ -399,25 +432,27 @@
     el('cancelParticipantEdit').disabled = true;
     status('editParticipantStatus', 'Saving…');
     try {
-      // RLS enforces admin access. Match the original values to avoid overwriting
-      // changes saved from Shakshuka or another open browser tab.
-      let update = client.from('participants').update(payload).eq('id', original.id);
-      for (const field of Object.keys(participantFields)) {
-        update = original[field] == null ? update.is(field, null) : update.eq(field, original[field]);
-      }
-      const { data, error } = await update
-        .select('id,display_name,surname,phone,email,passport_number,notes,shakshuka_points').maybeSingle();
-      if (error) throw error;
-      if (!data) throw new Error('The participant changed or is no longer available. Cancel, refresh the list, and try again.');
+      const data = await saveParticipantRecord(client, payload, original);
       if (!verifiedAdmin || revision !== accountRevision) return;
       ++participantLoad;
-      participantRecords = participantRecords.map(person => person.id === data.id ? data : person);
+      participantRecords = original.id
+        ? participantRecords.map(person => person.id === data.id ? data : person)
+        : [...participantRecords, data];
       participants = groupParticipantRecords(participantRecords);
       const savedGroup = participants.find(person => person.recordIds.includes(data.id));
       if (savedGroup) selectedParticipantId = savedGroup.id;
       el('participantSearch').value = '';
+      if (!original.id) {
+        // The newly created participant should be visible even with old filters.
+        el('participantCategoryFilter').value = '';
+        el('participantActivityFilter').value = '';
+        el('participantMissingPhone').checked = false;
+        el('participantMissingSurname').checked = false;
+        renderParticipantActivityOptions();
+        setParticipantTab('info', false, false);
+      }
       renderParticipants();
-      if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); }
+      if (savedGroup) { renderParticipantDetails(savedGroup); writeRoute(); loadSkillHistory(savedGroup.id); loadManualSkills(savedGroup.id); }
       el('editParticipantDialog').close();
       if (activePage === 'request') {
         const selectedRequest = requestParticipantSelection.get(data.id);
@@ -425,7 +460,7 @@
         requestPeople = requestPeople.map(person => person.id === data.id ? { ...person, ...data, searchText: [data.display_name, data.surname, data.phone, data.email].filter(Boolean).join(' ') } : person);
         renderRequestSelection(); renderRequestPeople();
       }
-      status('participantsStatus', 'Participant details saved to the server.');
+      status('participantsStatus', original.id ? 'Participant details saved to the server.' : 'Participant added.');
       if (activePage === 'activities') {
         const selected = eventSelection.get(data.id);
         if (selected) { selected.name = personName(data); selected.phone = data.phone || ''; selected.originalPhone = data.phone ?? null; }
