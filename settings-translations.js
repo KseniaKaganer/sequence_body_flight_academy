@@ -847,5 +847,86 @@ window.sequenceTranslations = {
   "Two requirements from the following list": {
     "he": "שתי דרישות מתוך הרשימה הבאה",
     "ru": "Два требования из следующего списка"
+  },
+  "Canopy Proficiency Card": {
+    "he": "טופס מיומנויות הטסת חופה"
+  },
+  "Dedicated clear-and-pull jumps from at least 5,000 ft AGL, directly supervised by the course director. Official training sign-offs are required.": {
+    "he": "צניחות יציאה־פתיחה ייעודיות מגובה 5,000 רגל מעפ״ש לפחות, בפיקוח ישיר של מנהל הקורס. נדרשות חתימות הכשרה רשמיות."
+  },
+  "Jump 1: Braked turns, accuracy & flare evaluation": {
+    "he": "צניחה 1: פניות בבלימה, דיוק והערכת בלימה"
+  },
+  "Collapse slider; loosen chest strap.": {
+    "he": "סגירת סליידר והארכת רצועת החזה."
+  },
+  "Check steering-line length in full flight, brakes released.": {
+    "he": "בדיקת אורך מיתרי ההיגוי בטיסה מלאה עם הגאים משוחררים."
+  },
+  "Practice canopy-specific flares.": {
+    "he": "תרגול בלימות המתאימות לסוג החופה."
+  },
+  "Practice braked turns.": {
+    "he": "תרגול פניות בבלימה."
+  },
+  "Fly a landing pattern and land.": {
+    "he": "ביצוע תבנית נחיתה ונחיתה."
+  },
+  "Jump 2: Flight cycle & crosswind landing": {
+    "he": "צניחה 2: מחזור טיסה ונחיתה ברוח צד"
+  },
+  "Practice flight-cycle exercises.": {
+    "he": "תרגול מחזור הטיסה."
+  },
+  "Practice flares from brakes.": {
+    "he": "תרגול בלימות ממצב בלימה."
+  },
+  "Perform a crosswind landing.": {
+    "he": "נחיתה ברוח צד."
+  },
+  "Jump 3: Stalls": {
+    "he": "צניחה 3: הזדקרויות"
+  },
+  "Above decision altitude: toggle stalls and rear-riser stalls.": {
+    "he": "מעל גובה ההחלטה: הזדקרויות בהגאים וברצועות אחוריות."
+  },
+  "Practice three-quarter-braked turns.": {
+    "he": "תרגול פניות בשלושת רבעי בלימה."
+  },
+  "Select a target; fly downwind, base and final into wind.": {
+    "he": "בחירת מטרה וביצוע צלע עם הרוח, בסיס וסופית מול הרוח."
+  },
+  "Jump 4: Rear-riser turns & flares": {
+    "he": "צניחה 4: פניות ובלימות ברצועות אחוריות"
+  },
+  "Rear-riser turns: brakes stowed.": {
+    "he": "פניות ברצועות אחוריות כשההגאים נעולים."
+  },
+  "Rear-riser turns: brakes released, toggles held.": {
+    "he": "פניות ברצועות אחוריות כשההגאים משוחררים ובידיים."
+  },
+  "Rear-riser flares: brakes released, toggles held.": {
+    "he": "בלימות ברצועות אחוריות כשההגאים משוחררים ובידיים."
+  },
+  "Jump 5: Long spot": {
+    "he": "צניחה 5: יציאה רחוקה"
+  },
+  "Exit at 5,000 ft AGL, at least 1.5 miles upwind of the landing area.": {
+    "he": "יציאה בגובה 5,000 רגל מעפ״ש, לפחות 1.5 מייל במעלה הרוח מאזור הנחיתה."
+  },
+  "Identify the projected landing point (stationary in view).": {
+    "he": "זיהוי נקודת הנחיתה הצפויה שאינה עולה או יורדת בשדה הראייה."
+  },
+  "Compare glide using brakes and rear risers.": {
+    "he": "השוואת יחס הדאייה בהגאים וברצועות אחוריות."
+  },
+  "If the planned pattern is unreachable, select an alternate by 2,000 ft AGL.": {
+    "he": "אם לא ניתן להגיע לתבנית המתוכננת, בחירת שטח חלופי עד גובה 2,000 רגל מעפ״ש."
+  },
+  "Select a target; fly downwind, base, final; follow landing priorities.": {
+    "he": "בחירת מטרה וביצוע תבנית עם הרוח, בסיס וסופית לפי סדרי העדיפויות בנחיתה."
+  },
+  "Official Canopy Proficiency Card ↗": {
+    "he": "כרטיס מיומנויות החופה הרשמי ↗"
   }
 };
