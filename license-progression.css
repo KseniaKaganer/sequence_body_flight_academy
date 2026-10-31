@@ -52,3 +52,6 @@
 .license-task input[hidden] { display: none; }
 html:not([data-license-tracking="true"]) .license-task::before { content: "•"; color: var(--accent); flex: 0 0 20px; text-align: center; }
 html[data-license-tracking="true"] .license-task { cursor: pointer; }
+
+html[dir="rtl"] .license-guidance { border-radius: 12px 0 0 12px; }
+.license-content, .license-reference, .license-guidance { text-align: start; }
