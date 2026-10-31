@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../license-progression.js'), 'utf8');
 async function run({id='admin-a', admin=true, saved={}, blocked=false}={}) {
-  const tasks=['a-membership','b-exam','il-a-jumps-freefall','il-a-jump-count'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
+  const tasks=['a-membership','b-exam','il-a-jumps-freefall','il-a-jump-count','a-check-dive','a-written','a-oral'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
   const handlers={};const dataset={};let authHandler;const values={...saved};let activeId=id;
   const client={auth:{getUser:async()=>({data:{user:activeId?{id:activeId}:null}}),onAuthStateChange(fn){authHandler=fn;}},rpc:async()=>({data:admin})};
   vm.runInNewContext(source,{document:{documentElement:{dataset},querySelectorAll:()=>tasks},window:{SEQUENCE_CONFIG:{},supabase:{createClient:()=>client},addEventListener:(type,fn)=>handlers[type]=fn},setTimeout:fn=>fn(),localStorage:{getItem(key){if(blocked)throw Error();return values[key];},setItem(key,data){if(blocked)throw Error();values[key]=data;}}});
@@ -54,4 +54,14 @@ test('Israeli A jump count keeps prior completion without marking new skills',as
   ]){
     const h=await run({saved:{[key]:JSON.stringify(data)}});assert.equal(h.tasks[3].checked,expected);
   }
+});
+
+test('USPA combined exam progress migrates without overriding explicit updates',async()=>{
+  const key='sequence-license-checklist-v1:admin-a';
+  const h=await run({saved:{[key]:JSON.stringify({'a-exams':true,'a-written':false})}});
+  assert.equal(h.tasks[4].checked,true);
+  assert.equal(h.tasks[5].checked,false);
+  assert.equal(h.tasks[6].checked,true);
+  const fresh=await run({saved:{[key]:JSON.stringify({'a-exams':false})}});
+  assert.equal(fresh.tasks[4].checked,false);
 });
