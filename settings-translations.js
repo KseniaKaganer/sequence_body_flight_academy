@@ -1,4 +1,5 @@
 window.sequenceTranslations = {
+  "Shakshuka points": { "he": "נקודות שקשוקה", "ru": "Баллы Шакшука" },
   "Participant": { "he": "משתתף", "ru": "Участник" },
   "Full name": { "he": "שם מלא", "ru": "Полное имя" },
   "Phone number": { "he": "מספר טלפון", "ru": "Номер телефона" },
