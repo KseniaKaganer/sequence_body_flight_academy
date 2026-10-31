@@ -1,0 +1,144 @@
+:root { color-scheme: dark; }
+.sequence-settings { display: inline-block; text-align: start; }
+.sequence-settings button, .sequence-settings select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; min-height: 44px; cursor: pointer; }
+.sequence-settings .settings-trigger { display: inline-flex; align-items: center; gap: 6px; margin-block: 8px; }
+.sequence-settings button:hover { border-color: var(--accent); }
+.sequence-settings :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sequence-settings dialog { width: min(380px, calc(100% - 32px)); padding: 26px; border: 1px solid var(--border); border-radius: 20px; background: var(--panel); color: var(--text); text-align: start; }
+.sequence-settings dialog::backdrop { background: rgb(0 0 0 / .65); }
+.sequence-settings h2 { margin-block: 0 24px; }
+.sequence-settings label, .sequence-settings p { display: block; margin-block: 16px 8px; color: var(--muted); }
+.sequence-settings select { width: 100%; }
+.sequence-settings .settings-close { float: inline-end; padding: 4px 12px; font-size: 24px; }
+.settings-themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.settings-themes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.inner-header .sequence-settings { margin-inline-start: 8px; }
+html[data-theme="light"] { color-scheme: light; --bg: #f7f7f8; --panel: #fff; --panel-hover: #f0f0f2; --text: #202024; --muted: #595961; --border: #d6d6dc; --accent: #d82018; }
+html[data-theme="light"] :is(.menu-card, .menu-symbol) { background: var(--panel); border-color: var(--border); }
+html[data-theme="light"] :is(input, select, textarea, .basic-event-form button, .event-selected-person) { background: var(--panel); color: var(--text); border-color: var(--border); color-scheme: light; }
+html[data-theme="light"] :is(input, textarea)::placeholder { color: #666670; }
+html[data-theme="light"] :is(.academy-header #openLogin, .academy-header .account-role, .academy-header .account-menu button[aria-current="page"], .participant-tabs button[aria-selected="true"], .activity-tabs button[aria-selected="true"], .participant-card[aria-pressed="true"], .event-travel-button) { background: #fff0ef; color: #8f1c17; border-color: #dfaaa6; }
+html[data-theme="light"] .academy-header .account-menu button:hover { background: var(--panel-hover); }
+html[data-theme="light"] :is(.formula-card, .calc-card, .chart-card, .placeholder) { background: var(--panel); color: var(--text); border-color: var(--border); }
+html[data-theme="light"] .brand-logo { background: #101010; border-radius: 12px; }
+html[dir="rtl"] :is(.account-panel, .participant-card) { text-align: start; }
+html[dir="rtl"] .back-link { margin-left: 0; margin-inline-start: auto; }
+html[dir="rtl"] .arrow { transform: scaleX(-1); }
+@media (max-width: 720px) {
+  .inner-header { flex-wrap: wrap; }
+  .inner-header .sequence-settings { margin-inline-start: auto; }
+  .sequence-settings .settings-trigger { padding: 8px 10px; font-size: .85rem; }
+}
+
+/* Neutral surfaces in the standalone tools follow the selected theme. */
+html[data-theme="light"] body[data-sequence-page="airport-xray.html"] .xray-card { background: linear-gradient(180deg, #ededed 0%, #f5f5f5 100%); }
+html[data-theme="light"] body[data-sequence-page="airport-xray.html"] .xray-card img { background: #f7f7f7; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .pattern-card, html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .map-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .pattern-card p { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .search-row input { border: 1px solid #cecece; background: #eaeaea; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .tool-btn, html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .map-type-btn, html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .action-btn { border: 1px solid #cbcbcb; background: #e8e8e8; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .tool-btn.active, html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .map-type-btn.active { background: #000000; color: #ffffff; border-color: #000000; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] #map { background: #eeeeee; }
+html[data-theme="light"] body[data-sequence-page="landing-pattern.html"] .map-message { color: #555555; border-top: 1px solid #d6d6d6; background: #f2f2f2; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] body { background: #ffffff; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .inner-header { border-bottom: 1px solid #dfdfdf; background: rgba(255,255,255,.95); }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .back-link { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .hero p { color: #575757; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .order-card, html[data-theme="light"] body[data-sequence-page="exit-order.html"] .sim-card, html[data-theme="light"] body[data-sequence-page="exit-order.html"] .note-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .order-head p { color: #6d6d6d; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .count-badge { background: #e8e8e8; border: 1px solid #cfcfcf; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .exit-tile { border: 1px solid #cfcfcf; background: #ebebeb; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .exit-tile:hover { border-color: #aaaaaa; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .tile-number { background: #dbdbdb; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .tile-mode { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .tile-remove { border: 1px solid #cbcbcb; background: #e2e2e2; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .tile-remove:hover { color: #000000; border-color: #999999; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .game-btn { border: 1px solid #c9c9c9; background: #e8e8e8; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .add-panel select { background: #eaeaea; color: #000000; border: 1px solid #cacaca; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .score-box { border: 1px solid #cccccc; background: #ececec; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .score-detail { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .rules { background: #eeeeee; border: 1px solid #d6d6d6; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .rules strong { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .sim-title p { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .game-stage { border-top: 1px solid #d6d6d6; border-bottom: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .player-btn { border: 1px solid #cacaca; background: #e8e8e8; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .speed-field { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .speed-field select { background: #eaeaea; color: #000000; border: 1px solid #cacaca; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .note-card { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="exit-order.html"] .game-btn.correct-order-on { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .formula-card, html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .calc-card, html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .chart-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .formula-title { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .formula { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .formula .top { border-bottom: 1.5px solid #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .unit-toggle { background: #e8e8e8; border: 1px solid #d4d4d4; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .unit-toggle button { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .unit-toggle button.active { background: #000000; color: #ffffff; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .field label { color: #3a3a3a; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .input-shell input { border: 1px solid #cecece; background: #eaeaea; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .input-unit { color: #777777; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .result-box { border: 1px solid #d5d5d5; background: #ededed; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .result-copy span { color: #666666; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .scale-title { color: #666666; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .zone { color: rgba(255,255,255,.78); }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .marker-value { background: #000000; color: #ffffff; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .marker-arrow { border-top: 10px solid #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .scale-numbers { color: #0f0f0f; border-top: 1px solid #8b8b8b; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .scale-number::before { background: #424242; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .experience-note { color: #555555; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .chart-head p { color: #666666; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-link { background: #eaeaea; border: 1px solid #cccccc; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .table-scroll { border: 1px solid #d3d3d3; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-table { background: #eeeeee; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-table th, html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-table td { border-bottom: 1px solid #d2d2d2; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-table thead tr:first-child th { background: #efefef; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .sim-table .jumps { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="wingload-calculator.html"] .table-foot { color: #777777; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .reserve-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .reserve-card .intro { color: #626262; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .date-label { color: #373737; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .date-text { border: 1px solid #cecece; background: #eaeaea; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .calendar-input { border: 1px solid #cecece; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .hint { color: #8b8b8b; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .result-card { border: 1px solid #cfcfcf; background: #ededed; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .result-label { color: #6f6f6f; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .result-sub { color: #666666; }
+html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .expired-badge, html[data-theme="light"] body[data-sequence-page="reserve-calculator.html"] .soon-badge { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .control-card, html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .altimeter-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .field label { color: #373737; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .input-shell input { border: 1px solid #cecece; background: #eaeaea; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .input-unit { color: #777777; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .run-btn { background: #000000; color: #ffffff; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .stop-btn, html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .restart-btn { background: #dfdfdf; color: #000000; border: 1px solid #cacaca; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .status-line { background: #eaeaea; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .altimeter-stage { background: #ffffff; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .needle::before { border-bottom: 34px solid #eeeeee; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .needle::after { background: #eeeeee; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .needle-center { background: #eeeeee; border: 4px solid #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .telemetry-box { background: #eeeeee; border: 1px solid #d3d3d3; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .telemetry-label { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .settings-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .settings-head p { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .setting-option, html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .setting-field { border: 1px solid #d3d3d3; background: #ededed; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .setting-option strong { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .setting-option span { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .setting-field > label { color: #222222; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .countdown-overlay { background: rgba(255,255,255,.72); color: #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .pull-overlay { background: rgba(255,255,255,.58); color: #000000; }
+html[data-theme="light"] body[data-sequence-page="altimeter-simulation.html"] .timing-note { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-card, html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-stage-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-card p { color: #6d6d6d; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .control-field label { color: #393939; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .control-field select { border: 1px solid #cccccc; background: #eaeaea; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-btn { border: 1px solid #cccccc; background: #e7e7e7; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-btn.primary { background: #000000; color: #ffffff; border-color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .stat-pill { border: 1px solid #d3d3d3; background: #ededed; color: #555555; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .stat-pill strong { color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-overlay { background: rgba(255,255,255,.62); color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .game-message { color: #5f5f5f; background: #f2f2f2; border-top: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .settings-card { background: #f2f2f2; border: 1px solid #d6d6d6; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .settings-head p { color: #707070; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .setting-field { border: 1px solid #d3d3d3; background: #ededed; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .setting-field > label { color: #222222; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .setting-field select, html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .setting-field input { border: 1px solid #cbcbcb; background: #e8e8e8; color: #000000; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .setting-field small { color: #7a7a7a; }
+html[data-theme="light"] body[data-sequence-page="canopy-traffic-game.html"] .number-shell span { color: #888888; }
