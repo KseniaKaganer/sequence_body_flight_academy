@@ -843,5 +843,9 @@ window.sequenceTranslations = {
   },
   "Licensing organization": {
     "he": "איגוד הצניחה"
+  },
+  "Two requirements from the following list": {
+    "he": "שתי דרישות מתוך הרשימה הבאה",
+    "ru": "Два требования из следующего списка"
   }
 };

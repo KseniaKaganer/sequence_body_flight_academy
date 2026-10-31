@@ -6,7 +6,15 @@
   const decode = value => {
     try {
       const data = JSON.parse(value || '{}');
-      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+      // Existing Israeli jump/time tasks now form one requirement. Preserve
+      // completion only if both old tasks were complete; explicit new values win.
+      for (const license of ['a', 'b', 'c', 'd']) {
+        const prefix = 'il-' + license;
+        const combined = prefix + '-jumps-freefall';
+        if (!(combined in data) && (prefix + '-jumps' in data || prefix + '-freefall' in data)) data[combined] = data[prefix + '-jumps'] === true && data[prefix + '-freefall'] === true;
+      }
+      return data;
     } catch { return {}; }
   };
   const key = () => userId ? 'sequence-license-checklist-v1:' + userId : null;
