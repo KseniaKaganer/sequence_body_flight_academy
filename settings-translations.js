@@ -1,4 +1,5 @@
 window.sequenceTranslations = {
+  "Username": { "he": "שם משתמש", "ru": "Имя пользователя" },
   "Settings": {
     "he": "הגדרות",
     "ru": "Настройки"
