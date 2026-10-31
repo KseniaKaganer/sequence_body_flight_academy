@@ -928,5 +928,170 @@ window.sequenceTranslations = {
   },
   "Official Canopy Proficiency Card ↗": {
     "he": "כרטיס מיומנויות החופה הרשמי ↗"
+  },
+  "Complete 25 jumps.": {
+    "he": "ביצע 25 צניחות."
+  },
+  "Pass the A-License check dive with a USPA Instructor.": {
+    "he": "עבר קפיצת רישיון A עם מדריך USPA."
+  },
+  "Pass the A-License written exam with at least 75%.": {
+    "he": "עבר בחינת רישיון A בכתב בציון 75% לפחות."
+  },
+  "Exit safely; maintain awareness, stability and altitude awareness; initiate deployment.": {
+    "he": "יציאה בטוחה, מודעות לסביבה ולגובה, יציבות ותחילת פתיחה."
+  },
+  "AFF/tandem: deployment within 1,000 ft of assigned altitude. IAD/static line: exit on command.": {
+    "he": "AFF/טנדם: פתיחה עד 1,000 רגל מהגובה שנקבע. IAD/פתיחה אוטומטית: יציאה בפקודה."
+  },
+  "Maintain stability and leg control; practice deployment. AFF/tandem: pull within 500 ft of assigned altitude.": {
+    "he": "שמירת יציבות ושליטה ברגליים ותרגול פתיחה. AFF/טנדם: פתיחה עד 500 רגל מהגובה שנקבע."
+  },
+  "IAD/static line: three successful practice pulls on each of three consecutive jumps.": {
+    "he": "IAD/פתיחה אוטומטית: שלוש פתיחות תרגול מוצלחות בכל אחת משלוש צניחות רצופות."
+  },
+  "Regain control within five seconds; fall relaxed, hold heading, wave off and deploy stably at assigned altitude.": {
+    "he": "שליטה תוך חמש שניות, נפילה רגועה, שמירת כיוון, סימון ופתיחה יציבה בגובה שנקבע."
+  },
+  "Solo exit: stable within five seconds. Complete four 90° turns (±20°), two 180° and two 360° turns (±45°).": {
+    "he": "יציאה עצמאית ויציבות תוך חמש שניות; ארבע פניות 90° (±20°), שתי פניות 180° ושתי פניות 360° (±45°)."
+  },
+  "Complete a barrel roll, back loop and front loop; recover intentional instability within five seconds twice with an instructor before self-supervision.": {
+    "he": "ביצוע גלגול וסלטות לאחור ולפנים; שתי התאוששויות מחוסר יציבות תוך חמש שניות עם מדריך לפני פיקוח עצמי."
+  },
+  "Complete three tracking sequences within 30° of heading; clear-and-pull jumps at 5,500 ft and 3,500 ft.": {
+    "he": "שלושה תרגילי טרק בסטייה עד 30°; צניחות יציאה ופתיחה מ־5,500 ומ־3,500 רגל."
+  },
+  "Twice approach and dock from 10 ft using start/coast/stop; twice dock while adjusting level. Match levels 6 ft up and down.": {
+    "he": "שתי עגינות מ־10 רגל בשיטת התחלה־שיוט־עצירה ושתי עגינות עם התאמת גובה; שינוי גובה 6 רגל מעלה ומטה."
+  },
+  "Break off at altitude without prompting; track 50 ft within 10° of heading.": {
+    "he": "היפרדות בגובה ללא תזכורת וטרק למרחק 50 רגל בסטייה עד 10°."
+  },
+  "Twice dive to a dock using a stair-step approach; break off unprompted; track 100 ft within 10°.": {
+    "he": "שתי צלילות לעגינה בגישה מדורגת; היפרדות ללא תזכורת וטרק 100 רגל בסטייה עד 10°."
+  },
+  "Exit and freefall skills": {
+    "he": "יציאה ונפילה חופשית"
+  },
+  "Rehearse emergency procedures in a training harness; review two-canopy situations.": {
+    "he": "תרגול נוהלי חירום ברתמת אימון וסקירת מצבים של שתי חופות."
+  },
+  "Review off-field, downwind and high-wind landings, turbulence and obstacle avoidance.": {
+    "he": "סקירת נחיתה מחוץ למועדון, עם הרוח וברוח חזקה, מערבולות והימנעות ממכשולים."
+  },
+  "Review landings involving buildings, power lines, trees and water, including flotation equipment.": {
+    "he": "סקירת נחיתה על בניינים, קווי מתח, עצים ובמים, כולל ציוד ציפה."
+  },
+  "Review aircraft emergencies and an open parachute inside the aircraft.": {
+    "he": "חזרה על חירומי מטוס ומצנח פתוח במטוס."
+  },
+  "Emergency procedures": {
+    "he": "חזרה על חירומים"
+  },
+  "Review surface/upper winds; plan the holding area and landing pattern with assistance.": {
+    "he": "סקירת רוחות קרקע ורוחות בגובה; תכנון אזור המתנה ותבנית נחיתה בסיוע."
+  },
+  "Practice parachute landing falls (PLFs); fly an assisted pattern and complete the flare.": {
+    "he": "תרגול גלגול נחיתה (PLF), תבנית בסיוע ובלימה מלאה."
+  },
+  "Assisted landing: within 330 ft of target and 60° of the planned heading.": {
+    "he": "נחיתה בסיוע: עד 330 רגל מהמטרה ובסטייה עד 60° מהכיוון המתוכנן."
+  },
+  "Review winds, assisted pattern planning, runway traffic, turn clearance and the flight cycle; practice PLFs.": {
+    "he": "סקירת רוחות, תכנון תבנית בסיוע, תנועת מטוסים, בדיקה לפני פנייה ומחזור הטיסה; תרגול PLF."
+  },
+  "Assisted pattern and full flare; PLF; land within 330 ft and 30° of the planned heading.": {
+    "he": "תבנית ובלימה מלאה בסיוע, PLF ונחיתה עד 330 רגל ובסטייה עד 30° מהכיוון המתוכנן."
+  },
+  "Plan the pattern and wind adjustments; review wing loading, downwind landings, turbulence and the flight cycle.": {
+    "he": "תכנון תבנית והתאמות לרוח; יחס העמסה, נחיתה עם הרוח, מערבולות ומחזור הטיסה."
+  },
+  "Review off-field landing choices by 2,000 ft and obstacle avoidance.": {
+    "he": "סקירת בחירת אזור נחיתה חלופי עד 2,000 רגל והימנעות ממכשולים."
+  },
+  "Perform the flight-cycle drill, pattern and full flare with minimal assistance; practice PLF.": {
+    "he": "תרגול מחזור הטיסה, תבנית ובלימה מלאה בסיוע מינימלי ותרגול PLF."
+  },
+  "Report winds; plan spotting, drift, opening point, holding area and pattern; review cloud clearance and building landings.": {
+    "he": "דיווח רוחות ותכנון נקודת יציאה, סחיפה, פתיחה, המתנה ותבנית; מרחק מעננים ונחיתה על בניינים."
+  },
+  "Observe jump run and select a target; fly the pattern and land within 165 ft with assistance.": {
+    "he": "צפייה ביעף ובחירת מטרה; תבנית ונחיתה בסיוע עד 165 רגל מהמטרה."
+  },
+  "Perform two 90° rear-riser turns with brakes stowed and two with brakes released.": {
+    "he": "שתי פניות 90° ברצועות אחוריות כשההגאים נעולים ושתיים כשהם משוחררים."
+  },
+  "Report winds; plan spotting, exit separation, drift, opening point, pattern and traffic avoidance; choose a target.": {
+    "he": "דיווח רוחות; תכנון יציאה, הפרדה, סחיפה, פתיחה ותבנית תוך הימנעות מתעבורה ובחירת מטרה."
+  },
+  "Participate in jump run using S.P.A.C.E.; practice flare sweet spot and toggle stall point above 2,500 ft.": {
+    "he": "השתתפות ביעף לפי S.P.A.C.E.; תרגול נקודת הבלימה ונקודת הזדקרות בהגאים מעל 2,500 רגל."
+  },
+  "Make two unassisted landings within 165 ft of target.": {
+    "he": "שתי נחיתות ללא סיוע בטווח 165 רגל מהמטרה."
+  },
+  "Report winds; plan spot, separation, drift, opening point, holding area, pattern and target; spot with minimal help.": {
+    "he": "דיווח רוחות ותכנון יציאה, הפרדה, סחיפה, פתיחה, המתנה, תבנית ומטרה; בחירת יציאה בסיוע מינימלי."
+  },
+  "Complete four 90° braked turns and two half-braked flares; make two unassisted landings within 82 ft.": {
+    "he": "ארבע פניות 90° בבלימה ושתי בלימות מחצי הגאים; שתי נחיתות ללא סיוע בטווח 82 רגל."
+  },
+  "Report winds; plan spot, separation, drift, opening point, pattern and target; spot with minimal help.": {
+    "he": "דיווח רוחות ותכנון יציאה, הפרדה, סחיפה, פתיחה, תבנית ומטרה; בחירת יציאה בסיוע מינימלי."
+  },
+  "Adjust glide path; perform four turn reversals above 2,500 ft; make two unassisted landings within 65 ft.": {
+    "he": "התאמת מסלול דאייה, ארבע החלפות כיוון מעל 2,500 רגל ושתי נחיתות ללא סיוע בטווח 65 רגל."
+  },
+  "Report winds; plan spot, separation, drift, opening point, holding area, pattern and target; spot unassisted.": {
+    "he": "דיווח רוחות ותכנון יציאה, הפרדה, סחיפה, פתיחה, המתנה, תבנית ומטרה; בחירת יציאה ללא סיוע."
+  },
+  "Complete two low-turn recovery drills and three unassisted landings within 65 ft.": {
+    "he": "שני תרגילי התאוששות מפנייה נמוכה ושלוש נחיתות ללא סיוע בטווח 65 רגל."
+  },
+  "Before downsizing: stable final approach, correctly timed full flare, soft landings/PLF and wind-adjusted patterns within 65 ft of target.": {
+    "he": "לפני הקטנת חופה: גישה סופית יציבה, בלימה מלאה בתזמון נכון, נחיתות רכות/PLF ותבניות מותאמות לרוח עד 65 רגל מהמטרה."
+  },
+  "Canopy flight skills": {
+    "he": "מיומנויות הטסת חופה"
+  },
+  "Observe preflight equipment and AAD checks; conduct four gear checks and inspect another jumper’s gear.": {
+    "he": "צפייה בבדיקת ציוד ו־AAD לפני הצניחה; ארבע בדיקות ציוד ובדיקת ציוד של צנחן אחר."
+  },
+  "Identify equipment components, their functions and possible malfunctions; review maintenance.": {
+    "he": "זיהוי רכיבי ציוד, תפקידם ותקלות אפשריות; סקירת תחזוקה."
+  },
+  "Pack the main canopy with assistance, then without assistance.": {
+    "he": "קיפול מצנח ראשי בסיוע ולאחר מכן ללא סיוע."
+  },
+  "Replace a closing loop and assemble the three-ring system.": {
+    "he": "החלפת לולאת סגירה והרכבת מערכת שלוש הטבעות."
+  },
+  "Equipment skills": {
+    "he": "בקיאות בציוד"
+  },
+  "Review aircraft traffic/runways, cloud clearance, aircraft weight and balance, and SHAGG.": {
+    "he": "סקירת תנועת מטוסים ומסלולים, מרחק מעננים, משקל ואיזון המטוס ו־SHAGG."
+  },
+  "Complete exit/freefall training, read SIM Categories A–H and pass each category quiz.": {
+    "he": "השלמת אימון יציאה ונפילה חופשית, קריאת קטגוריות A–H ב־SIM ומעבר כל בחני הקטגוריות."
+  },
+  "If transitioning from tandem, complete the solo-transition course after Category A or B.": {
+    "he": "במעבר מטנדם: השלמת קורס מעבר לסולו אחרי קטגוריה A או B."
+  },
+  "Pass the A-License oral exam with 100%.": {
+    "he": "עבר בחינה בעל פה לרישיון A בציון 100%."
+  },
+  "Keep USPA membership current and in good standing.": {
+    "he": "חברות USPA בתוקף ובמעמד תקין."
+  },
+  "Become familiar with the SIM and Governance Manual §1-6.": {
+    "he": "היכרות עם ה־SIM ועם סעיף 1-6 במדריך הנהלים."
+  },
+  "Aircraft and skydiving knowledge": {
+    "he": "ידע במטוס ובצניחה"
+  },
+  "Official USPA A-License Progression Card ↗": {
+    "he": "כרטיס ההתקדמות הרשמי לרישיון A של USPA ↗"
   }
 };

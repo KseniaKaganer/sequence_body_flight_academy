@@ -17,6 +17,9 @@
       if (!('il-a-jump-count' in data) && ('il-a-jumps-freefall' in data || 'il-a-jumps' in data)) {
         data['il-a-jump-count'] = data['il-a-jumps-freefall'] === true || data['il-a-jumps'] === true;
       }
+      for (const key of ['a-check-dive', 'a-written', 'a-oral']) {
+        if (!(key in data) && data['a-exams'] === true) data[key] = true;
+      }
       return data;
     } catch { return {}; }
   };
