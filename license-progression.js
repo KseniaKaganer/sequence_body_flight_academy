@@ -14,6 +14,9 @@
         const combined = prefix + '-jumps-freefall';
         if (!(combined in data) && (prefix + '-jumps' in data || prefix + '-freefall' in data)) data[combined] = data[prefix + '-jumps'] === true && data[prefix + '-freefall'] === true;
       }
+      if (!('il-a-jump-count' in data) && ('il-a-jumps-freefall' in data || 'il-a-jumps' in data)) {
+        data['il-a-jump-count'] = data['il-a-jumps-freefall'] === true || data['il-a-jumps'] === true;
+      }
       return data;
     } catch { return {}; }
   };
