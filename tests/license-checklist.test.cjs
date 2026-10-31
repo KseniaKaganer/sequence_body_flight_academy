@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../license-progression.js'), 'utf8');
 async function run({id='admin-a', admin=true, saved={}, blocked=false}={}) {
-  const tasks=['a-membership','b-exam','il-a-jumps-freefall'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
+  const tasks=['a-membership','b-exam','il-a-jumps-freefall','il-a-jump-count'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
   const handlers={};const dataset={};let authHandler;const values={...saved};let activeId=id;
   const client={auth:{getUser:async()=>({data:{user:activeId?{id:activeId}:null}}),onAuthStateChange(fn){authHandler=fn;}},rpc:async()=>({data:admin})};
   vm.runInNewContext(source,{document:{documentElement:{dataset},querySelectorAll:()=>tasks},window:{SEQUENCE_CONFIG:{},supabase:{createClient:()=>client},addEventListener:(type,fn)=>handlers[type]=fn},setTimeout:fn=>fn(),localStorage:{getItem(key){if(blocked)throw Error();return values[key];},setItem(key,data){if(blocked)throw Error();values[key]=data;}}});
@@ -42,5 +42,16 @@ test('merged jump/freefall completion requires both old tasks and respects new v
   ]) {
     const h=await run({saved:{[key]:JSON.stringify(progress)}});
     assert.equal(h.tasks[2].checked,expected);
+  }
+});
+
+test('Israeli A jump count keeps prior completion without marking new skills',async()=>{
+  const key='sequence-license-checklist-v1:admin-a';
+  for(const [data,expected] of [
+    [{'il-a-jumps':true},true],
+    [{'il-a-jumps-freefall':true},true],
+    [{'il-a-jumps':true,'il-a-jump-count':false},false]
+  ]){
+    const h=await run({saved:{[key]:JSON.stringify(data)}});assert.equal(h.tasks[3].checked,expected);
   }
 });
