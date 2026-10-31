@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="license-progression.css">
   <script src="settings-translations.js" defer></script>
   <script src="settings.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="license-progression.js" defer></script>
   <script>try { document.documentElement.dataset.theme = localStorage.getItem("sequence-theme") === "light" ? "light" : "dark"; } catch { document.documentElement.dataset.theme = "dark"; }</script>
 </head>
 <body>
@@ -19,55 +22,48 @@
     <a class="back-link" href="index.html">← Menu</a>
   </header>
   <main class="page-shell">
+    <section class="license-intro" aria-labelledby="licenseProgressionTitle">
+      <h1 id="licenseProgressionTitle">License Progression</h1>
+    </section>
     <nav class="license-organizations" aria-label="Skydiving associations">
       <a href="https://www.uspa.org/" target="_blank" rel="noopener"><span>USPA</span><span aria-hidden="true">↗</span></a>
       <a href="https://www.israel-skydiving.com/" target="_blank" rel="noopener"><span lang="he" dir="rtl">איגוד הצניחה הישראלי</span><span aria-hidden="true">↗</span></a>
     </nav>
-    <section class="license-intro" aria-labelledby="licenseProgressionTitle">
-      <p class="license-eyebrow">USPA · A / B / C / D</p>
-      <h1 id="licenseProgressionTitle">License Progression</h1>
-      <p>Your path to the next skydiving license.</p>
-      <p class="license-verified">Requirements checked <time datetime="2026-10-31">31 October 2026</time></p>
-    </section>
     <p class="license-guidance" lang="en" dir="ltr" translate="no">Open a license to view its requirements. Maintain current USPA membership, have qualifying logbook entries and application verified by an authorized USPA official, and submit the application and fee. This summary links to the official requirements and forms.</p>
     <section class="license-stack" aria-label="License requirements">
     <details class="license-card" id="license-a">
-      <summary><span class="license-letter" aria-hidden="true">A</span><span class="license-summary-copy"><span class="license-name">A License</span><span class="license-subtitle">First license</span></span><span class="license-minimum">25 jumps</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
+      <summary><span class="license-letter" aria-hidden="true">A</span><span class="license-summary-copy"><span class="license-name">A License</span></span><span class="license-minimum">25 jumps</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
       <div class="license-content" lang="en" dir="ltr" translate="no">
-        <h2>A-License requirements</h2>
-        <ul class="license-requirements"><li>Keep USPA membership current and in good standing.</li><li>Become familiar with the SIM and Governance Manual §1-6.</li><li>Log 25 jumps; eligible tandem, military and static-line jumps need verification.</li><li>Finish the A-License Progression Card, or qualifying Military Transition Proficiency Card.</li><li>Pass the practical check dive, written exam (75% minimum), and oral exam (100%).</li></ul>
+        <ul class="license-requirements"><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="a-membership"><span>Keep USPA membership current and in good standing.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="a-sim-introduction"><span>Become familiar with the SIM and Governance Manual §1-6.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="a-jumps"><span>Log 25 jumps; eligible tandem, military and static-line jumps need verification.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="a-progression-card"><span>Finish the A-License Progression Card, or qualifying Military Transition Proficiency Card.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="a-exams"><span>Pass the practical check dive, written exam (75% minimum), and oral exam (100%).</span></label></li></ul>
         <p class="license-note">The full progression card covers the required training skills and sign-offs.</p><a class="license-source" href="https://www.uspa.org/members/licenses/a-license-requirements-and-forms" target="_blank" rel="noopener">A-License requirements &amp; progression card ↗</a>
       </div>
     </details>
     <details class="license-card" id="license-b">
-      <summary><span class="license-letter" aria-hidden="true">B</span><span class="license-summary-copy"><span class="license-name">B License</span><span class="license-subtitle">Build your experience</span></span><span class="license-minimum">50 jumps · 30 min</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
+      <summary><span class="license-letter" aria-hidden="true">B</span><span class="license-summary-copy"><span class="license-name">B License</span></span><span class="license-minimum">50 jumps</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
       <div class="license-content" lang="en" dir="ltr" translate="no">
-        <h2>B-License requirements</h2>
-        <ul class="license-requirements"><li>Hold A License or satisfy its current requirements; pass lower-license exams.</li><li>Log 50 jumps and 30 minutes of controlled freefall.</li><li>Make 10 landings within 10 m (33 ft) of target center.</li><li>Complete planned formations on 10 formation or formation-freefly jumps; five must include at least three people.</li><li>Document live water-landing training in full equipment under SIM procedures.</li><li>Finish the B-License Canopy Proficiency Card, signed by an S&amp;TA, Examiner or board member.</li><li>Pass the B written exam with at least 75%.</li></ul>
+        <ul class="license-requirements"><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-a-license"><span>Hold A License or satisfy its current requirements; pass lower-license exams.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-jumps-freefall"><span>Log 50 jumps and 30 minutes of controlled freefall.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-accuracy"><span>Make 10 landings within 10 m (33 ft) of target center.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-formations"><span>Complete planned formations on 10 formation or formation-freefly jumps; five must include at least three people.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-water-training"><span>Document live water-landing training in full equipment under SIM procedures.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-canopy-card"><span>Finish the B-License Canopy Proficiency Card, signed by an S&amp;TA, Examiner or board member.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="b-exam"><span>Pass the B written exam with at least 75%.</span></label></li></ul>
         <a class="license-source" href="https://www.uspa.org/members/licenses/b-c-and-d-license-requirements-and-forms" target="_blank" rel="noopener">Official USPA B-License requirements ↗</a>
       </div>
     </details>
     <details class="license-card" id="license-c">
-      <summary><span class="license-letter" aria-hidden="true">C</span><span class="license-summary-copy"><span class="license-name">C License</span><span class="license-subtitle">Advance your skills</span></span><span class="license-minimum">200 jumps · 60 min</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
+      <summary><span class="license-letter" aria-hidden="true">C</span><span class="license-summary-copy"><span class="license-name">C License</span></span><span class="license-minimum">200 jumps</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
       <div class="license-content" lang="en" dir="ltr" translate="no">
-        <h2>C-License requirements</h2>
-        <ul class="license-requirements"><li>Hold B License or satisfy its current requirements; pass lower-license exams.</li><li>Log 200 jumps and 60 minutes of controlled freefall.</li><li>Make 25 landings within 2 m (7 ft) of target center.</li><li>Complete 50 successful formation or formation-freefly jumps; ten must include at least four people.</li><li>Pass the C written exam with at least 75%.</li></ul>
+        <ul class="license-requirements"><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="c-b-license"><span>Hold B License or satisfy its current requirements; pass lower-license exams.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="c-jumps-freefall"><span>Log 200 jumps and 60 minutes of controlled freefall.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="c-accuracy"><span>Make 25 landings within 2 m (7 ft) of target center.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="c-formations"><span>Complete 50 successful formation or formation-freefly jumps; ten must include at least four people.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="c-exam"><span>Pass the C written exam with at least 75%.</span></label></li></ul>
         <a class="license-source" href="https://www.uspa.org/members/licenses/b-c-and-d-license-requirements-and-forms" target="_blank" rel="noopener">Official USPA C-License requirements ↗</a>
       </div>
     </details>
     <details class="license-card" id="license-d">
-      <summary><span class="license-letter" aria-hidden="true">D</span><span class="license-summary-copy"><span class="license-name">D License</span><span class="license-subtitle">Highest USPA license</span></span><span class="license-minimum">500 jumps · 3 hours</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
+      <summary><span class="license-letter" aria-hidden="true">D</span><span class="license-summary-copy"><span class="license-name">D License</span></span><span class="license-minimum">500 jumps</span><span class="license-chevron" aria-hidden="true">⌄</span></summary>
       <div class="license-content" lang="en" dir="ltr" translate="no">
-        <h2>D-License requirements</h2>
-        <ul class="license-requirements"><li>Hold C License or satisfy its current requirements; pass lower-license exams.</li><li>Log 500 jumps and three hours of controlled freefall.</li><li>Pass the D written exam with at least 75%.</li></ul>
+        <ul class="license-requirements"><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-c-license"><span>Hold C License or satisfy its current requirements; pass lower-license exams.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-jumps-freefall"><span>Log 500 jumps and three hours of controlled freefall.</span></label></li><li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-exam"><span>Pass the D written exam with at least 75%.</span></label></li></ul>
         <h3>Two qualifying skills</h3>
         <p>Complete at least two skills below; a requirement may be repeated.</p>
         <ul class="license-requirements license-options">
-          <li>A night jump following SIM recommendations.</li>
-          <li>100 landings within 2 m (7 ft) of target center.</li>
-          <li>A full rotation in a canopy stack of three or more, returning to the starting position.</li>
-          <li>An intentional water jump.</li>
-          <li>100 successful formation jumps; 25 with at least eight people.</li>
+          <li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-night-jump"><span>A night jump following SIM recommendations.</span></label></li>
+          <li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-accuracy"><span>100 landings within 2 m (7 ft) of target center.</span></label></li>
+          <li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-canopy-rotation"><span>A full rotation in a canopy stack of three or more, returning to the starting position.</span></label></li>
+          <li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-water-jump"><span>An intentional water jump.</span></label></li>
+          <li><label class="license-task"><input type="checkbox" hidden disabled data-license-task="d-formations"><span>100 successful formation jumps; 25 with at least eight people.</span></label></li>
         </ul>
         <p class="license-note">D exam: current S&amp;TA, Examiner, Judge Examiner or board member. D logbook verification: S&amp;TA or board member.</p>
         <a class="license-source" href="https://www.uspa.org/SIM/3-1" target="_blank" rel="noopener">Official USPA D-License requirements ↗</a>

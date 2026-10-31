@@ -1,0 +1,33 @@
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, '../license-progression.js'), 'utf8');
+async function run({id='admin-a', admin=true, saved={}, blocked=false}={}) {
+  const tasks=['a-membership','b-exam'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
+  const handlers={};const dataset={};let authHandler;const values={...saved};let activeId=id;
+  const client={auth:{getUser:async()=>({data:{user:activeId?{id:activeId}:null}}),onAuthStateChange(fn){authHandler=fn;}},rpc:async()=>({data:admin})};
+  vm.runInNewContext(source,{document:{documentElement:{dataset},querySelectorAll:()=>tasks},window:{SEQUENCE_CONFIG:{},supabase:{createClient:()=>client},addEventListener:(type,fn)=>handlers[type]=fn},setTimeout:fn=>fn(),localStorage:{getItem(key){if(blocked)throw Error();return values[key];},setItem(key,data){if(blocked)throw Error();values[key]=data;}}});
+  await new Promise(resolve=>setImmediate(resolve));
+  return {tasks,handlers,dataset,values,auth:event=>authHandler(event),setId:id=>{activeId=id;}};
+}
+test('guests and non-admin accounts see no checkboxes or saved progress',async()=>{
+  for(const options of [{id:null},{admin:false}]){const h=await run(options);assert.equal(h.tasks[0].hidden,true);assert.equal(h.tasks[0].disabled,true);assert.equal(h.dataset.licenseTracking,'false');h.tasks[0].checked=true;h.tasks[0].change();assert.equal(h.tasks[0].checked,false);assert.deepEqual(h.values,{});}
+});
+test('verified account restores and updates its own progress; sign-out hides and clears controls',async()=>{
+  const key='sequence-license-checklist-v1:admin-a';const h=await run({saved:{[key]:'{"a-membership":true,"b-exam":true}'}});
+  assert.equal(h.tasks[0].hidden,false);assert.equal(h.tasks[0].checked,true);
+  h.tasks[0].checked=false;h.tasks[0].change();assert.deepEqual(JSON.parse(h.values[key]),{'a-membership':false,'b-exam':true});
+  h.auth('SIGNED_OUT');assert.equal(h.tasks[1].checked,false);assert.equal(h.tasks[1].hidden,true);
+  h.setId('admin-b');h.auth('SIGNED_IN');await new Promise(resolve=>setImmediate(resolve));assert.equal(h.tasks[1].checked,false);assert.equal(h.tasks[1].hidden,false);
+});
+test('corrupt or blocked storage does not break signed-in checkbox interaction',async()=>{
+  for(const value of ['invalid','null','[]','{"a-membership":"true"}'])assert.equal((await run({saved:{'sequence-license-checklist-v1:admin-a':value}})).tasks[0].checked,false);
+  const h=await run({blocked:true});h.tasks[0].checked=true;assert.doesNotThrow(()=>h.tasks[0].change());assert.equal(h.tasks[0].checked,true);
+});
+test('cross-tab progress changes apply only to the current user',async()=>{
+  const h=await run();h.handlers.storage({key:'sequence-license-checklist-v1:admin-b',newValue:'{"b-exam":true}'});assert.equal(h.tasks[1].checked,false);
+  h.handlers.storage({key:'sequence-license-checklist-v1:admin-a',newValue:'{"b-exam":true}'});assert.equal(h.tasks[1].checked,true);
+  h.handlers.storage({key:null});assert.equal(h.tasks[1].checked,false);
+});
