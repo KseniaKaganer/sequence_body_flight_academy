@@ -496,7 +496,7 @@
   }
   function renderParticipants() {
     const query = el('participantSearch').value.trim().toLowerCase();
-    const filtersActive = Boolean(el('participantCategoryFilter').value || el('participantActivityFilter').value || el('participantMissingPhone').checked);
+    const filtersActive = Boolean(el('participantCategoryFilter').value || el('participantActivityFilter').value || el('participantMissingPhone').checked || el('participantMissingSurname').checked);
     const matches = participants.filter(person => participantMatchesActivityFilters(person) && (
       (person.searchText || [person.display_name, person.surname, person.phone, person.email]
         .filter(Boolean).join(' ')).toLowerCase().includes(query) ||
@@ -584,7 +584,7 @@
   function showSignedOut() {
     verifiedAdmin = false;
     el('participantGearDialog').close(); gearEditing = null; profileDataCache = null;
-    el('participantMissingPhone').checked = false;
+    el('participantMissingPhone').checked = false; el('participantMissingSurname').checked = false;
     ++statisticsLoad; statisticsData = null; el('statisticsContent').hidden = true; status('statisticsStatus', '');
     for (const id of ['statisticsCards','statisticsOverviewPeople','statisticsTypes','statisticsPeople','statisticsCoaches','statisticsMonths','statisticsRequestCards','statisticsRequests']) el(id).replaceChildren();
     ++requestPeopleLoad; ++requestsLoad;
@@ -1501,6 +1501,7 @@
     const category = el('participantCategoryFilter').value;
     const activity = el('participantActivityFilter').value;
     if (el('participantMissingPhone').checked && normalizedParticipantPhone(person.phone)) return false;
+    if (el('participantMissingSurname').checked && String(participantInfo(person).surname || '').trim()) return false;
     if (!category && !activity) return true;
     return [...participantActivityIndex].some(([key, item]) => (!activity || key === activity)
       && (!category || item.category === category)
@@ -1570,8 +1571,9 @@
   el('participantCategoryFilter').addEventListener('change', () => { renderParticipantActivityOptions(); renderParticipants(); });
   el('participantActivityFilter').addEventListener('change', renderParticipants);
   el('participantMissingPhone').addEventListener('change',renderParticipants);
+  el('participantMissingSurname').addEventListener('change',renderParticipants);
   el('clearParticipantFilters').addEventListener('click', () => {
-    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = ''; el('participantMissingPhone').checked = false;
+    el('participantCategoryFilter').value = ''; el('participantActivityFilter').value = ''; el('participantSearch').value = ''; el('participantMissingPhone').checked = false; el('participantMissingSurname').checked = false;
     renderParticipantActivityOptions(); renderParticipants();
   });
 
