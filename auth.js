@@ -2231,6 +2231,7 @@
       const config = window.SEQUENCE_CONFIG;
       if (!window.supabase || !config) throw new Error('Login is unavailable. Please refresh and try again.');
       client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      if (window.SequenceGoogleLogin) window.SequenceGoogleLogin.setup(client);
       // Defer API calls outside the auth callback to avoid the SDK's auth lock.
       client.auth.onAuthStateChange(event => {
         if (event === 'SIGNED_OUT') { ++revision; showSignedOut(); }

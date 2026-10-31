@@ -75,6 +75,8 @@
       <button id="closeLogin" class="close-login" type="button" aria-label="Close login">×</button>
       <h2 id="loginTitle">Login</h2>
       <p>Use your SHAKSHUKA Travel admin account.</p>
+      <button id="googleLogin" class="google-login" type="button" disabled><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92A6 6 0 0 1 6.1 12c0-.67.11-1.32.31-1.92V7.49H3.07A10 10 0 0 0 2 12c0 1.61.38 3.14 1.07 4.51l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.96c1.47 0 2.79.51 3.82 1.51l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.72 9.4 5.96 12 5.96Z"/></svg><span>Continue with Google</span></button>
+      <p class="login-divider">or sign in with email</p>
       <form id="loginForm">
         <label for="loginEmail">Email</label>
         <input id="loginEmail" type="email" autocomplete="username" required>
@@ -430,6 +432,17 @@
         <div class="arrow">→</div>
       </a>
 
+      <a class="menu-card" href="license-progression.html">
+        <div class="menu-card-content">
+          <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="34" height="27" rx="4"/><circle cx="17" cy="21" r="4"/><path d="M11 31c1-6 11-6 12 0m5-13h7m-7 6h7"/><path class="icon-accent" d="m28 31 3 3 7-7"/></svg></span>
+          <div>
+            <h2>License Progression</h2>
+            <p>Your path to the next skydiving license.</p>
+          </div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+
       <a class="menu-card" href="wingload-calculator.html">
         <div class="menu-card-content">
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21a18 18 0 0 1 36 0H6ZM6 21l13 18m23-18L29 39M15 21l6 18m12-18-6 18M18 21c0-16 12-16 12 0"/><path class="icon-accent" d="M20 39h8v5h-8z"/></svg></span>
@@ -457,7 +470,7 @@
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-accent" d="M27 8v-4m11 9 3-3M13 13l-3-3M8 24H4m31-1a9 9 0 1 0-17-4"/><path d="M14 37a8 8 0 0 1 0-16 11 11 0 0 1 20 5 6 6 0 1 1 0 12H14Z"/><path d="M8 44h17m5 0h8"/></svg></span>
           <div>
             <h2>Weather &amp; Winds</h2>
-            <p>Check wind forecast and weather conditions.</p>
+            <p>Winds Aloft by Mark Schulze</p>
           </div>
         </div>
         <div class="arrow">→</div>
@@ -468,7 +481,7 @@
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m23 6 3 2 2 13 15 9v4l-15-5-1 10 5 4v2l-8-2-8 2v-2l5-4-1-10-15 5v-4l15-9 1-13Z"/><path class="icon-accent" d="M35 10h9m-4-4 4 4-4 4"/></svg></span>
           <div>
             <h2>Exit Order</h2>
-            <p>Build and simulate the exit sequence from the aircraft.</p>
+            <p>Build and simulate aircraft exit order</p>
           </div>
         </div>
         <div class="arrow">→</div>
@@ -479,7 +492,7 @@
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8h30v32H9zM5 16h4m30 0h4M5 32h4m30 0h4"/><path class="icon-accent" d="M15 20a9 9 0 0 1 18 0H15Zm0 0 7 11m11-11-7 11m-4 0h4v5h-4z"/></svg></span>
           <div>
             <h2>Airport X-ray</h2>
-            <p>See how CYPRES and Vigil appear in airport security scans.</p>
+            <p>CYPRES and Vigil airport security scans</p>
           </div>
         </div>
         <div class="arrow">→</div>
@@ -490,7 +503,7 @@
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20a18 18 0 0 1 36 0H6ZM6 20l15 20m21-20L27 40M16 20l7 20m9-20-7 20M18 20c0-16 12-16 12 0"/><path class="icon-accent" d="M20 39h8v6h-8z"/></svg></span>
           <div>
             <h2>Reserve Calculator</h2>
-            <p>Reserve-related calculation tool.</p>
+            <p>Reserve Repack Date Calculation</p>
           </div>
         </div>
         <div class="arrow">→</div>
@@ -522,7 +535,7 @@
         <div class="menu-card-content">
           <span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16h28l3 27H7l3-27Zm7 0V12a7 7 0 0 1 14 0v4"/><path class="icon-accent" d="M17 28a7 7 0 0 1 14 0m-14 0 5 5m9-5-5 5"/></svg></span>
           <div>
-            <h2>Sequence Shop</h2>
+            <h2>Shop</h2>
             <p>Gear, apparel and Sequence products.</p>
           </div>
         </div>
@@ -555,7 +568,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="supabase-config.js" defer></script>
   <script src="admin-session-bridge.js?v=2" defer></script>
-  <script src="auth.js?v=request-conversion-1" defer></script>
+  <script src="google-login.js?v=1" defer></script>
+  <script src="auth.js?v=google-login-1" defer></script>
 
 <dialog id="convertRequestDialog" class="login-dialog basic-event-form" aria-labelledby="convertRequestTitle">
  <h2 id="convertRequestTitle">Create activity from request</h2>

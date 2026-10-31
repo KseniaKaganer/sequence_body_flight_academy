@@ -539,33 +539,17 @@ window.sequenceTranslations = {
     "he": "מזג אוויר ורוחות",
     "ru": "Погода и ветер"
   },
-  "Check wind forecast and weather conditions.": {
-    "he": "בדיקת תחזית רוח ותנאי מזג האוויר.",
-    "ru": "Прогноз ветра и погодные условия."
-  },
   "Exit Order": {
     "he": "סדר יציאה",
     "ru": "Порядок отделения"
-  },
-  "Build and simulate the exit sequence from the aircraft.": {
-    "he": "תכנון ותרגול סדר היציאה מהמטוס.",
-    "ru": "Планируйте порядок отделения от самолёта."
   },
   "Airport X-ray": {
     "he": "שיקוף בשדה התעופה",
     "ru": "Рентген в аэропорту"
   },
-  "See how CYPRES and Vigil appear in airport security scans.": {
-    "he": "כך נראים CYPRES ו־Vigil בשיקוף בשדה התעופה.",
-    "ru": "Как CYPRES и Vigil выглядят на досмотре в аэропорту."
-  },
   "Reserve Calculator": {
     "he": "מחשבון רזרבי",
     "ru": "Калькулятор запасного парашюта"
-  },
-  "Reserve-related calculation tool.": {
-    "he": "כלי לחישובים הקשורים לרזרבי.",
-    "ru": "Расчёты для запасного парашюта."
   },
   "Learning Blog": {
     "he": "בלוג לימוד",
@@ -582,10 +566,6 @@ window.sequenceTranslations = {
   "Follow your body flight progression.": {
     "he": "עקבו אחר ההתקדמות שלכם בתעופת גוף.",
     "ru": "Следите за прогрессом в полёте телом."
-  },
-  "Sequence Shop": {
-    "he": "חנות Sequence",
-    "ru": "Магазин Sequence"
   },
   "Gear, apparel and Sequence products.": {
     "he": "ציוד, ביגוד ומוצרי Sequence.",
@@ -634,5 +614,45 @@ window.sequenceTranslations = {
   "Student": {
     "he": "תלמיד",
     "ru": "Студент"
+  },
+  "Winds Aloft by Mark Schulze": {
+    "he": "רוחות בגובה מאת Mark Schulze",
+    "ru": "Ветер на высоте от Mark Schulze"
+  },
+  "Build and simulate aircraft exit order": {
+    "he": "תכנון וסימולציה של סדר היציאה מהמטוס",
+    "ru": "Планируйте и моделируйте порядок отделения от самолёта"
+  },
+  "CYPRES and Vigil airport security scans": {
+    "he": "שיקופי אבטחה בשדה התעופה של CYPRES ו־Vigil",
+    "ru": "CYPRES и Vigil на досмотре в аэропорту"
+  },
+  "Continue with Google": {
+    "he": "המשך עם Google",
+    "ru": "Продолжить с Google"
+  },
+  "or sign in with email": {
+    "he": "או כניסה עם אימייל",
+    "ru": "или войдите с электронной почтой"
+  },
+  "Reserve Repack Date Calculation": {
+    "he": "חישוב תאריך קיפול רזרבי",
+    "ru": "Расчёт даты переукладки запасного парашюта"
+  },
+  "Shop": {
+    "he": "חנות",
+    "ru": "Магазин"
+  },
+  "License Progression": {
+    "he": "התקדמות ברישיון צניחה",
+    "ru": "Прогресс лицензии"
+  },
+  "Your path to the next skydiving license.": {
+    "he": "הדרך שלכם לרישיון הצניחה הבא.",
+    "ru": "Ваш путь к следующей парашютной лицензии."
+  },
+  "Progression details will be added here.": {
+    "he": "פרטי ההתקדמות יתווספו כאן.",
+    "ru": "Здесь появятся подробности о получении лицензий."
   }
 };
