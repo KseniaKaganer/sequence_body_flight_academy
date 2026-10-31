@@ -324,3 +324,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 #participantGearDialog textarea { width: 100%; box-sizing: border-box; padding: 12px; background: #080808; color: var(--text); border: 1px solid #555; border-radius: 8px; font: inherit; }
 #saveParticipantGear { background: var(--accent); }
 #participantGearDialog .edit-actions { margin-top: 16px; }
+
+.participant-list-panel .participant-toolbar { flex-wrap: wrap; }
+.participant-toolbar .participant-search-field { min-width: 160px; flex: 1 1 160px; }

@@ -1,4 +1,6 @@
 window.sequenceTranslations = {
+  "Add Participant": { "he": "הוספת משתתף", "ru": "Добавить участника" },
+  "Participant added.": { "he": "המשתתף נוסף.", "ru": "Участник добавлен." },
   "Missing surname only": { "he": "ללא שם משפחה בלבד", "ru": "Только без фамилии" },
   "Shakshuka points": { "he": "נקודות שקשוקה", "ru": "Баллы Шакшука" },
   "Participant": { "he": "משתתף", "ru": "Участник" },
