@@ -1,4 +1,7 @@
 window.sequenceTranslations = {
+  "Participant": { "he": "משתתף", "ru": "Участник" },
+  "Full name": { "he": "שם מלא", "ru": "Полное имя" },
+  "Phone number": { "he": "מספר טלפון", "ru": "Номер телефона" },
   "Username": { "he": "שם משתמש", "ru": "Имя пользователя" },
   "Settings": {
     "he": "הגדרות",

@@ -51,10 +51,10 @@
       <a class="brand-home" href="index.html" aria-label="Sequence home">
         <img class="brand-logo" src="assets/sequence-logo.png" alt="Sequence Body Flight Academy">
       </a>
-    <section class="account-panel" aria-label="Admin account">
+    <section class="account-panel" aria-label="Account">
       <button id="openLogin" type="button" disabled>Login</button>
       <div id="adminAccount" hidden>
-        <span id="adminName"></span> <span class="account-role">Admin</span>
+        <span id="adminName"></span> <span id="accountRole" class="account-role">Admin</span>
         <button id="signOut" type="button">Log out</button>
       </div>
       <p id="accountStatus" role="status" aria-live="polite"></p>
@@ -74,14 +74,25 @@
     <dialog id="loginDialog" class="login-dialog" aria-labelledby="loginTitle">
       <button id="closeLogin" class="close-login" type="button" aria-label="Close login">×</button>
       <h2 id="loginTitle">Login</h2>
+      <div id="loginModes" hidden class="login-modes" role="group" aria-label="Login type">
+        <button id="participantLoginMode" type="button" aria-pressed="true">Participant</button>
+        <button id="adminLoginMode" type="button" aria-pressed="false">Admin</button>
+      </div>
+      <form id="participantLoginForm" hidden>
+        <label for="participantLoginName">Full name</label>
+        <input id="participantLoginName" type="text" autocomplete="name" maxlength="200" required>
+        <label for="participantLoginPhone">Phone number</label>
+        <input id="participantLoginPhone" type="tel" autocomplete="tel" maxlength="40" required>
+        <button id="submitParticipantLogin" type="submit">Log in</button>
+      </form>
       <form id="loginForm">
         <label for="loginEmail">Username</label>
         <input id="loginEmail" type="email" autocomplete="username" required>
         <label for="loginPassword">Password</label>
         <input id="loginPassword" type="password" autocomplete="current-password" required>
         <button id="submitLogin" type="submit">Log in</button>
-        <p id="loginStatus" role="status" aria-live="polite"></p>
       </form>
+      <p id="loginStatus" role="status" aria-live="polite"></p>
     </dialog>
 
     <section id="participantsPage" hidden aria-label="Participants">
@@ -566,7 +577,8 @@
   <script src="supabase-config.js" defer></script>
   <script src="admin-session-bridge.js?v=2" defer></script>
   <script src="google-login.js?v=1" defer></script>
-  <script src="auth.js?v=google-login-1" defer></script>
+  <script src="participant-login.js?v=1" defer></script>
+  <script src="auth.js?v=participant-login-1" defer></script>
 
 <dialog id="convertRequestDialog" class="login-dialog basic-event-form" aria-labelledby="convertRequestTitle">
  <h2 id="convertRequestTitle">Create activity from request</h2>

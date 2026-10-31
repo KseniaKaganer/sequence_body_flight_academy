@@ -614,12 +614,24 @@
     el('adminName').textContent = '';
     el('openLogin').hidden = false;
   }
+  function showParticipant(person) {
+    showSignedOut();
+    el('adminName').textContent = person.display_name;
+    el('accountRole').textContent = 'Participant';
+    el('adminAccount').hidden = false;
+    el('openLogin').hidden = true;
+  }
   async function refreshAccount() {
     const current = ++revision;
     // Never trust a locally stored account or role to grant admin access.
     const { data: { session }, error: sessionError } = await client.auth.getSession();
     if (sessionError) throw sessionError;
-    if (!session) { showSignedOut(); return false; }
+    if (!session) {
+      const participant = await window.SequenceParticipant.restore();
+      if (current !== revision) return false;
+      if (participant) { showParticipant(participant); return true; }
+      showSignedOut(); return false;
+    }
     const { data: { user }, error: userError } = await client.auth.getUser();
     if (userError) throw userError;
     const { data: admin, error } = await client.rpc('is_admin');
@@ -635,6 +647,7 @@
     if (current !== revision) return false;
     el('adminName').textContent = record?.display_name || user.user_metadata?.name
       || user.user_metadata?.full_name || user.user_metadata?.display_name || user.email;
+    el('accountRole').textContent = 'Admin';
     verifiedAdmin = true;
     el('accountMenu').hidden = false;
     el('openLogin').hidden = true;
@@ -643,10 +656,38 @@
     status('accountStatus', '');
     return true;
   }
+  function selectLoginMode(participant) {
+    participant = participant && window.SEQUENCE_CONFIG?.participantLoginEnabled === true;
+    form.hidden = participant;
+    el('participantLoginForm').hidden = !participant;
+    el('participantLoginMode').setAttribute('aria-pressed', String(participant));
+    el('adminLoginMode').setAttribute('aria-pressed', String(!participant));
+    el('loginPassword').value = '';
+    el('participantLoginPhone').value = '';
+    status('loginStatus', '');
+  }
+  el('participantLoginMode').addEventListener('click', () => selectLoginMode(true));
+  el('adminLoginMode').addEventListener('click', () => selectLoginMode(false));
+  el('participantLoginForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    el('submitParticipantLogin').disabled = true;
+    status('loginStatus', 'Signing in…');
+    try {
+      const { error } = await client.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+      const person = await window.SequenceParticipant.login(el('participantLoginName').value, el('participantLoginPhone').value);
+      ++revision;
+      showParticipant(person);
+      el('participantLoginForm').reset();
+      dialog.close();
+    } catch (error) { status('loginStatus', error.message || 'Unable to log in. Please try again.'); }
+    finally { el('submitParticipantLogin').disabled = false; }
+  });
   el('openLogin').addEventListener('click', () => dialog.showModal());
   el('closeLogin').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     el('loginPassword').value = '';
+    el('participantLoginPhone').value = '';
     status('loginStatus', '');
   });
   form.addEventListener('submit', async event => {
@@ -654,6 +695,7 @@
     el('submitLogin').disabled = true;
     status('loginStatus', 'Signing in…');
     try {
+      await window.SequenceParticipant.logout();
       const { error } = await client.auth.signInWithPassword({
         email: el('loginEmail').value.trim(), password: el('loginPassword').value
       });
@@ -667,6 +709,7 @@
   el('signOut').addEventListener('click', async () => {
     el('signOut').disabled = true;
     try {
+      await window.SequenceParticipant.logout();
       // Local logout does not unexpectedly revoke sessions on the other site.
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
@@ -2231,6 +2274,9 @@
       const config = window.SEQUENCE_CONFIG;
       if (!window.supabase || !config) throw new Error('Login is unavailable. Please refresh and try again.');
       client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      window.SequenceParticipant.setup(client);
+      el('loginModes').hidden = config.participantLoginEnabled !== true;
+      selectLoginMode(config.participantLoginEnabled === true);
       if (window.SequenceGoogleLogin) window.SequenceGoogleLogin.setup(client);
       // Defer API calls outside the auth callback to avoid the SDK's auth lock.
       client.auth.onAuthStateChange(event => {

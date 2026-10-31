@@ -4,11 +4,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../license-progression.js'), 'utf8');
-async function run({id='admin-a', admin=true, saved={}, blocked=false}={}) {
+async function run({id='admin-a', admin=true, saved={}, blocked=false, participant=null}={}) {
   const tasks=['a-membership','b-exam','il-a-jumps-freefall','il-a-jump-count','a-check-dive','a-written','a-oral'].map(id=>({dataset:{licenseTask:id},checked:false,addEventListener(type,fn){this[type]=fn;}}));
   const handlers={};const dataset={};let authHandler;const values={...saved};let activeId=id;
   const client={auth:{getUser:async()=>({data:{user:activeId?{id:activeId}:null}}),onAuthStateChange(fn){authHandler=fn;}},rpc:async()=>({data:admin})};
-  vm.runInNewContext(source,{document:{documentElement:{dataset},querySelectorAll:()=>tasks},window:{SEQUENCE_CONFIG:{},supabase:{createClient:()=>client},addEventListener:(type,fn)=>handlers[type]=fn},setTimeout:fn=>fn(),localStorage:{getItem(key){if(blocked)throw Error();return values[key];},setItem(key,data){if(blocked)throw Error();values[key]=data;}}});
+  vm.runInNewContext(source,{document:{documentElement:{dataset},querySelectorAll:()=>tasks},window:{SEQUENCE_CONFIG:{},SequenceParticipant:participant?{setup(){},restore:async()=>participant}:undefined,supabase:{createClient:()=>client},addEventListener:(type,fn)=>handlers[type]=fn},setTimeout:fn=>fn(),localStorage:{getItem(key){if(blocked)throw Error();return values[key];},setItem(key,data){if(blocked)throw Error();values[key]=data;}}});
   await new Promise(resolve=>setImmediate(resolve));
   return {tasks,handlers,dataset,values,auth:event=>authHandler(event),setId:id=>{activeId=id;}};
 }
@@ -64,4 +64,14 @@ test('USPA combined exam progress migrates without overriding explicit updates',
   assert.equal(h.tasks[6].checked,true);
   const fresh=await run({saved:{[key]:JSON.stringify({'a-exams':false})}});
   assert.equal(fresh.tasks[4].checked,false);
+});
+
+test('verified participant can track licenses under a separate identity key',async()=>{
+  const key='sequence-license-checklist-v1:participant:person-1';
+  const h=await run({id:null,participant:{participant_id:'person-1'},saved:{[key]:'{"b-exam":true}'}});
+  assert.equal(h.dataset.licenseTracking,'true');
+  assert.equal(h.tasks[1].checked,true);
+  h.tasks[0].checked=true;h.tasks[0].change();
+  assert.equal(JSON.parse(h.values[key])['a-membership'],true);
+  h.auth('SIGNED_OUT');assert.equal(h.tasks[1].hidden,true);
 });

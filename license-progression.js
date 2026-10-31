@@ -49,7 +49,11 @@
     try {
       // Use the same server-verified admin access policy as the main page.
       const { data: { user }, error } = await client.auth.getUser();
-      if (error || !user) { if (current === revision) setAccount(null); return; }
+      if (error || !user) {
+        const person = window.SequenceParticipant ? await window.SequenceParticipant.restore() : null;
+        if (current === revision) setAccount(person ? 'participant:' + person.participant_id : null);
+        return;
+      }
       const { data: admin, error: roleError } = await client.rpc('is_admin');
       if (current === revision) setAccount(!roleError && admin === true ? user.id : null);
     } catch { if (current === revision) setAccount(null); }
@@ -57,6 +61,7 @@
   const config = window.SEQUENCE_CONFIG;
   if (!window.supabase || !config) return;
   const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  if (window.SequenceParticipant) window.SequenceParticipant.setup(client);
   client.auth.onAuthStateChange(event => {
     if (event === 'SIGNED_OUT') { ++revision; setAccount(null); return; }
     if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
