@@ -1,4 +1,5 @@
 window.sequenceTranslations = {
+  "Missing surname only": { "he": "ללא שם משפחה בלבד", "ru": "Только без фамилии" },
   "Shakshuka points": { "he": "נקודות שקשוקה", "ru": "Баллы Шакшука" },
   "Participant": { "he": "משתתף", "ru": "Участник" },
   "Full name": { "he": "שם מלא", "ru": "Полное имя" },
