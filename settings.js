@@ -12,7 +12,7 @@
 
   const host = document.createElement('div');
   host.className = 'sequence-settings';
-  host.innerHTML = `<button type="button" class="settings-trigger" aria-haspopup="dialog" aria-controls="sequenceSettingsDialog"><span aria-hidden="true">⚙</span> <span>Settings</span></button>
+  host.innerHTML = `<button type="button" class="settings-trigger" aria-label="Settings" title="Settings" aria-haspopup="dialog" aria-controls="sequenceSettingsDialog"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 3-.6 2.2-1.6.9-2.2-.6-2.5 4.3 1.6 1.6v1.8l-1.6 1.6 2.5 4.3 2.2-.6 1.6.9.6 2.2h5l.6-2.2 1.6-.9 2.2.6 2.5-4.3-1.6-1.6v-1.8l1.6-1.6-2.5-4.3-2.2.6-1.6-.9-.6-2.2z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     <dialog id="sequenceSettingsDialog" aria-labelledby="sequenceSettingsTitle">
       <form method="dialog"><button class="settings-close" aria-label="Close">×</button></form>
       <h2 id="sequenceSettingsTitle">Settings</h2>
