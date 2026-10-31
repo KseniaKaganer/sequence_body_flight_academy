@@ -837,5 +837,11 @@ window.sequenceTranslations = {
   },
   "Skydiving associations": {
     "he": "איגודי צניחה"
+  },
+  "Open a license to view its requirements. Choose a licensing organization below to see its requirements and official forms.": {
+    "he": "פתחו תיבת רישיון להצגת הדרישות. בחרו את איגוד הצניחה למטה כדי לראות את דרישותיו ואת הטפסים הרשמיים."
+  },
+  "Licensing organization": {
+    "he": "איגוד הצניחה"
   }
 };
