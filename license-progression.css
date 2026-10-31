@@ -1,0 +1,48 @@
+.license-intro { margin-block: 24px 22px; }
+.license-eyebrow { color: var(--accent); font-size: .8rem; font-weight: 700; letter-spacing: .13em; }
+.license-intro h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin-block: 10px; letter-spacing: -.035em; }
+.license-intro > p:not(.license-eyebrow) { color: var(--muted); line-height: 1.6; }
+.license-verified { font-size: .8rem; }
+.license-guidance { padding: 18px 22px; color: var(--muted); line-height: 1.7; border-inline-start: 3px solid var(--accent); background: var(--panel); border-radius: 0 12px 12px 0; margin-block: 24px; }
+.license-stack { display: grid; gap: 14px; }
+.license-card { border: 1px solid var(--border); border-radius: 16px; background: var(--panel); overflow: hidden; }
+.license-card summary { display: flex; align-items: center; gap: 18px; padding: 22px; cursor: pointer; list-style: none; }
+.license-card summary::-webkit-details-marker { display: none; }
+.license-card summary:hover { background: var(--panel-hover); }
+.license-card summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 16px; }
+.license-letter { display: grid; place-items: center; width: 52px; height: 52px; flex: 0 0 52px; font-size: 1.65rem; font-weight: 800; color: var(--accent); border: 1px solid var(--border); border-radius: 12px; }
+.license-summary-copy { display: grid; gap: 5px; flex: 1; }
+.license-name { font-weight: 700; font-size: 1.2rem; }
+.license-subtitle { font-size: .85rem; color: var(--muted); }
+.license-minimum { border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.license-chevron { font-size: 1.4rem; color: var(--muted); transition: transform .15s ease; }
+.license-card[open] { border-color: var(--accent); }
+.license-card[open] .license-chevron { transform: rotate(180deg); }
+.license-content { padding: 4px 26px 26px; border-top: 1px solid var(--border); }
+.license-content h2 { font-size: 1.05rem; margin-block: 22px 14px; }
+.license-content h3 { font-size: 1rem; margin-block-start: 24px; }
+.license-content p { line-height: 1.65; }
+.license-requirements { padding-inline-start: 22px; margin-block: 10px 20px; }
+.license-requirements li { padding-inline-start: 5px; margin-block: 12px; line-height: 1.65; }
+.license-requirements li::marker { color: var(--accent); }
+.license-note { color: var(--muted); font-size: .9rem; }
+.license-source, .license-reference a { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; line-height: 1.6; }
+.license-reference { padding: 24px; margin-block-start: 26px; border: 1px solid var(--border); border-radius: 16px; }
+.license-reference h2 { font-size: 1rem; margin-block-start: 0; }
+.license-reference p { color: var(--muted); line-height: 1.6; }
+.license-reference-links { display: flex; flex-wrap: wrap; gap: 14px 24px; font-size: .9rem; }
+@media (max-width: 600px) {
+  .license-card summary { padding: 16px; gap: 12px; flex-wrap: wrap; }
+  .license-letter { width: 44px; height: 44px; flex-basis: 44px; }
+  .license-minimum { order: 4; margin-inline-start: 56px; }
+  .license-chevron { margin-inline-start: auto; }
+  .license-content { padding: 2px 18px 22px; }
+  .license-guidance, .license-reference { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .license-chevron { transition: none; } }
+.license-organizations { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 12px 28px; }
+.license-organizations a { display: inline-flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 46px; padding: 12px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text); font-weight: 600; }
+.license-organizations a:hover { background: var(--panel-hover); border-color: var(--accent); }
+.license-organizations a > span:last-child { color: var(--accent); }
+.license-organizations a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 400px) { .license-organizations a { flex: 1; padding: 10px 14px; gap: 12px; } }
