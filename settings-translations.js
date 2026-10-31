@@ -520,7 +520,7 @@ window.sequenceTranslations = {
     "ru": "Парашютные кемпы, поездки и приключения."
   },
   "Wingload Calculator": {
-    "he": "מחשבון עומס חופה",
+    "he": "מחשבון יחס העמסה",
     "ru": "Калькулятор загрузки купола"
   },
   "Calculate and explore wing loading.": {
