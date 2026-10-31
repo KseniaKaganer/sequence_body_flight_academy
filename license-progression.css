@@ -62,3 +62,13 @@ html[dir="rtl"] .license-guidance { border-radius: 12px 0 0 12px; }
 .license-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 #israel-license-panel .license-reference a { color: var(--accent); text-decoration: underline; }
 [role="tabpanel"][hidden] { display: none; }
+.canopy-course { margin-block: 22px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.license-card .canopy-course > summary { padding: 16px; font-size: 1rem; font-weight: 700; display: list-item; list-style: disclosure-closed inside; }
+.license-card .canopy-course[open] > summary { list-style-type: disclosure-open; border-bottom: 1px solid var(--border); }
+.canopy-course-body { padding: 0 16px 18px; }
+.canopy-jump { border-bottom: 1px solid var(--border); margin-block: 8px; }
+.license-card .canopy-jump > summary { padding: 14px 4px; display: list-item; list-style: disclosure-closed inside; font-size: .95rem; font-weight: 600; line-height: 1.5; }
+.license-card .canopy-jump[open] > summary { list-style-type: disclosure-open; }
+.canopy-course > summary::-webkit-details-marker, .canopy-jump > summary::-webkit-details-marker { display: inline; }
+.canopy-jump .license-requirements { padding-inline: 6px; margin-block: 2px 14px; }
+.canopy-course-body > .license-source { display: inline-block; margin-block-start: 14px; }
